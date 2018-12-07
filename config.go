@@ -1,12 +1,12 @@
 package shadowsocks
 
 type Config struct {
-	Uid        int    `json:"uid"`
-	Sid        int    `json:"sid"`
+	Uid        int64  `json:"uid"`
+	Sid        int64  `json:"sid"`
 	ServerPort int    `json:"server_port"`
 	Password   string `json:"password"`
 	Method     string `json:"method"`
-	Timeout    int    `json:"timeout"`
-	Expiration int    `json:"expiration"`
-	Limit    int64    `json:"limit"`
+	Timeout    int64  `json:"timeout"`
+	Expiration int64  `json:"expiration"`
+	Limit      int64  `json:"limit"`
 }

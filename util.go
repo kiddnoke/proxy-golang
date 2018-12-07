@@ -25,8 +25,10 @@ func IsOccupiedPort(port int) (tcpconn *net.TCPListener, udpconn *net.UDPConn, r
 	}
 	return tcpl, udpconn, ret
 }
-
-func getRequestbySsConn(conn *SsConn) (host string, err error) {
+func (u Util) sanitizeAddr(addr net.Addr) string {
+	return addr.String()
+}
+func (u Util) getRequestbySsConn(conn *SsConn) (host string, err error) {
 
 	const (
 		idType  = 0 // address type index
@@ -65,7 +67,7 @@ func getRequestbySsConn(conn *SsConn) (host string, err error) {
 		}
 		reqStart, reqEnd = idDm0, idDm0+int(buf[idDmLen])+lenDmBase
 	default:
-		err = fmt.Errorf("addr type %d not supported", addrType&ss.AddrMask)
+		err = fmt.Errorf("addr type %d not supported", addrType&AddrMask)
 		return
 	}
 
