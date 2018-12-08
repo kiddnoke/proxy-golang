@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type TcpListener struct {
+type TcpRelayer struct {
 	*net.TCPListener
 	config       SSconfig
 	speedlimiter *Bucket
@@ -20,18 +20,18 @@ type TcpListener struct {
 
 const readtimeout = 180
 
-func newTcpListener(tcp *net.TCPListener, config SSconfig) *TcpListener {
+func newTcpListener(tcp *net.TCPListener, config SSconfig) *TcpRelayer {
 	speedlimiter := NewBucket(time.Second, config.Limit*1024)
 	cipher, err := NewCipher(config.Method, config.Password)
 	if err != nil {
 		log.Printf("Error generating cipher for port: %d %v\n", config.ServerPort, err)
 	}
-	return &TcpListener{TCPListener: tcp, speedlimiter: speedlimiter, config: config, cipher: cipher}
+	return &TcpRelayer{TCPListener: tcp, speedlimiter: speedlimiter, config: config, cipher: cipher}
 }
-func makeTcpListener(tcp *net.TCPListener, config SSconfig) TcpListener {
+func makeTcpListener(tcp *net.TCPListener, config SSconfig) TcpRelayer {
 	return *newTcpListener(tcp, config)
 }
-func (l *TcpListener) Listening() {
+func (l *TcpRelayer) Listening() {
 	log.Printf("SS listening at tcp port[%d]", l.config.ServerPort)
 	for l.running {
 		conn, err := l.Accept()
@@ -44,7 +44,7 @@ func (l *TcpListener) Listening() {
 		go l.handleConnection(NewConn(conn, l.cipher.Copy()))
 	}
 }
-func (l *TcpListener) handleConnection(conn *SsConn) {
+func (l *TcpRelayer) handleConnection(conn *SsConn) {
 	closed := false
 	l.connCnt++
 	defer func() {
@@ -93,11 +93,11 @@ func (l *TcpListener) handleConnection(conn *SsConn) {
 	closed = true
 	return
 }
-func (l *TcpListener) Start() {
+func (l *TcpRelayer) Start() {
 	l.running = true
 	go l.Listening()
 }
-func (l *TcpListener) Stop() {
+func (l *TcpRelayer) Stop() {
 	l.running = false
 }
 

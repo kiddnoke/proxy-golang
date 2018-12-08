@@ -3,7 +3,7 @@ package shadowsocks
 import "errors"
 
 type Proxy struct {
-	TcpInstance     TcpListener
+	TcpInstance     TcpRelayer
 	UdpInstance     UdpListener
 	Conf            SSconfig
 	TransferChannel chan interface{}
@@ -20,6 +20,7 @@ func NewProxy(config SSconfig) (p *Proxy, e error) {
 	tl := makeTcpListener(t, config)
 	tl.Start()
 	ul := makeUdpListener(u, config)
+	ul.Start()
 	return &Proxy{TcpInstance: tl, UdpInstance: ul, Conf: config}, nil
 }
 func MakeProxy(config SSconfig) (p Proxy) {
