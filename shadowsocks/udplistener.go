@@ -32,7 +32,7 @@ func (l *UdpListener) Listening() {
 	SecurePacketConn := NewSecurePacketConn(l, l.cipher.Copy())
 	for l.running {
 		if err := ReadAndHandleUDPReq(SecurePacketConn, func(i int) {
-
+			log.Printf("udp transfer btye len[%d] ", i)
 		}); err != nil {
 			log.Printf("udp read error: %v\n", err)
 			return
@@ -46,4 +46,12 @@ func (l *UdpListener) Start() {
 func (l *UdpListener) Stop() {
 	l.running = false
 	l.Close()
+}
+func (l *UdpListener) Accept() error {
+	buf := leakyBuf.Get()
+	_, _, err := l.ReadFrom(buf[0:])
+	if err != nil {
+		return err
+	}
+	return nil
 }
