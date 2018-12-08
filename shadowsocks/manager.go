@@ -31,7 +31,7 @@ func NewManager(port int) (m *Manager) {
 		fmt.Fprintln(os.Stderr, "Error listening:", err)
 		os.Exit(1)
 	}
-	return &Manager{proxyTable: make(map[int]Proxy), conn: conn ,running:false}
+	return &Manager{proxyTable: make(map[int]Proxy), conn: conn, running: false}
 }
 func (m *Manager) Add(port int, config Config) (e error, ok bool) {
 	m.Lock()
@@ -66,11 +66,6 @@ func (m *Manager) Update(port int, config Config) (e error, ok bool) {
 	return
 }
 
-type Command struct {
-	Cmd string `json:"Cmd"`
-	Config
-}
-
 func (m *Manager) Loop() {
 	var params struct {
 		Cmd string `json:"Cmd"`
@@ -96,9 +91,15 @@ func (m *Manager) Loop() {
 		case "remove":
 			_, _ = m.Remove(params.Config.ServerPort)
 			//case strings.HasPrefix(command, "update"):
+		case "update":
+
+		case "query":
+
 			//case strings.HasPrefix(command, "query"):
 			//case strings.HasPrefix(command, "ping"):
 			//case strings.HasPrefix(command, "ping-stop"): // add the stop ping command
+		default:
+			res = []byte("error , command not found")
 		}
 		if len(res) == 0 {
 			continue
@@ -113,15 +114,13 @@ func (m *Manager) Loop() {
 }
 
 func ManagerDaemon(m *Manager) {
-	m.Loop()
+	m.Start()
 }
 func (m *Manager) Stop() {
-	m.conn.Close()
 	m.running = false
+	m.conn.Close()
 }
 func (m *Manager) Start() {
 	m.running = true
-}
-func (m *Manager) Run() {
 	m.Loop()
 }

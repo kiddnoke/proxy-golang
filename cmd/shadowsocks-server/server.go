@@ -1,8 +1,8 @@
 package main
 
 import (
+	ss "../../shadowsocks"
 	"flag"
-	ss "github.com/kiddnoke/proxy-golang"
 )
 
 func main() {

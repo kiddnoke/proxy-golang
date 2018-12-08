@@ -25,7 +25,10 @@ func NewTcpListener(tcp *net.TCPListener, config Config) *TcpListener {
 	if err != nil {
 		log.Printf("Error generating cipher for port: %d %v\n", config.ServerPort, err)
 	}
-	return &TcpListener{speedlimiter: speedlimiter, config: config, cipher: cipher, TCPListener: tcp}
+	return &TcpListener{TCPListener: tcp, speedlimiter: speedlimiter, config: config, cipher: cipher}
+}
+func MakeTcpListener(tcp *net.TCPListener, config Config) TcpListener {
+	return *NewTcpListener(tcp, config)
 }
 func (l *TcpListener) Listening() {
 	//if l.config.Expiration > 0 {
@@ -89,11 +92,6 @@ func (l *TcpListener) handleConnection(conn *SsConn) {
 	})
 	closed = true
 	return
-}
-func SetReadTimeout(c net.Conn, timeout int /*sec*/) {
-	if timeout != 0 {
-		_ = c.SetReadDeadline(time.Now().Add(time.Duration(timeout)))
-	}
 }
 
 // PipeThenClose copies data from src to dst, closes dst when done.

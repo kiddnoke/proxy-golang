@@ -7,6 +7,7 @@
 // See http://en.wikipedia.org/wiki/Token_bucket.
 
 package shadowsocks
+
 import (
 	"math"
 	"strconv"
