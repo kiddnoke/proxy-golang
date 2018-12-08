@@ -1,8 +1,11 @@
 package shadowsocks
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"sync"
@@ -11,10 +14,25 @@ import (
 type Proxy struct {
 	TcpInstance     TcpListener
 	UdpInstance     UdpListener
-	Conf            Config
-	SpeedLimiter    Bucket
+	Conf            SSconfig
 	TransferChannel chan interface{}
 	master          *Manager
+}
+
+func NewProxy(config SSconfig) (p *Proxy, e error) {
+	e = nil
+	t, _, ok := util.IsOccupiedPort(config.ServerPort)
+	if ok == true {
+		e = errors.New("端口被占用")
+		return nil, e
+	}
+	tl := makeTcpListener(t, config)
+	tl.Listening()
+	return &Proxy{TcpInstance: tl, Conf: config}, nil
+}
+func MakeProxy(config SSconfig) (p Proxy) {
+	ptr, _ := NewProxy(config)
+	return *ptr
 }
 
 type Manager struct {
@@ -33,31 +51,48 @@ func NewManager(port int) (m *Manager) {
 	}
 	return &Manager{proxyTable: make(map[int]Proxy), conn: conn, running: false}
 }
-func (m *Manager) Add(port int, config Config) (e error, ok bool) {
+func (m *Manager) Add(config SSconfig) (e error) {
 	m.Lock()
 	defer m.Unlock()
-	// 1 有没有
+	// 有没有
 	// 没有就加
 	// 有就报错
+	p, ok := m.proxyTable[config.ServerPort]
+	if ok == true {
+		e = errors.New(fmt.Sprintf("这个实例已经存在了 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Conf.Uid, config.Sid, p.Conf.Sid))
+		return
+	} else {
+		m.proxyTable[config.ServerPort] = MakeProxy(config)
+	}
 	return
 }
-func (m *Manager) Get(port int) (p *Proxy, ok bool) {
+func (m *Manager) Get(config SSconfig) (p Proxy, e error) {
 	m.Lock()
 	defer m.Unlock()
 	// 有没有
 	// 有就返回
 	// 没有就报错
+	p, ok := m.proxyTable[config.ServerPort]
+	if ok == false {
+		e = errors.New(fmt.Sprintf("没有这个实例 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Conf.Uid, config.Sid, p.Conf.Sid))
+	}
 	return
 }
-func (m *Manager) Remove(port int) (e error, ok bool) {
+func (m *Manager) Remove(config SSconfig) (e error) {
 	m.Lock()
 	defer m.Unlock()
 	// 有没有
 	// 有就删除
 	// 没有就说没这个key
+	p, ok := m.proxyTable[config.ServerPort]
+	if ok == true && p.Conf.Uid == config.Uid && p.Conf.Sid == config.Sid {
+		delete(m.proxyTable, config.ServerPort)
+	} else {
+		e = errors.New(fmt.Sprintf("没有这个实例 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Conf.Uid, config.Sid, p.Conf.Sid))
+	}
 	return
 }
-func (m *Manager) Update(port int, config Config) (e error, ok bool) {
+func (m *Manager) Update(port int, config SSconfig) (e error) {
 	m.Lock()
 	defer m.Unlock()
 	// 有没有
@@ -66,38 +101,42 @@ func (m *Manager) Update(port int, config Config) (e error, ok bool) {
 	return
 }
 
+type Params struct {
+	Cmd    string   `json:"cmd"`
+	Config SSconfig `json:"config"`
+}
+
 func (m *Manager) Loop() {
-	var params struct {
-		Cmd string `json:"Cmd"`
-		Config
-	}
+
+	var params Params
+	//var config SSconfig
 	conn := m.conn
 	for m.running {
 		data := make([]byte, 300)
 		_, remote, err := conn.ReadFromUDP(data)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Failed to read UDP manage msg, error: ", err.Error())
+			log.Printf("Failed to read UDP manage msg, error: %s", err.Error())
 			continue
 		}
-		_ = json.Unmarshal(data, params)
+		if err := json.Unmarshal(bytes.Trim(data, "\x00\r\n "), &params); err != nil {
+			log.Printf("Failed to Unmarshal json, error: %s", err.Error())
+		}
 		var res []byte
 		switch params.Cmd {
-		//case strings.HasPrefix(command, "add:"):
 		case "open":
-			_, _ = m.Add(params.Config.ServerPort, params.Config)
+			if err := m.Add(params.Config); err == nil {
+
+			} else {
+
+			}
 		case "close":
-			_, _ = m.Remove(params.Config.ServerPort)
-		//case strings.HasPrefix(command, "remove:"):
+			_ = m.Remove(params.Config)
 		case "remove":
-			_, _ = m.Remove(params.Config.ServerPort)
-			//case strings.HasPrefix(command, "update"):
+			_ = m.Remove(params.Config)
 		case "update":
 
 		case "query":
 
-			//case strings.HasPrefix(command, "query"):
-			//case strings.HasPrefix(command, "ping"):
-			//case strings.HasPrefix(command, "ping-stop"): // add the stop ping command
 		default:
 			res = []byte("error , command not found")
 		}

@@ -7,12 +7,12 @@ import (
 
 type UdpListener struct {
 	*net.UDPConn
-	config       Config
+	config       SSconfig
 	cipher       *Cipher // 加密子
 	speedlimiter *Bucket //
 }
 
-func NewUdpListener(config Config) *UdpListener {
+func NewUdpListener(config SSconfig) *UdpListener {
 	speedlimiter := NewBucket(time.Second, config.Limit*1024)
 	return &UdpListener{speedlimiter: speedlimiter}
 }

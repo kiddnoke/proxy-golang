@@ -11,6 +11,8 @@ import (
 
 type Util struct{}
 
+var util Util
+
 func IsOccupiedPort(port int) (tcpconn *net.TCPListener, udpconn *net.UDPConn, ret bool) {
 	ret = true
 	udpconn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("0.0.0.0"), Port: port})
@@ -23,7 +25,7 @@ func IsOccupiedPort(port int) (tcpconn *net.TCPListener, udpconn *net.UDPConn, r
 		os.Exit(1)
 		return nil, nil, ret
 	}
-	return tcpl, udpconn, ret
+	return tcpl, udpconn, false
 }
 func (u Util) sanitizeAddr(addr net.Addr) string {
 	return addr.String()

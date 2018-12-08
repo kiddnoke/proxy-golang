@@ -10,16 +10,17 @@ import (
 
 type TcpListener struct {
 	*net.TCPListener
-	config       Config
+	config       SSconfig
 	speedlimiter *Bucket
 	cipher       *Cipher
 	connCnt      int
 	channel      chan interface{}
+	running      bool
 }
 
-var util Util
+const readtimeout = 180
 
-func NewTcpListener(tcp *net.TCPListener, config Config) *TcpListener {
+func newTcpListener(tcp *net.TCPListener, config SSconfig) *TcpListener {
 	speedlimiter := NewBucket(time.Second, config.Limit*1024)
 	cipher, err := NewCipher(config.Method, config.Password)
 	if err != nil {
@@ -27,25 +28,25 @@ func NewTcpListener(tcp *net.TCPListener, config Config) *TcpListener {
 	}
 	return &TcpListener{TCPListener: tcp, speedlimiter: speedlimiter, config: config, cipher: cipher}
 }
-func MakeTcpListener(tcp *net.TCPListener, config Config) TcpListener {
-	return *NewTcpListener(tcp, config)
+func makeTcpListener(tcp *net.TCPListener, config SSconfig) TcpListener {
+	return *newTcpListener(tcp, config)
 }
 func (l *TcpListener) Listening() {
-	//if l.config.Expiration > 0 {
-	//	time.AfterFunc(time.Until(time.Unix(l.config.Expiration,0)) , func() {
-	//
-	//	})
-	//}
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			// listener maybe closed to update password
-			//debug.Printf("accept error: %v\n", err)
-			return
+	l.running = true
+	log.Printf("SS listening at port[%d]", l.config.ServerPort)
+	go func() {
+		for l.running {
+			conn, err := l.Accept()
+			if err != nil {
+				// listener maybe closed to update password
+				//debug.Printf("accept error: %v\n", err)
+				return
+			}
+			// Creating cipher upon first connection.
+			go l.handleConnection(NewConn(conn, l.cipher.Copy()))
 		}
-		// Creating cipher upon first connection.
-		go l.handleConnection(NewConn(conn, l.cipher.Copy()))
-	}
+	}()
+
 }
 func (l *TcpListener) handleConnection(conn *SsConn) {
 	closed := false
@@ -85,10 +86,13 @@ func (l *TcpListener) handleConnection(conn *SsConn) {
 	}()
 	go func() {
 		PipeThenClose(conn, remote, func(Traffic int) {
+			// 把消耗的流量推出去
+			// 限制速度
 		})
 	}()
 
 	PipeThenClose(remote, conn, func(Traffic int) {
+		// 如上
 	})
 	closed = true
 	return
@@ -102,7 +106,8 @@ func PipeThenClose(src, dst net.Conn, addTraffic func(int)) {
 	buf := leakyBuf.Get()
 	defer leakyBuf.Put(buf)
 	for {
-		n, _ := src.Read(buf)
+		SetReadTimeout(src, readtimeout)
+		n, err := src.Read(buf)
 		if addTraffic != nil {
 			addTraffic(n)
 		}
@@ -114,6 +119,17 @@ func PipeThenClose(src, dst net.Conn, addTraffic func(int)) {
 				log.Println("write:", err)
 				break
 			}
+		}
+		if err != nil {
+			// Always "use of closed network connection", but no easy way to
+			// identify this specific error. So just leave the error along for now.
+			// More info here: https://code.google.com/p/go/issues/detail?id=4373
+			/*
+				if bool(Debug) && err != io.EOF {
+					Debug.Println("read:", err)
+				}
+			*/
+			break
 		}
 	}
 	return
