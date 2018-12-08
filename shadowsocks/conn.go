@@ -148,6 +148,6 @@ func (c *SsConn) Write(b []byte) (n int, err error) {
 }
 func SetReadTimeout(c net.Conn, timeout int /*sec*/) {
 	if timeout != 0 {
-		_ = c.SetReadDeadline(time.Now().Add(time.Duration(timeout)))
+		_ = c.SetReadDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
 	}
 }
