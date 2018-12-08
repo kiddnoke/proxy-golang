@@ -32,21 +32,17 @@ func makeTcpListener(tcp *net.TCPListener, config SSconfig) TcpListener {
 	return *newTcpListener(tcp, config)
 }
 func (l *TcpListener) Listening() {
-	l.running = true
-	log.Printf("SS listening at port[%d]", l.config.ServerPort)
-	go func() {
-		for l.running {
-			conn, err := l.Accept()
-			if err != nil {
-				// listener maybe closed to update password
-				//debug.Printf("accept error: %v\n", err)
-				return
-			}
-			// Creating cipher upon first connection.
-			go l.handleConnection(NewConn(conn, l.cipher.Copy()))
+	log.Printf("SS listening at tcp port[%d]", l.config.ServerPort)
+	for l.running {
+		conn, err := l.Accept()
+		if err != nil {
+			// listener maybe closed to update password
+			//debug.Printf("accept error: %v\n", err)
+			return
 		}
-	}()
-
+		// Creating cipher upon first connection.
+		go l.handleConnection(NewConn(conn, l.cipher.Copy()))
+	}
 }
 func (l *TcpListener) handleConnection(conn *SsConn) {
 	closed := false
@@ -96,6 +92,13 @@ func (l *TcpListener) handleConnection(conn *SsConn) {
 	})
 	closed = true
 	return
+}
+func (l *TcpListener) Start() {
+	l.running = true
+	go l.Listening()
+}
+func (l *TcpListener) Stop() {
+	l.running = false
 }
 
 // PipeThenClose copies data from src to dst, closes dst when done.
