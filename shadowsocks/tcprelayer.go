@@ -1,6 +1,7 @@
 package shadowsocks
 
 import (
+	"context"
 	"log"
 	"net"
 	"strings"
@@ -10,49 +11,56 @@ import (
 
 type TcpRelayer struct {
 	*net.TCPListener
-	config       SSconfig
-	speedlimiter *Bucket
-	cipher       *Cipher
-	connCnt      int
-	channel      chan interface{}
-	running      bool
+	config   SSconfig
+	limiter  *speedlimiter
+	cipher   *Cipher
+	connCnt  int
+	channel  chan interface{}
+	ctx      context.Context
+	stopFunc context.CancelFunc
+	running  bool
 }
 
 const readtimeout = 180
 
 func newTcpListener(tcp *net.TCPListener, config SSconfig) *TcpRelayer {
-	speedlimiter := NewBucket(time.Second, config.Limit*1024)
 	cipher, err := NewCipher(config.Method, config.Password)
 	if err != nil {
 		log.Printf("Error generating cipher for port: %d %v\n", config.ServerPort, err)
 	}
-	return &TcpRelayer{TCPListener: tcp, speedlimiter: speedlimiter, config: config, cipher: cipher}
+	ctx, cancel := context.WithCancel(context.Background())
+	return &TcpRelayer{TCPListener: tcp, limiter: util.NewSpeedLimiterWithContext(ctx, config.Limit*1024), config: config, cipher: cipher, ctx: ctx, stopFunc: cancel}
 }
 func makeTcpListener(tcp *net.TCPListener, config SSconfig) TcpRelayer {
 	return *newTcpListener(tcp, config)
 }
 func (l *TcpRelayer) Listening() {
 	log.Printf("SS listening at tcp port[%d]", l.config.ServerPort)
+	defer l.Close()
 	for l.running {
 		conn, err := l.Accept()
 		if err != nil {
 			// listener maybe closed to update password
 			//debug.Printf("accept error: %v\n", err)
-			return
+			log.Printf("accept error:[%s]", err.Error())
+			break
 		}
 		// Creating cipher upon first connection.
 		go l.handleConnection(NewConn(conn, l.cipher.Copy()))
+		select {
+		case <-l.ctx.Done():
+			log.Printf("TcpRelayer port:[%d] Uid:[%d] Sid:[%d]  by Error:[%s]", l.config.ServerPort, l.config.Uid, l.config.Sid, l.ctx.Err())
+			return
+		default:
+			time.Sleep(time.Millisecond * 10)
+		}
 	}
+	log.Printf("TcpRelayer port:[%d] Uid:[%d] Sid:[%d] Close", l.config.ServerPort, l.config.Uid, l.config.Sid)
 }
 func (l *TcpRelayer) handleConnection(conn *SsConn) {
 	closed := false
 	l.connCnt++
-	defer func() {
-		l.connCnt--
-		if !closed {
-			_ = conn.Close()
-		}
-	}()
+	log.Printf("new client %s->%s\n", util.sanitizeAddr(conn.RemoteAddr()), conn.LocalAddr())
 	host, err := util.getRequestbySsConn(conn)
 	if err != nil {
 		log.Println("error getting request", conn.RemoteAddr(), conn.LocalAddr(), err)
@@ -74,21 +82,28 @@ func (l *TcpRelayer) handleConnection(conn *SsConn) {
 			log.Println("error connecting to:", host, err)
 		}
 		return
+	} else {
+		log.Printf("connecting %s", host)
 	}
 	defer func() {
-		if !closed {
+		log.Printf("closed pipe %s<->%s\n", util.sanitizeAddr(conn.RemoteAddr()), host)
+		l.connCnt--
+		if closed {
+			_ = conn.Close()
 			_ = remote.Close()
 		}
 	}()
 	go func() {
-		PipeThenClose(conn, remote, func(Traffic int) {
+		PipeThenClose(l.ctx, conn, remote, func(Traffic int) {
 			// 把消耗的流量推出去
 			// 限制速度
+			l.limiter.WaitN(Traffic)
 		})
 	}()
 
-	PipeThenClose(remote, conn, func(Traffic int) {
+	PipeThenClose(l.ctx, remote, conn, func(Traffic int) {
 		// 如上
+		l.limiter.WaitN(Traffic)
 	})
 	closed = true
 	return
@@ -99,12 +114,13 @@ func (l *TcpRelayer) Start() {
 }
 func (l *TcpRelayer) Stop() {
 	l.running = false
+	l.stopFunc()
 }
 
 // PipeThenClose copies data from src to dst, closes dst when done.
-func PipeThenClose(src, dst net.Conn, addTraffic func(int)) {
+func PipeThenClose(ctx context.Context, src, dst net.Conn, addTraffic func(int)) {
 	defer func() {
-		_ = dst.Close()
+		dst.Close()
 	}()
 	buf := leakyBuf.Get()
 	defer leakyBuf.Put(buf)
@@ -133,6 +149,13 @@ func PipeThenClose(src, dst net.Conn, addTraffic func(int)) {
 				}
 			*/
 			break
+		}
+		select {
+		case <-ctx.Done():
+			log.Printf("TcpRelayerPipe is closed by Manager")
+			return
+		default:
+			continue
 		}
 	}
 	return

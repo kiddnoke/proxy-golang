@@ -7,7 +7,7 @@ type LeakyBuf struct {
 }
 
 const leakyBufSize = 4108 // data.len(2) + hmacsha1(10) + data(4096)
-const maxNBuf = 2048
+const maxNBuf = 1024 * 512
 
 var leakyBuf = NewLeakyBuf(maxNBuf, leakyBufSize)
 

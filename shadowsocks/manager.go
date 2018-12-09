@@ -8,7 +8,9 @@ import (
 	"log"
 	"net"
 	"os"
+	"runtime"
 	"sync"
+	"time"
 )
 
 type Manager struct {
@@ -38,7 +40,12 @@ func (m *Manager) Add(config SSconfig) (e error) {
 		e = errors.New(fmt.Sprintf("这个实例已经存在了 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Conf.Uid, config.Sid, p.Conf.Sid))
 		return
 	} else {
-		m.proxyTable[config.ServerPort] = MakeProxy(config)
+
+		if proxy, err := MakeProxy(config); err == nil {
+			m.proxyTable[config.ServerPort] = proxy
+		} else {
+			log.Printf("Add Proxy Error:%s", err.Error())
+		}
 	}
 	return
 }
@@ -62,6 +69,7 @@ func (m *Manager) Remove(config SSconfig) (e error) {
 	// 没有就说没这个key
 	p, ok := m.proxyTable[config.ServerPort]
 	if ok == true && p.Conf.Uid == config.Uid && p.Conf.Sid == config.Sid {
+		p.Stop()
 		delete(m.proxyTable, config.ServerPort)
 	} else {
 		e = errors.New(fmt.Sprintf("没有这个实例 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Conf.Uid, config.Sid, p.Conf.Sid))
@@ -83,7 +91,12 @@ type Params struct {
 }
 
 func (m *Manager) Loop() {
-
+	go func() {
+		for {
+			time.Sleep(time.Second * 5)
+			log.Printf("gorontine Num[%d]", runtime.NumGoroutine())
+		}
+	}()
 	var params Params
 	//var config SSconfig
 	conn := m.conn
@@ -101,18 +114,30 @@ func (m *Manager) Loop() {
 		switch params.Cmd {
 		case "open":
 			if err := m.Add(params.Config); err == nil {
-
+				log.Printf("open SS proxy success : proxy.Uid[%d] ,proxy.Sid[%d] ,proxy.ServerProt[%d]", params.Config.Uid, params.Config.Sid, params.Config.ServerPort)
 			} else {
-
+				log.Printf("open SS proxy error:[%s]", err.Error())
 			}
 		case "close":
-			_ = m.Remove(params.Config)
+			if err := m.Remove(params.Config); err == nil {
+				log.Printf("close SS proxy success : proxy.Uid[%d] ,proxy.Sid[%d] ,proxy.ServerProt[%d]", params.Config.Uid, params.Config.Sid, params.Config.ServerPort)
+			} else {
+				log.Printf("close SS proxy error:[%s]", err.Error())
+			}
 		case "remove":
-			_ = m.Remove(params.Config)
+			if err := m.Remove(params.Config); err == nil {
+				log.Printf("remove SS proxy success")
+			} else {
+				log.Printf("remove SS proxy error:[%s]", err.Error())
+			}
 		case "update":
 
 		case "query":
-
+			if proxy, err := m.Get(params.Config); err == nil {
+				log.Printf("query SS proxy success : proxy.Uid[%d] ,proxy.Sid[%d] ,proxy.ServerProt[%d]", proxy.Conf.Uid, proxy.Conf.Sid, proxy.Conf.ServerPort)
+			} else {
+				log.Printf("query SS proxy error:[%s]", err.Error())
+			}
 		default:
 			res = []byte("error , command not found")
 		}
@@ -121,7 +146,7 @@ func (m *Manager) Loop() {
 		}
 		_, err = conn.WriteToUDP(res, remote)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Failed to write UDP manage msg, error: ", err.Error())
+			log.Printf("Failed to write UDP manage msg, error: ", err.Error())
 			continue
 		}
 	}

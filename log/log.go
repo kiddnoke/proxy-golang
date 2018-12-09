@@ -1,4 +1,4 @@
-package shadowsocks
+package log
 
 import (
 	"github.com/google/logger"

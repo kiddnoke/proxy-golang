@@ -1,31 +1,33 @@
 package shadowsocks
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
+	"golang.org/x/time/rate"
 	"io"
+	"log"
 	"net"
-	"os"
 	"strconv"
+	"time"
 )
 
 type Util struct{}
 
 var util Util
 
-func IsOccupiedPort(port int) (tcpconn *net.TCPListener, udpconn *net.UDPConn, ret bool) {
-	ret = true
+func IsOccupiedPort(port int) (tcpconn *net.TCPListener, udpconn *net.UDPConn, ret error) {
 	udpconn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("0.0.0.0"), Port: port})
 	if err != nil {
-		os.Exit(1)
-		return nil, nil, ret
+		log.Printf("IsOccupiedPort Error:%s", err.Error())
+		return nil, nil, err
 	}
 	tcpl, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: port})
 	if err != nil {
-		os.Exit(1)
-		return nil, nil, ret
+		log.Printf("IsOccupiedPort Error:%s", err.Error())
+		return nil, nil, err
 	}
-	return tcpl, udpconn, false
+	return tcpl, udpconn, nil
 }
 func (u Util) sanitizeAddr(addr net.Addr) string {
 	return addr.String()
@@ -161,6 +163,25 @@ func getRequestbySsConn(conn *SsConn) (host string, err error) {
 
 */
 
-func (u Util) IsOccupiedPort(port int) (tcpconn *net.TCPListener, udpconn *net.UDPConn, ret bool) {
+func (u Util) IsOccupiedPort(port int) (tcpconn *net.TCPListener, udpconn *net.UDPConn, ret error) {
 	return IsOccupiedPort(port)
+}
+
+type speedlimiter struct {
+	limiter *rate.Limiter
+	ctx     context.Context
+}
+
+func (u Util) NewSpeedLimiterWithContext(ctx context.Context, bytesPerSec int) *speedlimiter {
+	burstsize := bytesPerSec * 3
+	limiter := rate.NewLimiter(rate.Limit(bytesPerSec), burstsize)
+	limiter.AllowN(time.Now(), burstsize)
+	ctx = context.Background()
+	return &speedlimiter{limiter: limiter, ctx: ctx}
+}
+func (u Util) MakeSpeedLimiterWithContext(ctx context.Context, bytesPerSec int) speedlimiter {
+	return *u.NewSpeedLimiterWithContext(ctx, bytesPerSec)
+}
+func (l *speedlimiter) WaitN(n int) error {
+	return l.limiter.WaitN(l.ctx, n)
 }

@@ -1,27 +1,27 @@
 package shadowsocks
 
 import (
+	"context"
 	"log"
 	"net"
-	"time"
 )
 
 type UdpListener struct {
 	*net.UDPConn
-	config       SSconfig
-	cipher       *Cipher // 加密子
-	speedlimiter *Bucket //
-	running      bool
+	config  SSconfig
+	cipher  *Cipher // 加密子
+	limiter *speedlimiter
+	running bool
+	ctx     context.Context
 }
 
 func NewUdpListener(l *net.UDPConn, config SSconfig) *UdpListener {
-	speedlimiter := NewBucket(time.Second, config.Limit*1024)
+	ctx := context.Background()
 	cipher, err := NewCipher(config.Method, config.Password)
 	if err != nil {
 		log.Printf("Error generating cipher for port: %d %v\n", config.ServerPort, err)
 	}
-
-	return &UdpListener{UDPConn: l, speedlimiter: speedlimiter, config: config, cipher: cipher}
+	return &UdpListener{UDPConn: l, limiter: util.NewSpeedLimiterWithContext(ctx, config.Limit*1024), config: config, cipher: cipher, ctx: ctx}
 }
 func makeUdpListener(l *net.UDPConn, config SSconfig) UdpListener {
 	return *NewUdpListener(l, config)
@@ -34,10 +34,11 @@ func (l *UdpListener) Listening() {
 		if err := ReadAndHandleUDPReq(SecurePacketConn, func(i int) {
 			log.Printf("udp transfer btye len[%d] ", i)
 		}); err != nil {
-			log.Printf("udp read error: %v\n", err)
-			return
+			log.Printf("udp read error:[%s]", err.Error())
+			break
 		}
 	}
+	log.Printf("UdpRelayer port:[%d] Uid:[%d] Sid:[%d] Close", l.config.ServerPort, l.config.Uid, l.config.Sid)
 }
 func (l *UdpListener) Start() {
 	l.running = true

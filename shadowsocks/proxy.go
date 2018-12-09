@@ -1,7 +1,5 @@
 package shadowsocks
 
-import "errors"
-
 type Proxy struct {
 	TcpInstance     TcpRelayer
 	UdpInstance     UdpListener
@@ -11,11 +9,9 @@ type Proxy struct {
 }
 
 func NewProxy(config SSconfig) (p *Proxy, e error) {
-	e = nil
-	t, u, ok := util.IsOccupiedPort(config.ServerPort)
-	if ok == true {
-		e = errors.New("端口被占用")
-		return nil, e
+	t, u, err := util.IsOccupiedPort(config.ServerPort)
+	if err != nil {
+		return nil, err
 	}
 	tl := makeTcpListener(t, config)
 	tl.Start()
@@ -23,9 +19,9 @@ func NewProxy(config SSconfig) (p *Proxy, e error) {
 	ul.Start()
 	return &Proxy{TcpInstance: tl, UdpInstance: ul, Conf: config}, nil
 }
-func MakeProxy(config SSconfig) (p Proxy) {
-	ptr, _ := NewProxy(config)
-	return *ptr
+func MakeProxy(config SSconfig) (p Proxy, err error) {
+	ptr, err := NewProxy(config)
+	return *ptr, err
 }
 func (p *Proxy) Start() {
 	p.TcpInstance.Start()
