@@ -40,7 +40,6 @@ func (m *Manager) Add(config SSconfig) (e error) {
 		e = errors.New(fmt.Sprintf("这个实例已经存在了 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Conf.Uid, config.Sid, p.Conf.Sid))
 		return
 	} else {
-
 		if proxy, err := MakeProxy(config); err == nil {
 			m.proxyTable[config.ServerPort] = proxy
 		} else {
@@ -146,7 +145,7 @@ func (m *Manager) Loop() {
 		}
 		_, err = conn.WriteToUDP(res, remote)
 		if err != nil {
-			log.Printf("Failed to write UDP manage msg, error: ", err.Error())
+			log.Printf("Failed to write UDP manage msg, error:[%s]", err.Error())
 			continue
 		}
 	}

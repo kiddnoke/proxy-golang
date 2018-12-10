@@ -36,7 +36,7 @@ func makeTcpListener(tcp *net.TCPListener, config SSconfig) TcpRelayer {
 }
 func (l *TcpRelayer) Listening() {
 	log.Printf("SS listening at tcp port[%d]", l.config.ServerPort)
-	defer l.Close()
+	defer log.Printf("TcpRelayer port:[%d] Uid:[%d] Sid:[%d] Close", l.config.ServerPort, l.config.Uid, l.config.Sid)
 	for l.running {
 		conn, err := l.Accept()
 		if err != nil {
@@ -55,7 +55,6 @@ func (l *TcpRelayer) Listening() {
 			time.Sleep(time.Millisecond * 10)
 		}
 	}
-	log.Printf("TcpRelayer port:[%d] Uid:[%d] Sid:[%d] Close", l.config.ServerPort, l.config.Uid, l.config.Sid)
 }
 func (l *TcpRelayer) handleConnection(conn *SsConn) {
 	closed := false
@@ -115,6 +114,7 @@ func (l *TcpRelayer) Start() {
 func (l *TcpRelayer) Stop() {
 	l.running = false
 	l.stopFunc()
+	l.Close()
 }
 
 // PipeThenClose copies data from src to dst, closes dst when done.
