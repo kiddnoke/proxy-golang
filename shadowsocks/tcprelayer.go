@@ -43,7 +43,7 @@ func (l *TcpRelayer) Listening() {
 			// listener maybe closed to update password
 			//debug.Printf("accept error: %v\n", err)
 			log.Printf("accept error:[%s]", err.Error())
-			break
+			return
 		}
 		// Creating cipher upon first connection.
 		go l.handleConnection(NewConn(conn, l.cipher.Copy()))
@@ -88,7 +88,7 @@ func (l *TcpRelayer) handleConnection(conn *SsConn) {
 	defer func() {
 		log.Printf("closed pipe %s<->%s\n", util.sanitizeAddr(conn.RemoteAddr()), host)
 		l.connCnt--
-		if closed {
+		if !closed {
 			_ = conn.Close()
 			_ = remote.Close()
 		}
