@@ -1,10 +1,11 @@
 package shadowsocks
 
 type Proxy struct {
-	TcpInstance     TcpRelayer
-	UdpInstance     UdpListener
-	Conf            SSconfig
+	TcpInstance     TcpRelay
+	UdpInstance     UdpRelay
+	Config          SSconfig
 	TransferChannel chan interface{}
+	traffic         Traffic
 	master          *Manager
 }
 
@@ -13,11 +14,11 @@ func NewProxy(config SSconfig) (p *Proxy, e error) {
 	if err != nil {
 		return nil, err
 	}
-	tl := makeTcpListener(t, config)
+	tl := makeTcpRelay(t, config, p.AddTraffic)
 	tl.Start()
-	ul := makeUdpListener(u, config)
+	ul := makeUdpRelay(u, config, p.AddTraffic)
 	ul.Start()
-	return &Proxy{TcpInstance: tl, UdpInstance: ul, Conf: config}, nil
+	return &Proxy{TcpInstance: tl, UdpInstance: ul, Config: config}, nil
 }
 func MakeProxy(config SSconfig) (p Proxy, err error) {
 	ptr, err := NewProxy(config)
@@ -30,4 +31,14 @@ func (p *Proxy) Start() {
 func (p *Proxy) Stop() {
 	p.TcpInstance.Stop()
 	p.UdpInstance.Stop()
+}
+func (p *Proxy) SetLimit(bytesPerSec int) {
+	p.TcpInstance.SetLimit(bytesPerSec)
+	p.UdpInstance.SetLimit(bytesPerSec)
+}
+func (p *Proxy) AddTraffic(tu, td, uu, ud int) {
+	p.traffic.tcpup += uint64(tu)
+	p.traffic.tcpdown += uint64(td)
+	p.traffic.udpup += uint64(uu)
+	p.traffic.udpdown += uint64(ud)
 }

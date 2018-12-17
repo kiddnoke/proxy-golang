@@ -100,8 +100,8 @@ func (u Util) IsOccupiedPort(port int) (tcpconn *net.TCPListener, udpconn *net.U
 }
 
 type speedlimiter struct {
-	limiter *rate.Limiter
-	ctx     context.Context
+	*rate.Limiter
+	ctx context.Context
 }
 
 func (u Util) NewSpeedLimiterWithContext(ctx context.Context, bytesPerSec int) *speedlimiter {
@@ -109,7 +109,7 @@ func (u Util) NewSpeedLimiterWithContext(ctx context.Context, bytesPerSec int) *
 	limiter := rate.NewLimiter(rate.Limit(bytesPerSec), burstsize)
 	limiter.AllowN(time.Now(), burstsize)
 	ctx = context.Background()
-	return &speedlimiter{limiter: limiter, ctx: ctx}
+	return &speedlimiter{Limiter: limiter, ctx: ctx}
 }
 func (u Util) MakeSpeedLimiterWithContext(ctx context.Context, bytesPerSec int) speedlimiter {
 	return *u.NewSpeedLimiterWithContext(ctx, bytesPerSec)
@@ -119,11 +119,18 @@ func (u Util) NewSpeedLimiter(bytesPerSec int) *speedlimiter {
 	limiter := rate.NewLimiter(rate.Limit(bytesPerSec), burstsize)
 	limiter.AllowN(time.Now(), burstsize)
 	ctx := context.Background()
-	return &speedlimiter{limiter: limiter, ctx: ctx}
+	return &speedlimiter{Limiter: limiter, ctx: ctx}
 }
 func (u Util) MakeSpeedLimiter(bytesPerSec int) speedlimiter {
 	return *u.NewSpeedLimiterWithContext(context.Background(), bytesPerSec)
 }
-func (l *speedlimiter) WaitN(n int) error {
-	return l.limiter.WaitN(l.ctx, n)
+func (s *speedlimiter) WaitN(n int) error {
+	return s.Limiter.WaitN(s.ctx, n)
+}
+
+type Traffic struct {
+	tcpup   uint64
+	tcpdown uint64
+	udpup   uint64
+	udpdown uint64
 }

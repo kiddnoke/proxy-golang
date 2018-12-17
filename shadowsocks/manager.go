@@ -8,9 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
-	"runtime"
 	"sync"
-	"time"
 )
 
 type Manager struct {
@@ -24,10 +22,13 @@ func NewManager(port int) (m *Manager) {
 	// 端口是否在用
 	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("localhost"), Port: port})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error listening:", err)
+		log.Printf("Error listening: %s", err.Error())
 		os.Exit(1)
 	}
 	return &Manager{proxyTable: make(map[int]Proxy), conn: conn, running: false}
+}
+func MakeManger(port int) (m Manager) {
+	return *NewManager(port)
 }
 func (m *Manager) Add(config SSconfig) (e error) {
 	m.Lock()
@@ -37,7 +38,7 @@ func (m *Manager) Add(config SSconfig) (e error) {
 	// 有就报错
 	p, ok := m.proxyTable[config.ServerPort]
 	if ok == true {
-		e = errors.New(fmt.Sprintf("这个实例已经存在了 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Conf.Uid, config.Sid, p.Conf.Sid))
+		e = errors.New(fmt.Sprintf("这个实例已经存在了 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Config.Uid, config.Sid, p.Config.Sid))
 		return
 	} else {
 		if proxy, err := MakeProxy(config); err == nil {
@@ -56,7 +57,7 @@ func (m *Manager) Get(config SSconfig) (p Proxy, e error) {
 	// 没有就报错
 	p, ok := m.proxyTable[config.ServerPort]
 	if ok == false {
-		e = errors.New(fmt.Sprintf("没有这个实例 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Conf.Uid, config.Sid, p.Conf.Sid))
+		e = errors.New(fmt.Sprintf("没有这个实例 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Config.Uid, config.Sid, p.Config.Sid))
 	}
 	return
 }
@@ -67,11 +68,11 @@ func (m *Manager) Remove(config SSconfig) (e error) {
 	// 有就删除
 	// 没有就说没这个key
 	p, ok := m.proxyTable[config.ServerPort]
-	if ok == true && p.Conf.Uid == config.Uid && p.Conf.Sid == config.Sid {
+	if ok == true && p.Config.Uid == config.Uid && p.Config.Sid == config.Sid {
 		p.Stop()
 		delete(m.proxyTable, config.ServerPort)
 	} else {
-		e = errors.New(fmt.Sprintf("没有这个实例 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Conf.Uid, config.Sid, p.Conf.Sid))
+		e = errors.New(fmt.Sprintf("没有这个实例 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Config.Uid, config.Sid, p.Config.Sid))
 	}
 	return
 }
@@ -90,12 +91,6 @@ type Params struct {
 }
 
 func (m *Manager) Loop() {
-	go func() {
-		for {
-			time.Sleep(time.Second * 5)
-			log.Printf("gorontine Num[%d]", runtime.NumGoroutine())
-		}
-	}()
 	var params Params
 	//var config SSconfig
 	conn := m.conn
@@ -133,7 +128,7 @@ func (m *Manager) Loop() {
 
 		case "query":
 			if proxy, err := m.Get(params.Config); err == nil {
-				log.Printf("query SS proxy success : proxy.Uid[%d] ,proxy.Sid[%d] ,proxy.ServerProt[%d]", proxy.Conf.Uid, proxy.Conf.Sid, proxy.Conf.ServerPort)
+				log.Printf("query SS proxy success : proxy.Uid[%d] ,proxy.Sid[%d] ,proxy.ServerProt[%d]", proxy.Config.Uid, proxy.Config.Sid, proxy.Config.ServerPort)
 			} else {
 				log.Printf("query SS proxy error:[%s]", err.Error())
 			}
@@ -149,7 +144,6 @@ func (m *Manager) Loop() {
 			continue
 		}
 	}
-
 }
 
 func ManagerDaemon(m *Manager) {

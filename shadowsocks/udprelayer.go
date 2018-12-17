@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"golang.org/x/time/rate"
 	"log"
 	"net"
 	"strconv"
@@ -28,53 +29,53 @@ const (
 	// lenHmacSha1 = 10
 )
 
-type UdpListener struct {
+type UdpRelay struct {
 	*net.UDPConn
-	config  SSconfig
-	cipher  *Cipher // 加密子
-	limiter *speedlimiter
-	running bool
-	ctx     context.Context
-	reqList *requestHeaderList
-	natlist *natTable
+	config     SSconfig
+	cipher     *Cipher // 加密子
+	limiter    *speedlimiter
+	running    bool
+	ctx        context.Context
+	stopFunc   context.CancelFunc
+	reqList    *requestHeaderList
+	natlist    *natTable
+	addTraffic func(tu, td, uu, ud int)
 }
 
-func NewUdpListener(l *net.UDPConn, config SSconfig) *UdpListener {
+func newUdpRelay(l *net.UDPConn, config SSconfig, addTraffic func(tu, td, uu, ud int)) *UdpRelay {
 	ctx := context.Background()
 	cipher, err := NewCipher(config.Method, config.Password)
 	if err != nil {
 		log.Printf("Error generating cipher for port: %d %v\n", config.ServerPort, err)
 	}
-	return &UdpListener{UDPConn: l, limiter: util.NewSpeedLimiterWithContext(ctx, config.Limit*1024), config: config, cipher: cipher, ctx: ctx, reqList: newReqList(), natlist: newNatTable()}
+	return &UdpRelay{UDPConn: l, limiter: util.NewSpeedLimiterWithContext(ctx, config.Limit*1024), config: config, cipher: cipher, ctx: ctx, reqList: newReqList(), natlist: newNatTable(), addTraffic: addTraffic}
 }
-func makeUdpListener(l *net.UDPConn, config SSconfig) UdpListener {
-	return *NewUdpListener(l, config)
+func makeUdpRelay(l *net.UDPConn, config SSconfig, addTraffic func(tu, td, uu, ud int)) UdpRelay {
+	return *newUdpRelay(l, config, addTraffic)
 }
-func (l *UdpListener) Listening() {
+func (l *UdpRelay) Listening() {
 	defer l.Close()
 	log.Printf("SS listening at udp port[%d]", l.config.ServerPort)
 	SecurePacketConn := NewSecurePacketConn(l, l.cipher.Copy())
 	for l.running {
-		if err := l.handleConnection(SecurePacketConn, func(i int) {
-			log.Printf("udp transfer btye len[%d] ", i)
-		}); err != nil {
+		if err := l.handleConnection(SecurePacketConn); err != nil {
 			log.Printf("udp read error:[%s]", err.Error())
 			break
 		}
 	}
 	log.Printf("UdpRelayer port:[%d] Uid:[%d] Sid:[%d] Close", l.config.ServerPort, l.config.Uid, l.config.Sid)
 }
-func (l *UdpListener) Start() {
+func (l *UdpRelay) Start() {
 	l.running = true
 	go l.Listening()
 }
-func (l *UdpListener) Stop() {
+func (l *UdpRelay) Stop() {
 	l.running = false
 	l.reqList.running = false
 	l.Close()
 }
 
-//func (l *UdpListener) ReadAndHandleUDPReq(c *SecurePacketConn, addTraffic func(int)) error {
+//func (l *UdpRelay) ReadAndHandleUDPReq(c *SecurePacketConn, addTraffic func(int)) error {
 //	buf := leakyBuf.Get()
 //	n, src, err := c.ReadFrom(buf[0:])
 //	if err != nil {
@@ -82,7 +83,7 @@ func (l *UdpListener) Stop() {
 //	}
 //	return nil
 //}
-func (l *UdpListener) handleConnection(handle *SecurePacketConn, addTraffic func(int)) error {
+func (l *UdpRelay) handleConnection(handle *SecurePacketConn) error {
 	receive := leakyBuf.Get()
 	n, src, err := handle.ReadFrom(receive[0:])
 	if err != nil {
@@ -103,18 +104,19 @@ func (l *UdpListener) handleConnection(handle *SecurePacketConn, addTraffic func
 	if !exist {
 		log.Printf("[udp]new client %s->%s via %s\n", src, dst, remote.LocalAddr())
 		go func() {
-			l.Pipeloop(handle, src, remote, addTraffic)
+			l.Pipeloop(handle, src, remote, func(traffic int) {
+
+			})
 			l.natlist.Delete(src.String())
 		}()
 	} else {
 		log.Printf("[udp]using cached client %s->%s via %s\n", src, dst, remote.LocalAddr())
 	}
 	if remote == nil {
-		fmt.Println("WTF")
+		log.Printf("WTF")
 	}
 	remote.SetDeadline(time.Now().Add(udpTimeout))
 	n, err = remote.WriteTo(receive[reqLen:n], dst)
-	addTraffic(n)
 	if err != nil {
 		if ne, ok := err.(*net.OpError); ok && (ne.Err == syscall.EMFILE || ne.Err == syscall.ENFILE) {
 			// log too many open file error
@@ -130,7 +132,7 @@ func (l *UdpListener) handleConnection(handle *SecurePacketConn, addTraffic func
 	// Pipeloop
 	return nil
 }
-func (l *UdpListener) Pipeloop(write net.PacketConn, writeAddr net.Addr, readClose net.PacketConn, addTraffic func(int)) {
+func (l *UdpRelay) Pipeloop(write net.PacketConn, writeAddr net.Addr, readClose net.PacketConn, addTraffic func(int)) {
 	buf := leakyBuf.Get()
 	defer leakyBuf.Put(buf)
 	defer readClose.Close()
@@ -159,7 +161,9 @@ func (l *UdpListener) Pipeloop(write net.PacketConn, writeAddr net.Addr, readClo
 		}
 	}
 }
-
+func (l *UdpRelay) SetLimit(bytesPerSec int) {
+	l.limiter.SetLimit(rate.Limit(bytesPerSec))
+}
 func parseHeaderFromAddr(addr net.Addr) ([]byte, int) {
 	// if the request address type is domain, it cannot be reverselookuped
 	ip, port, err := net.SplitHostPort(addr.String())

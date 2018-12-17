@@ -2,6 +2,7 @@ package shadowsocks
 
 import (
 	"context"
+	"golang.org/x/time/rate"
 	"log"
 	"net"
 	"strings"
@@ -9,34 +10,35 @@ import (
 	"time"
 )
 
-type TcpRelayer struct {
+type TcpRelay struct {
 	*net.TCPListener
-	config   SSconfig
-	limiter  *speedlimiter
-	cipher   *Cipher
-	connCnt  int
-	channel  chan interface{}
-	ctx      context.Context
-	stopFunc context.CancelFunc
-	running  bool
+	config     SSconfig
+	limiter    *speedlimiter
+	cipher     *Cipher
+	connCnt    int
+	channel    chan interface{}
+	ctx        context.Context
+	stopFunc   context.CancelFunc
+	addTraffic func(tu, td, uu, ud int)
+	running    bool
 }
 
 const readtimeout = 180
 
-func newTcpListener(tcp *net.TCPListener, config SSconfig) *TcpRelayer {
+func newTcpRelay(tcp *net.TCPListener, config SSconfig, addTraffic func(tu, td, uu, ud int)) *TcpRelay {
 	cipher, err := NewCipher(config.Method, config.Password)
 	if err != nil {
 		log.Printf("Error generating cipher for port: %d %v\n", config.ServerPort, err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	return &TcpRelayer{TCPListener: tcp, limiter: util.NewSpeedLimiterWithContext(ctx, config.Limit*1024), config: config, cipher: cipher, ctx: ctx, stopFunc: cancel}
+	return &TcpRelay{TCPListener: tcp, limiter: util.NewSpeedLimiterWithContext(ctx, config.Limit*1024), config: config, cipher: cipher, ctx: ctx, stopFunc: cancel, addTraffic: addTraffic}
 }
-func makeTcpListener(tcp *net.TCPListener, config SSconfig) TcpRelayer {
-	return *newTcpListener(tcp, config)
+func makeTcpRelay(tcp *net.TCPListener, config SSconfig, addTraffic func(tu, td, uu, ud int)) TcpRelay {
+	return *newTcpRelay(tcp, config, addTraffic)
 }
-func (l *TcpRelayer) Listening() {
+func (l *TcpRelay) Listening() {
 	log.Printf("SS listening at tcp port[%d]", l.config.ServerPort)
-	defer log.Printf("TcpRelayer port:[%d] Uid:[%d] Sid:[%d] Close", l.config.ServerPort, l.config.Uid, l.config.Sid)
+	defer log.Printf("TcpRelay port:[%d] Uid:[%d] Sid:[%d] Close", l.config.ServerPort, l.config.Uid, l.config.Sid)
 	for l.running {
 		conn, err := l.Accept()
 		if err != nil {
@@ -49,14 +51,14 @@ func (l *TcpRelayer) Listening() {
 		go l.handleConnection(NewConn(conn, l.cipher.Copy()))
 		select {
 		case <-l.ctx.Done():
-			log.Printf("TcpRelayer port:[%d] Uid:[%d] Sid:[%d]  by Error:[%s]", l.config.ServerPort, l.config.Uid, l.config.Sid, l.ctx.Err())
+			log.Printf("TcpRelay port:[%d] Uid:[%d] Sid:[%d]  by Error:[%s]", l.config.ServerPort, l.config.Uid, l.config.Sid, l.ctx.Err())
 			return
 		default:
 			time.Sleep(time.Millisecond * 10)
 		}
 	}
 }
-func (l *TcpRelayer) handleConnection(conn *SsConn) {
+func (l *TcpRelay) handleConnection(conn *SsConn) {
 	closed := false
 	l.connCnt++
 	log.Printf("new client %s->%s\n", util.sanitizeAddr(conn.RemoteAddr()), conn.LocalAddr())
@@ -95,26 +97,32 @@ func (l *TcpRelayer) handleConnection(conn *SsConn) {
 	go func() {
 		PipeThenClose(l.ctx, conn, remote, func(Traffic int) {
 			// 把消耗的流量推出去
+			l.addTraffic(Traffic, 0, 0, 0)
 			// 限制速度
 			l.limiter.WaitN(Traffic)
 		})
 	}()
 
 	PipeThenClose(l.ctx, remote, conn, func(Traffic int) {
+
 		// 如上
+		l.addTraffic(0, Traffic, 0, 0)
 		l.limiter.WaitN(Traffic)
 	})
 	closed = true
 	return
 }
-func (l *TcpRelayer) Start() {
+func (l *TcpRelay) Start() {
 	l.running = true
 	go l.Listening()
 }
-func (l *TcpRelayer) Stop() {
+func (l *TcpRelay) Stop() {
 	l.running = false
 	l.stopFunc()
 	l.Close()
+}
+func (l *TcpRelay) SetLimit(bytesPerSec int) {
+	l.limiter.SetLimit(rate.Limit(bytesPerSec))
 }
 
 // PipeThenClose copies data from src to dst, closes dst when done.
