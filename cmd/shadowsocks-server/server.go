@@ -19,6 +19,6 @@ func main() {
 	flag.IntVar(&centerport, "P", 7001, "center port ")
 	flag.StringVar(&centerhost, "H", "localhost", "center host ")
 	flag.Parse()
-	m := ss.NewManager(8000)
+	m := ss.NewManager(manager_port)
 	ss.ManagerDaemon(m)
 }

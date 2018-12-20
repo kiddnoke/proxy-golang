@@ -1,52 +1,27 @@
 package main
 
 import (
-	"bufio"
-	"crypto/md5"
-	"encoding/hex"
-	"github.com/zhouhui8915/go-socket.io-client"
+	"../../comm/wswarpper"
 	"log"
-	"os"
+	"time"
 )
 
+type Config struct {
+	BeginPort      int    `json:"beginport"`
+	EndPort        int    `json:"endport"`
+	ManagerPort    int    `json:"manager_port"`
+	ControllerPort int    `json:"controller_port"`
+	State          string `json:"state"`
+	Area           int    `json:"area"`
+}
+
 func main() {
-	//currtimestamp := strconv.FormatInt(time.Now().UTC().Unix()*1000,10)
-	currtimestamp := "1545120729565"
-	hasher := md5.New()
-	hasher.Write([]byte(currtimestamp))
-	hasher.Write([]byte("VpnMgrCore"))
-	opts := &socketio_client.Options{
-		Transport: "websocket",
-		Query:     make(map[string]string),
-	}
-	opts.Query["keys"] = hex.EncodeToString(hasher.Sum(nil))
-	opts.Query["timestamp"] = currtimestamp
-	uri := "http://localhost:7001/socket.io/"
-
-	client, err := socketio_client.NewClient(uri, opts)
-	if err != nil {
-		log.Printf("NewClient error:%v\n", err)
-		return
-	}
-
-	client.On("error", func() {
-		log.Printf("on error\n")
+	client := wswarpper.New()
+	client.Connect("127.0.0.1", 7001)
+	client.Request("echo", "1212", func(msg string) {
+		log.Println(msg)
 	})
-	client.On("connection", func() {
-		log.Printf("on connect\n")
-	})
-	client.On("message", func(msg string) {
-		log.Printf("on message:%v\n", msg)
-	})
-	client.On("disconnection", func() {
-		log.Printf("on disconnect\n")
-	})
-
-	reader := bufio.NewReader(os.Stdin)
 	for {
-		data, _, _ := reader.ReadLine()
-		command := string(data)
-		client.Emit("message", command)
-		log.Printf("send message:%v\n", command)
+		time.Sleep(time.Second * 5)
 	}
 }
