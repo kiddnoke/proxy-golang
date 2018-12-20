@@ -86,8 +86,9 @@ func (m *Manager) Update(port int, config SSconfig) (e error) {
 }
 
 type Params struct {
-	Cmd    string   `json:"cmd"`
-	Config SSconfig `json:"config"`
+	open   interface{} `json:"open"`
+	close  interface{} `json:"close"`
+	remove interface{} `json:"remove"`
 }
 
 func (m *Manager) Loop() {
@@ -105,35 +106,24 @@ func (m *Manager) Loop() {
 			log.Printf("Failed to Unmarshal json, error: %s", err.Error())
 		}
 		var res []byte
-		switch params.Cmd {
-		case "open":
-			if err := m.Add(params.Config); err == nil {
-				log.Printf("open SS proxy success : proxy.Uid[%d] ,proxy.Sid[%d] ,proxy.ServerProt[%d]", params.Config.Uid, params.Config.Sid, params.Config.ServerPort)
+		if params.open != nil {
+			if err := m.Add(params.open.(SSconfig)); err == nil {
+				log.Printf("open SS proxy success : proxy.Uid[%d] ,proxy.Sid[%d] ,proxy.ServerProt[%d]", params.open.(SSconfig).Uid, params.open.(SSconfig).Sid, params.open.(SSconfig).ServerPort)
 			} else {
 				log.Printf("open SS proxy error:[%s]", err.Error())
 			}
-		case "close":
-			if err := m.Remove(params.Config); err == nil {
-				log.Printf("close SS proxy success : proxy.Uid[%d] ,proxy.Sid[%d] ,proxy.ServerProt[%d]", params.Config.Uid, params.Config.Sid, params.Config.ServerPort)
+		} else if params.close != nil {
+			if err := m.Remove(params.close.(SSconfig)); err == nil {
+				log.Printf("close SS proxy success : proxy.Uid[%d] ,proxy.Sid[%d] ,proxy.ServerProt[%d]", params.close.(SSconfig).Uid, params.close.(SSconfig).Sid, params.close.(SSconfig).ServerPort)
 			} else {
 				log.Printf("close SS proxy error:[%s]", err.Error())
 			}
-		case "remove":
-			if err := m.Remove(params.Config); err == nil {
+		} else if params.remove != nil {
+			if err := m.Remove(params.remove.(SSconfig)); err == nil {
 				log.Printf("remove SS proxy success")
 			} else {
 				log.Printf("remove SS proxy error:[%s]", err.Error())
 			}
-		case "update":
-
-		case "query":
-			if proxy, err := m.Get(params.Config); err == nil {
-				log.Printf("query SS proxy success : proxy.Uid[%d] ,proxy.Sid[%d] ,proxy.ServerProt[%d]", proxy.Config.Uid, proxy.Config.Sid, proxy.Config.ServerPort)
-			} else {
-				log.Printf("query SS proxy error:[%s]", err.Error())
-			}
-		default:
-			res = []byte("error , command not found")
 		}
 		if len(res) == 0 {
 			continue
