@@ -111,8 +111,7 @@ func (m *Manager) Loop() {
 	clients := m.clients
 	ticker := time.NewTicker(15 * time.Second)
 	go func() {
-		for t := range ticker.C {
-			log.Println("Tick at", t)
+		for range ticker.C {
 			for clientAddr, _ := range clients {
 				type Transfer struct {
 					transfer map[int][]int
@@ -127,11 +126,11 @@ func (m *Manager) Loop() {
 				tcptransfer, _ := json.Marshal(struct {
 					Transfer map[int][]uint64 `json:"tcptransfer"`
 				}{Transfer: tt})
-				conn.WriteToUDP(tcptransfer, clientAddr)
+				_, _ = conn.WriteToUDP(tcptransfer, clientAddr)
 				udptransfer, _ := json.Marshal(struct {
 					Transfer map[int][]uint64 `json:"udptransfer"`
 				}{Transfer: ut})
-				conn.WriteToUDP(udptransfer, clientAddr)
+				_, _ = conn.WriteToUDP(udptransfer, clientAddr)
 			}
 		}
 	}()
