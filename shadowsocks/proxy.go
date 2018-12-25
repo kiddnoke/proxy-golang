@@ -5,7 +5,7 @@ type Proxy struct {
 	UdpInstance     UdpRelay
 	Config          SSconfig
 	TransferChannel chan interface{}
-	traffic         Traffic
+	Traffic         *Traffic
 	master          *Manager
 }
 
@@ -16,7 +16,7 @@ func NewProxy(config SSconfig) (p *Proxy, e error) {
 	}
 	p = &Proxy{
 		Config:  config,
-		traffic: Traffic{0, 0, 0, 0},
+		Traffic: &Traffic{0, 0, 0, 0},
 	}
 	tl := makeTcpRelay(t, config, p.AddTraffic)
 	p.TcpInstance = tl
@@ -43,8 +43,19 @@ func (p *Proxy) SetLimit(bytesPerSec int) {
 	p.UdpInstance.SetLimit(bytesPerSec)
 }
 func (p *Proxy) AddTraffic(tu, td, uu, ud int) {
-	p.traffic.tcpup += uint64(tu)
-	p.traffic.tcpdown += uint64(td)
-	p.traffic.udpup += uint64(uu)
-	p.traffic.udpdown += uint64(ud)
+	p.Traffic.tcpup += uint64(tu)
+	p.Traffic.tcpdown += uint64(td)
+	p.Traffic.udpup += uint64(uu)
+	p.Traffic.udpdown += uint64(ud)
+}
+func (p *Proxy) GetTraffic() (t Traffic) {
+	t = *p.Traffic
+	defer func() {
+		p.Traffic.tcpup = 0
+		p.Traffic.tcpdown = 0
+		p.Traffic.udpup = 0
+		p.Traffic.udpdown = 0
+	}()
+
+	return *p.Traffic
 }

@@ -9,12 +9,14 @@ import (
 	"net"
 	"os"
 	"sync"
+	"time"
 )
 
 type Manager struct {
 	sync.Mutex
 	proxyTable map[int]Proxy
 	conn       *net.UDPConn
+	clients    map[*net.UDPAddr]bool
 	running    bool
 }
 
@@ -25,7 +27,7 @@ func NewManager(port int) (m *Manager) {
 		log.Printf("Error listening: %s", err.Error())
 		os.Exit(1)
 	}
-	return &Manager{proxyTable: make(map[int]Proxy), conn: conn, running: false}
+	return &Manager{proxyTable: make(map[int]Proxy), conn: conn, clients: make(map[*net.UDPAddr]bool), running: false}
 }
 func MakeManger(port int) (m Manager) {
 	return *NewManager(port)
@@ -80,8 +82,8 @@ func (m *Manager) Limit(config SSconfig) (e error) {
 	m.Lock()
 	defer m.Unlock()
 	p, ok := m.proxyTable[config.ServerPort]
-	if ok == true && p.Config.Uid == config.Uid && p.Config.Sid == config.Sid {
-		p.SetLimit(config.Currlimitdown * 1024)
+	if ok == true /* && p.Config.Uid == config.Uid && p.Config.Sid == config.Sid */ {
+		p.SetLimit(config.Limitdown * 1024)
 	} else {
 		e = errors.New(fmt.Sprintf("没有这个实例 params.Uid[%d] Proxy.Uid[%d] params.Sid[%d] Proxy.Sid[%d] ", config.Uid, p.Config.Uid, config.Sid, p.Config.Sid))
 	}
@@ -105,13 +107,39 @@ type Params struct {
 }
 
 func (m *Manager) Loop() {
-
-	//var config SSconfig
 	conn := m.conn
+	clients := m.clients
+	ticker := time.NewTicker(15 * time.Second)
+	go func() {
+		for t := range ticker.C {
+			log.Println("Tick at", t)
+			for clientAddr, _ := range clients {
+				type Transfer struct {
+					transfer map[int][]int
+				}
+				tt := make(map[int][]uint64)
+				ut := make(map[int][]uint64)
+				for port, p := range m.proxyTable {
+					t := p.GetTraffic()
+					tt[port] = []uint64{t.tcpup, t.tcpdown}
+					ut[port] = []uint64{t.udpup, t.udpdown}
+				}
+				tcptransfer, _ := json.Marshal(struct {
+					Transfer map[int][]uint64 `json:"tcptransfer"`
+				}{Transfer: tt})
+				conn.WriteToUDP(tcptransfer, clientAddr)
+				udptransfer, _ := json.Marshal(struct {
+					Transfer map[int][]uint64 `json:"udptransfer"`
+				}{Transfer: ut})
+				conn.WriteToUDP(udptransfer, clientAddr)
+			}
+		}
+	}()
 	for m.running {
 		var params Params
 		data := make([]byte, 300)
 		_, remote, err := conn.ReadFromUDP(data)
+		clients[remote] = true
 		if err != nil {
 			log.Printf("Failed to read UDP manage msg, error: %s", err.Error())
 			continue

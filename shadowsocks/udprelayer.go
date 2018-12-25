@@ -51,7 +51,7 @@ func newUdpRelay(l *net.UDPConn, config SSconfig, addTraffic func(tu, td, uu, ud
 	}
 	return &UdpRelay{
 		UDPConn:    l,
-		limiter:    util.NewSpeedLimiterWithContext(ctx, config.Currlimitdown*1024),
+		limiter:    util.NewSpeedLimiterWithContext(ctx, config.Limitdown*1024),
 		config:     config,
 		cipher:     cipher,
 		ctx:        ctx,

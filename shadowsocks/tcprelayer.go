@@ -33,7 +33,7 @@ func newTcpRelay(tcp *net.TCPListener, config SSconfig, addTraffic func(tu, td, 
 	ctx, cancel := context.WithCancel(context.Background())
 	return &TcpRelay{
 		TCPListener: tcp,
-		limiter:     util.NewSpeedLimiterWithContext(ctx, config.Currlimitdown*1024),
+		limiter:     util.NewSpeedLimiterWithContext(ctx, config.Limitdown*1024),
 		config:      config,
 		cipher:      cipher,
 		ctx:         ctx,
