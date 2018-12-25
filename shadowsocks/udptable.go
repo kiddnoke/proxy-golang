@@ -58,7 +58,6 @@ func newReqList() *requestHeaderList {
 	ret := &requestHeaderList{List: map[string]([]byte){}, running: true}
 	var refreshHandler func()
 	refreshHandler = func() {
-		time.Sleep(reqListRefreshTime)
 		ret.Refresh()
 		if ret.running {
 			log.Printf("refresh reqlist")

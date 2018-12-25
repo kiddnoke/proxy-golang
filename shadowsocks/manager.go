@@ -16,7 +16,7 @@ type Manager struct {
 	sync.Mutex
 	proxyTable map[int]Proxy
 	conn       *net.UDPConn
-	clients    map[*net.UDPAddr]bool
+	clients    map[int]*net.UDPAddr
 	running    bool
 }
 
@@ -27,7 +27,7 @@ func NewManager(port int) (m *Manager) {
 		log.Printf("Error listening: %s", err.Error())
 		os.Exit(1)
 	}
-	return &Manager{proxyTable: make(map[int]Proxy), conn: conn, clients: make(map[*net.UDPAddr]bool), running: false}
+	return &Manager{proxyTable: make(map[int]Proxy), conn: conn, clients: make(map[int]*net.UDPAddr), running: false}
 }
 func MakeManger(port int) (m Manager) {
 	return *NewManager(port)
@@ -112,7 +112,7 @@ func (m *Manager) Loop() {
 	ticker := time.NewTicker(15 * time.Second)
 	go func() {
 		for range ticker.C {
-			for clientAddr, _ := range clients {
+			for _, clientAddr := range clients {
 				type Transfer struct {
 					transfer map[int][]int
 				}
@@ -120,8 +120,10 @@ func (m *Manager) Loop() {
 				ut := make(map[int][]uint64)
 				for port, p := range m.proxyTable {
 					t := p.GetTraffic()
-					tt[port] = []uint64{t.tcpup, t.tcpdown}
-					ut[port] = []uint64{t.udpup, t.udpdown}
+					if t.tcpup > 0 || t.tcpdown > 0 || t.udpup > 0 || t.udpdown > 0 {
+						tt[port] = []uint64{t.tcpup, t.tcpdown}
+						ut[port] = []uint64{t.udpup, t.udpdown}
+					}
 				}
 				tcptransfer, _ := json.Marshal(struct {
 					Transfer map[int][]uint64 `json:"tcptransfer"`
@@ -138,7 +140,7 @@ func (m *Manager) Loop() {
 		var params Params
 		data := make([]byte, 300)
 		_, remote, err := conn.ReadFromUDP(data)
-		clients[remote] = true
+		clients[remote.Port] = remote
 		if err != nil {
 			log.Printf("Failed to read UDP manage msg, error: %s", err.Error())
 			continue
