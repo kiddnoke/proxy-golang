@@ -6,22 +6,17 @@ import (
 	"time"
 )
 
-type Config struct {
-	BeginPort      int    `json:"beginport"`
-	EndPort        int    `json:"endport"`
-	ManagerPort    int    `json:"manager_port"`
-	ControllerPort int    `json:"controller_port"`
-	State          string `json:"state"`
-	Area           int    `json:"area"`
-}
-
 func main() {
 	client := wswarpper.New()
+
 	client.Connect("127.0.0.1", 7001)
-	client.Request("echo", "1212", func(msg string) {
-		log.Println(msg)
+	client.OnConnect(func(c wswarpper.Channel) {
+		log.Println(c)
+	})
+	client.Request("echo", "121212", func(ack string) {
+		log.Println(ack)
 	})
 	for {
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second)
 	}
 }
