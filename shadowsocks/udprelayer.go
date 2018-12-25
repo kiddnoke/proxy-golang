@@ -45,10 +45,20 @@ type UdpRelay struct {
 func newUdpRelay(l *net.UDPConn, config SSconfig, addTraffic func(tu, td, uu, ud int)) *UdpRelay {
 	ctx := context.Background()
 	cipher, err := NewCipher(config.Method, config.Password)
+	ctx, cancel := context.WithCancel(context.Background())
 	if err != nil {
 		log.Printf("Error generating cipher for port: %d %v\n", config.ServerPort, err)
 	}
-	return &UdpRelay{UDPConn: l, limiter: util.NewSpeedLimiterWithContext(ctx, config.Limit*1024), config: config, cipher: cipher, ctx: ctx, reqList: newReqList(), natlist: newNatTable(), addTraffic: addTraffic}
+	return &UdpRelay{
+		UDPConn:    l,
+		limiter:    util.NewSpeedLimiterWithContext(ctx, config.Currlimitdown*1024),
+		config:     config,
+		cipher:     cipher,
+		ctx:        ctx,
+		stopFunc:   cancel,
+		reqList:    newReqList(),
+		natlist:    newNatTable(),
+		addTraffic: addTraffic}
 }
 func makeUdpRelay(l *net.UDPConn, config SSconfig, addTraffic func(tu, td, uu, ud int)) UdpRelay {
 	return *newUdpRelay(l, config, addTraffic)
@@ -105,7 +115,8 @@ func (l *UdpRelay) handleConnection(handle *SecurePacketConn) error {
 		log.Printf("[udp]new client %s->%s via %s\n", src, dst, remote.LocalAddr())
 		go func() {
 			l.Pipeloop(handle, src, remote, func(traffic int) {
-
+				l.addTraffic(0, 0, 0, n)
+				l.limiter.WaitN(n)
 			})
 			l.natlist.Delete(src.String())
 		}()

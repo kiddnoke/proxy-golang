@@ -14,11 +14,17 @@ func NewProxy(config SSconfig) (p *Proxy, e error) {
 	if err != nil {
 		return nil, err
 	}
+	p = &Proxy{
+		Config:  config,
+		traffic: Traffic{0, 0, 0, 0},
+	}
 	tl := makeTcpRelay(t, config, p.AddTraffic)
+	p.TcpInstance = tl
 	tl.Start()
 	ul := makeUdpRelay(u, config, p.AddTraffic)
+	p.UdpInstance = ul
 	ul.Start()
-	return &Proxy{TcpInstance: tl, UdpInstance: ul, Config: config}, nil
+	return
 }
 func MakeProxy(config SSconfig) (p Proxy, err error) {
 	ptr, err := NewProxy(config)

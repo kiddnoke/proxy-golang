@@ -31,7 +31,14 @@ func newTcpRelay(tcp *net.TCPListener, config SSconfig, addTraffic func(tu, td, 
 		log.Printf("Error generating cipher for port: %d %v\n", config.ServerPort, err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	return &TcpRelay{TCPListener: tcp, limiter: util.NewSpeedLimiterWithContext(ctx, config.Limit*1024), config: config, cipher: cipher, ctx: ctx, stopFunc: cancel, addTraffic: addTraffic}
+	return &TcpRelay{
+		TCPListener: tcp,
+		limiter:     util.NewSpeedLimiterWithContext(ctx, config.Currlimitdown*1024),
+		config:      config,
+		cipher:      cipher,
+		ctx:         ctx,
+		stopFunc:    cancel,
+		addTraffic:  addTraffic}
 }
 func makeTcpRelay(tcp *net.TCPListener, config SSconfig, addTraffic func(tu, td, uu, ud int)) TcpRelay {
 	return *newTcpRelay(tcp, config, addTraffic)
