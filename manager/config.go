@@ -1,6 +1,6 @@
-package shadowsocks
+package manager
 
-type SSconfig struct {
+type Config struct {
 	Uid        int    `json:"uid"`
 	Sid        int    `json:"sid"`
 	Timeout    int    `json:"timeout"`
@@ -8,6 +8,6 @@ type SSconfig struct {
 	Password   string `json:"password"`
 	Expire     int64  `json:"expire"`
 	ServerPort int    `json:"server_port"`
-	Limitup    int    `json:"limitup"`
-	Limitdown  int    `json:"limitdown"`
+	Limit      int    `json:"limit"`
+	Overflow   int64  `json:"overflow"`
 }
