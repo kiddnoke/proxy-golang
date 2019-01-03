@@ -28,14 +28,19 @@ func NewUdpRelayByProxyInfo(p *ProxyInfo) (up *UdpRelay, err error) {
 }
 func (u *UdpRelay) Start() {
 	u.running = true
+	go u.Loop()
 }
 func (u *UdpRelay) Stop() {
 	u.running = false
-	u.l.Close()
 	u.conns.Range(func(key, value interface{}) bool {
 		value.(net.PacketConn).Close()
 		return true
 	})
+}
+func (u *UdpRelay) Close() {
+	if u.running {
+		u.l.Close()
+	}
 }
 func (u *UdpRelay) Loop() {
 	m := make(map[string]chan []byte)
@@ -43,11 +48,15 @@ func (u *UdpRelay) Loop() {
 	c := u.l
 	for u.running {
 		buf := bufPool.Get().([]byte)
+		c.SetReadDeadline(time.Now().Add(time.Millisecond * AcceptTimeout))
 		n, raddr, err := c.ReadFrom(buf)
 		u.Limiter.WaitN(n)
 		u.AddTraffic(0, 0, n, 0)
 		if err != nil {
-			//logf("UDP remote read error: %v", err)
+			if opError, ok := err.(*net.OpError); ok && opError.Timeout() {
+				continue
+			}
+			// log.Printf("UDP remote read error: %s", err.Error())
 			continue
 		}
 

@@ -40,15 +40,20 @@ func Monitor(ctx context.Context) {
 	}
 }
 func main() {
-	// go Monitor(context.Background())
+	go Monitor(context.Background())
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	pi, _ := NewProxy(8488, "AES-128-cfb", "test", 100)
 	pr, _ := NewProxyRelay(*pi)
-	time.AfterFunc(time.Second*15, func() {
+	time.AfterFunc(time.Second*30, func() {
 		pr.Stop()
-		tu, td, uu, ud := pr.GetTraffic()
-		log.Printf("总量 [%d] [%d] [%d] [%d]", tu, td, uu, ud)
+		time.AfterFunc(time.Second*5, func() {
+			tu, td, uu, ud := pr.GetTraffic()
+			log.Printf("总量 [%d] [%d] [%d] [%d]", tu, td, uu, ud)
+		})
+	})
+	time.AfterFunc(time.Second*40, func() {
+		pr.Start()
 	})
 	pr.Start()
 	<-sigCh

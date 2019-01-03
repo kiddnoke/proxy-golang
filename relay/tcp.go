@@ -5,21 +5,35 @@ import (
 	"github.com/riobard/go-shadowsocks2/socks"
 	"log"
 	"net"
-	"strconv"
 	"sync"
 	"time"
 )
 
+const AcceptTimeout = 1000
+
+type listener struct {
+	*net.TCPListener
+	core.StreamConnCipher
+}
+
+func Listen(network string, Port int, ciph core.StreamConnCipher) (listener, error) {
+	l, err := net.ListenTCP(network, &net.TCPAddr{Port: Port})
+	return listener{l, ciph}, err
+}
+
+func (l *listener) Accept() (net.Conn, error) {
+	c, err := l.TCPListener.Accept()
+	return l.StreamConn(c), err
+}
+
 type TcpRelay struct {
-	l net.Listener
+	l listener
 	*ProxyInfo
 	conns sync.Map
 }
 
 func NewTcpRelayByProxyInfo(c *ProxyInfo) (tp *TcpRelay, err error) {
-	addr := strconv.Itoa(c.ServerPort)
-	addr = ":" + addr
-	l, err := core.Listen("tcp", addr, c.Cipher)
+	l, err := Listen("tcp", c.ServerPort, c.Cipher)
 	return &TcpRelay{l: l, ProxyInfo: c}, err
 }
 func tcpKeepAlive(c net.Conn) {
@@ -30,9 +44,14 @@ func tcpKeepAlive(c net.Conn) {
 }
 func (t *TcpRelay) Loop() {
 	for t.running {
+		_ = t.l.SetDeadline(time.Now().Add(time.Millisecond * AcceptTimeout))
 		c, err := t.l.Accept()
 		if err != nil {
 			//logf("failed to accept: %v", err)
+			if opError, ok := err.(*net.OpError); ok && opError.Timeout() {
+				// log.Printf("%v", err)
+				continue
+			}
 			continue
 		}
 
@@ -60,7 +79,7 @@ func (t *TcpRelay) Loop() {
 				rc.Close()
 			}()
 			t.conns.Store(rc.RemoteAddr().String(), rc)
-			tcpKeepAlive(rc)
+			//tcpKeepAlive(rc)
 
 			//logf("proxy %s <-> %s", c.RemoteAddr(), tgt)
 			go func() {
@@ -82,18 +101,23 @@ func (t *TcpRelay) Start() {
 }
 func (t *TcpRelay) Stop() {
 	t.running = false
-	t.l.Close()
 	t.conns.Range(func(key, value interface{}) bool {
 		value.(net.Conn).Close()
 		return true
 	})
+}
+func (t *TcpRelay) Close() {
+	if t.running {
+		t.l.Close()
+	}
 }
 
 func PipeThenClose(left, right net.Conn, addTraffic func(n int)) {
 	defer func() {
 		right.Close()
 	}()
-	buf := make([]byte, 1024*16)
+	buf := leakyBuf.Get()
+	defer leakyBuf.Put(buf)
 	for {
 		left.SetReadDeadline(time.Now().Add(time.Second * 15))
 		n, err := left.Read(buf)
