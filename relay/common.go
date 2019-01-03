@@ -1,7 +1,6 @@
 package relay
 
 import (
-	"../manager/speedlimit"
 	"github.com/riobard/go-shadowsocks2/core"
 	"log"
 )
@@ -9,7 +8,7 @@ import (
 type ProxyInfo struct {
 	ServerPort int `json:"server_port"`
 	core.Cipher
-	*speedlimit.Limiter
+	*Limiter
 	Traffic
 	running bool
 }
@@ -44,7 +43,7 @@ func NewProxy(ServerPort int, Method string, Password string, Speed int) (pi *Pr
 	if err != nil {
 		log.Fatal(err)
 	}
-	limiter := speedlimit.New(Speed * 1024)
+	limiter := NewSpeedLimiter(Speed * 1024)
 	return &ProxyInfo{
 		Cipher:     ciph,
 		ServerPort: ServerPort,

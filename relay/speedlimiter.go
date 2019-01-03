@@ -1,4 +1,4 @@
-package speedlimit
+package relay
 
 import (
 	"context"
@@ -21,14 +21,14 @@ func NewWithContext(ctx context.Context, bytesPerSec int) *Limiter {
 func MakeWithContext(ctx context.Context, bytesPerSec int) Limiter {
 	return *NewWithContext(ctx, bytesPerSec)
 }
-func New(bytesPerSec int) *Limiter {
+func NewSpeedLimiter(bytesPerSec int) *Limiter {
 	burstsize := bytesPerSec * 3
 	limiter := rate.NewLimiter(rate.Limit(bytesPerSec), burstsize)
 	limiter.AllowN(time.Now(), burstsize)
 	ctx := context.Background()
 	return &Limiter{Limiter: limiter, ctx: ctx}
 }
-func Make(bytesPerSec int) Limiter {
+func MakeSpeedLimiter(bytesPerSec int) Limiter {
 	return *NewWithContext(context.Background(), bytesPerSec)
 }
 func (s *Limiter) SetLimit(bytesPerSec int) {
