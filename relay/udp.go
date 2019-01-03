@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const udpBufSize = 64 * 1024
+const udpBufSize = 4 * 1024
 const UDPTimeout = time.Minute
 
 var bufPool = sync.Pool{New: func() interface{} { return make([]byte, udpBufSize) }}
@@ -38,7 +38,7 @@ func (u *UdpRelay) Stop() {
 	})
 }
 func (u *UdpRelay) Close() {
-	if u.running {
+	if u.running == false {
 		u.l.Close()
 	}
 }

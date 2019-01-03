@@ -107,7 +107,7 @@ func (t *TcpRelay) Stop() {
 	})
 }
 func (t *TcpRelay) Close() {
-	if t.running {
+	if t.running == false {
 		t.l.Close()
 	}
 }

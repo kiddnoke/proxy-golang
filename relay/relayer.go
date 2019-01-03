@@ -12,10 +12,17 @@ func NewProxyRelay(p ProxyInfo) (r *ProxyRelay, err error) {
 	return &ProxyRelay{t: t, u: u, ProxyInfo: &p}, err1
 }
 func (r *ProxyRelay) Start() {
-	r.t.Start()
-	r.u.Start()
+	if r.running == false {
+		r.t.Start()
+		r.u.Start()
+	}
 }
 func (r *ProxyRelay) Stop() {
 	r.t.Stop()
 	r.u.Stop()
+}
+func (r *ProxyRelay) Close() {
+	r.Stop()
+	r.t.Close()
+	r.u.Close()
 }
