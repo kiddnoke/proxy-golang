@@ -31,3 +31,9 @@ func New(bytesPerSec int) *Limiter {
 func Make(bytesPerSec int) Limiter {
 	return *NewWithContext(context.Background(), bytesPerSec)
 }
+func (s *Limiter) SetLimit(bytesPerSec int) {
+	s.Limiter.SetLimit(rate.Limit(bytesPerSec))
+}
+func (s *Limiter) WaitN(n int) error {
+	return s.Limiter.WaitN(s.ctx, n)
+}
