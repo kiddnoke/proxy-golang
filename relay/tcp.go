@@ -25,7 +25,11 @@ func (c *Conn) Read(b []byte) (int, error) {
 	c.add(n, 0)
 	return n, err
 }
-
+func (c *Conn) Write(b []byte) (int, error) {
+	n, err := c.Conn.Write(b)
+	c.add(0, n)
+	return n, err
+}
 func (c *Conn) WriteTo(w io.Writer) (int64, error) {
 	n, err := c.Conn.(io.WriterTo).WriteTo(w)
 	c.add(0, int(n))
