@@ -4,7 +4,6 @@ import (
 	"../manager/speedlimit"
 	"github.com/riobard/go-shadowsocks2/core"
 	"github.com/riobard/go-shadowsocks2/socks"
-	"io"
 	"log"
 	"net"
 	"strconv"
@@ -16,32 +15,6 @@ type Conn struct {
 	net.Conn
 	add func(tu, td int)
 }
-
-// WrapperConnWithTraffic wraps a stream-oriented net.Conn with stream cipher encryption/decryption.
-func WrapperConnWithTraffic(c net.Conn, add func(tu, td int)) *Conn { return &Conn{Conn: c, add: add} }
-
-func (c *Conn) Read(b []byte) (int, error) {
-	n, err := c.Conn.Read(b)
-	c.add(n, 0)
-	return n, err
-}
-func (c *Conn) Write(b []byte) (int, error) {
-	n, err := c.Conn.Write(b)
-	c.add(0, n)
-	return n, err
-}
-func (c *Conn) WriteTo(w io.Writer) (int64, error) {
-	n, err := c.Conn.(io.WriterTo).WriteTo(w)
-	c.add(0, int(n))
-	return n, err
-}
-
-func (c *Conn) ReadFrom(r io.Reader) (int64, error) {
-	n, err := c.Conn.(io.ReaderFrom).ReadFrom(r)
-	c.add(int(n), 0)
-	return n, err
-}
-
 type Config struct {
 	Uid        int    `json:"uid"`
 	Sid        int    `json:"sid"`
@@ -139,14 +112,6 @@ func (t *TcpRelay) Start() {
 			}()
 			t.conns.Store(c.RemoteAddr().String(), c)
 			tcpKeepAlive(c)
-			c = WrapperConnWithTraffic(c, func(tu, td int) {
-				if err = t.WaitN(tu + td); err != nil {
-					log.Printf("[%s] [%s]", c.RemoteAddr().String(), err.Error())
-				} else {
-					log.Printf("[%s] [%d] [%d]", c.RemoteAddr().String(), tu, td)
-				}
-				t.AddTraffic(td, tu, 0, 0)
-			})
 			tgt, err := socks.ReadAddr(c)
 
 			if err != nil {
@@ -167,35 +132,22 @@ func (t *TcpRelay) Start() {
 			tcpKeepAlive(rc)
 
 			//logf("proxy %s <-> %s", c.RemoteAddr(), tgt)
-			if err = relay(c, rc); err != nil {
-				if err, ok := err.(net.Error); ok && err.Timeout() {
-					return // ignore i/o timeout
-				}
-				//logf("relay error: %v", err)
-			}
+			go func() {
+				PipeThenClose(rc, c, func(n int) {
+					log.Printf("[0] [%d]", n)
+					t.Limiter.WaitN(n)
+					t.AddTraffic(0, n, 0, 0)
+				})
+			}()
+			PipeThenClose(c, rc, func(n int) {
+				log.Printf("[%d] [0]", n)
+				t.Limiter.WaitN(n)
+				t.AddTraffic(n, 0, 0, 0)
+			})
 		}()
 	}
 }
-func relay(left, right net.Conn) error {
-	var err, err1 error
-	var wg sync.WaitGroup
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		_, err1 = io.Copy(right, left)
-		right.SetReadDeadline(time.Now()) // unblock read on right
-	}()
-
-	_, err = io.Copy(left, right)
-	left.SetReadDeadline(time.Now()) // unblock read on left
-	wg.Wait()
-
-	if err1 != nil {
-		err = err1
-	}
-	return err
-}
 func (t *TcpRelay) Stop() {
 	t.running = false
 	t.l.Close()
@@ -203,4 +155,26 @@ func (t *TcpRelay) Stop() {
 		value.(net.Conn).Close()
 		return true
 	})
+}
+func PipeThenClose(left, right net.Conn, addTraffic func(n int)) {
+	defer func() {
+		right.Close()
+	}()
+	buf := make([]byte, 1024*16)
+	for {
+		left.SetReadDeadline(time.Now().Add(time.Second * 15))
+		n, err := left.Read(buf)
+		if addTraffic != nil && n > 0 {
+			addTraffic(n)
+		}
+		if n > 0 {
+			if _, err := right.Write(buf[0:n]); err != nil {
+				log.Println("write:", err)
+				break
+			}
+		}
+		if err != nil {
+			break
+		}
+	}
 }
