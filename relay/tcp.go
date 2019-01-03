@@ -12,11 +12,11 @@ import (
 
 type TcpRelay struct {
 	l net.Listener
-	ProxyInfo
+	*ProxyInfo
 	conns sync.Map
 }
 
-func NewTcpRelayByProxyInfo(c ProxyInfo) (tp *TcpRelay, err error) {
+func NewTcpRelayByProxyInfo(c *ProxyInfo) (tp *TcpRelay, err error) {
 	addr := strconv.Itoa(c.ServerPort)
 	addr = ":" + addr
 	l, err := core.Listen("tcp", addr, c.Cipher)

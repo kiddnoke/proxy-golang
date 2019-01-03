@@ -43,17 +43,13 @@ func main() {
 	// go Monitor(context.Background())
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	config := Config{ServerPort: 8488, Method: "AES-128-cfb", Password: "test", Limit: 100}
-	pi := MakeProxyInfo(config)
-	tr, _ := NewTcpRelayByProxyInfo(pi)
-	ur, _ := NewUdpRelayByProxyInfo(pi)
-	time.AfterFunc(time.Minute, func() {
-		tr.Stop()
-		ur.Stop()
-		tu, td, uu, ud := tr.GetTraffic()
+	pi, _ := NewProxy(8488, "AES-128-cfb", "test", 100)
+	pr, _ := NewProxyRelay(*pi)
+	time.AfterFunc(time.Second*15, func() {
+		pr.Stop()
+		tu, td, uu, ud := pr.GetTraffic()
 		log.Printf("总量 [%d] [%d] [%d] [%d]", tu, td, uu, ud)
 	})
-	tr.Start()
-	ur.Start()
+	pr.Start()
 	<-sigCh
 }

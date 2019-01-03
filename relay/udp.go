@@ -16,11 +16,11 @@ var bufPool = sync.Pool{New: func() interface{} { return make([]byte, udpBufSize
 
 type UdpRelay struct {
 	l net.PacketConn
-	ProxyInfo
+	*ProxyInfo
 	conns sync.Map
 }
 
-func NewUdpRelayByProxyInfo(p ProxyInfo) (up *UdpRelay, err error) {
+func NewUdpRelayByProxyInfo(p *ProxyInfo) (up *UdpRelay, err error) {
 	addr := strconv.Itoa(p.ServerPort)
 	addr = ":" + addr
 	l, err := core.ListenPacket("udp", addr, p.Cipher)
