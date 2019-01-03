@@ -45,12 +45,15 @@ func main() {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	config := Config{ServerPort: 8488, Method: "AES-128-cfb", Password: "test", Limit: 100}
 	pi := MakeProxyInfo(config)
-	tr, _ := NewTcpRelay(pi)
+	tr, _ := NewTcpRelayByProxyInfo(pi)
+	ur, _ := NewUdpRelayByProxyInfo(pi)
 	time.AfterFunc(time.Minute, func() {
 		tr.Stop()
+		ur.Stop()
 		tu, td, uu, ud := tr.GetTraffic()
 		log.Printf("总量 [%d] [%d] [%d] [%d]", tu, td, uu, ud)
 	})
 	tr.Start()
+	ur.Start()
 	<-sigCh
 }

@@ -1,0 +1,151 @@
+package relay
+
+import (
+	"github.com/riobard/go-shadowsocks2/core"
+	"github.com/riobard/go-shadowsocks2/socks"
+	"net"
+	"strconv"
+	"sync"
+	"time"
+)
+
+const udpBufSize = 64 * 1024
+const UDPTimeout = time.Minute
+
+var bufPool = sync.Pool{New: func() interface{} { return make([]byte, udpBufSize) }}
+
+type UdpRelay struct {
+	l net.PacketConn
+	ProxyInfo
+	conns sync.Map
+}
+
+func NewUdpRelayByProxyInfo(p ProxyInfo) (up *UdpRelay, err error) {
+	addr := strconv.Itoa(p.ServerPort)
+	addr = ":" + addr
+	l, err := core.ListenPacket("udp", addr, p.Cipher)
+	return &UdpRelay{l: l, ProxyInfo: p}, err
+}
+func (u *UdpRelay) Start() {
+	u.running = true
+}
+func (u *UdpRelay) Stop() {
+	u.running = false
+	u.l.Close()
+	u.conns.Range(func(key, value interface{}) bool {
+		value.(net.PacketConn).Close()
+		return true
+	})
+}
+func (u *UdpRelay) Loop() {
+	m := make(map[string]chan []byte)
+	var lock sync.Mutex
+	c := u.l
+	for u.running {
+		buf := bufPool.Get().([]byte)
+		n, raddr, err := c.ReadFrom(buf)
+		u.Limiter.WaitN(n)
+		u.AddTraffic(0, 0, n, 0)
+		if err != nil {
+			//logf("UDP remote read error: %v", err)
+			continue
+		}
+
+		lock.Lock()
+		k := raddr.String()
+		ch := m[k]
+		if ch == nil {
+			pc, err := net.ListenPacket("udp", "")
+			if err != nil {
+				//logf("failed to create UDP socket: %v", err)
+				goto Unlock
+			}
+			u.conns.Store(pc.LocalAddr().String(), pc)
+			ch = make(chan []byte, 1) // must use buffered chan
+			m[k] = ch
+
+			go func() { // receive from udpLocal and send to target
+				var tgtUDPAddr *net.UDPAddr
+				var err error
+
+				for buf := range ch {
+					tgtAddr := socks.SplitAddr(buf)
+					if tgtAddr == nil {
+						//logf("failed to split target address from packet: %q", buf)
+						goto End
+					}
+					tgtUDPAddr, err = net.ResolveUDPAddr("udp", tgtAddr.String())
+					if err != nil {
+						//logf("failed to resolve target UDP address: %v", err)
+						goto End
+					}
+					pc.SetReadDeadline(time.Now().Add(UDPTimeout))
+					if _, err = pc.WriteTo(buf[len(tgtAddr):], tgtUDPAddr); err != nil {
+						//logf("UDP remote write error: %v", err)
+						goto End
+					}
+				End:
+					bufPool.Put(buf[:cap(buf)])
+				}
+			}()
+
+			go func() { // receive from udpLocal and send to client
+				handler := func(n int) {
+					u.Limiter.WaitN(n)
+					u.AddTraffic(0, 0, 0, n)
+				}
+				if err := timedCopy(raddr, c, pc, UDPTimeout, true, handler); err != nil {
+					if err, ok := err.(net.Error); ok && err.Timeout() {
+						// ignore i/o timeout
+					} else {
+						//logf("timedCopy error: %v", err)
+					}
+				}
+				u.conns.Delete(pc.LocalAddr().String())
+				pc.Close()
+				lock.Lock()
+				if ch := m[k]; ch != nil {
+					close(ch)
+				}
+				delete(m, k)
+				lock.Unlock()
+			}()
+		}
+	Unlock:
+		lock.Unlock()
+
+		select {
+		case ch <- buf[:n]: // sent
+		default: // drop
+			bufPool.Put(buf)
+		}
+	}
+}
+
+// copy from src to dst at target with read timeout
+func timedCopy(target net.Addr, dst, src net.PacketConn, timeout time.Duration, prependSrcAddr bool, addTraffic func(n int)) error {
+	buf := bufPool.Get().([]byte)
+	defer bufPool.Put(buf)
+
+	for {
+		src.SetReadDeadline(time.Now().Add(timeout))
+		n, raddr, err := src.ReadFrom(buf)
+		if err != nil {
+			return err
+		}
+		addTraffic(n)
+		if prependSrcAddr { // server -> client: prepend original packet source address
+			srcAddr := socks.ParseAddr(raddr.String())
+			copy(buf[len(srcAddr):], buf[:n])
+			copy(buf, srcAddr)
+			if _, err = dst.WriteTo(buf[:len(srcAddr)+n], target); err != nil {
+				return err
+			}
+		} else { // client -> user: strip original packet source address
+			srcAddr := socks.SplitAddr(buf[:n])
+			if _, err = dst.WriteTo(buf[len(srcAddr):n], target); err != nil {
+				return err
+			}
+		}
+	}
+}
