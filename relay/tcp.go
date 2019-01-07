@@ -28,13 +28,13 @@ func (l *listener) Accept() (net.Conn, error) {
 
 type TcpRelay struct {
 	l listener
-	*ProxyInfo
+	*proxyinfo
 	conns sync.Map
 }
 
-func NewTcpRelayByProxyInfo(c *ProxyInfo) (tp *TcpRelay, err error) {
+func NewTcpRelayByProxyInfo(c *proxyinfo) (tp *TcpRelay, err error) {
 	l, err := Listen("tcp", c.ServerPort, c.Cipher)
-	return &TcpRelay{l: l, ProxyInfo: c}, err
+	return &TcpRelay{l: l, proxyinfo: c}, err
 }
 func tcpKeepAlive(c net.Conn) {
 	if tcp, ok := c.(*net.TCPConn); ok {
