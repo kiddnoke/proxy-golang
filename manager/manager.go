@@ -104,9 +104,8 @@ func (m *Manager) Get(keys interface{}) (proxy *Proxy, err error) {
 	return nil, nil
 }
 func (m *Manager) CheckLoop() {
-	m.checktimer = setInterval(time.Minute, func() {
+	m.checktimer = setInterval(time.Minute, func(when time.Time) {
 		for _, p := range m.proxyTable {
-
 			if p.IsTimeout() {
 				m.Emit("timeout", p.Uid, p.Sid, p.ServerPort)
 			}

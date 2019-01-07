@@ -4,18 +4,16 @@ import "time"
 
 type interval struct {
 	*time.Ticker
-	duration time.Duration
 }
 
-func setInterval(duration time.Duration, callback func()) (t *interval) {
+func setInterval(duration time.Duration, callback func(when time.Time)) (t *interval) {
 	t = new(interval)
-	t.duration = duration
 	t.Ticker = time.NewTicker(duration)
 	go func() {
 		for {
 			select {
 			case <-t.C:
-				callback()
+				callback(time.Now())
 			}
 		}
 	}()
@@ -27,16 +25,15 @@ func clearInterval(t *interval) {
 
 type timeout struct {
 	*time.Timer
-	time time.Time
 }
 
-func setTimeout(duration time.Duration, callback func()) (t *timeout) {
+func setTimeout(duration time.Duration, callback func(when time.Time)) (t *timeout) {
 	t = new(timeout)
-	t.time = time.Now().Add(duration)
-	t.Timer = time.AfterFunc(duration, callback)
+	t.Timer = time.AfterFunc(duration, func() {
+		callback(time.Now())
+	})
 	return
 }
 func clearTimeout(t *timeout) bool {
-	t.Stop()
-	return true
+	return t.Stop()
 }
