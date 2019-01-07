@@ -3,6 +3,7 @@ package relay
 import (
 	"github.com/riobard/go-shadowsocks2/core"
 	"log"
+	"os"
 	"time"
 )
 
@@ -57,6 +58,6 @@ func NewProxyInfo(ServerPort int, Method string, Password string, Speed int) (pi
 		Limiter:    limiter,
 		Traffic:    Traffic{0, 0, 0, 0, time.Now().UTC().Unix()},
 		running:    false,
-		Logger:     &log.Logger{},
+		Logger:     log.New(os.Stdout, "", log.LstdFlags),
 	}, err
 }

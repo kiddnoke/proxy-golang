@@ -19,15 +19,18 @@ func NewProxyRelay(p proxyinfo) (r *ProxyRelay, err error) {
 }
 func (r *ProxyRelay) Start() {
 	if r.running == false {
+		r.proxyinfo.Logger.Printf("ProxyRelay Start")
 		r.t.Start()
 		r.u.Start()
 	}
 }
 func (r *ProxyRelay) Stop() {
+	r.Printf("ProxyRelay Stop")
 	r.t.Stop()
 	r.u.Stop()
 }
 func (r *ProxyRelay) Close() {
+	r.Printf("ProxyRelay Close")
 	r.Stop()
 	r.t.Close()
 	r.u.Close()
