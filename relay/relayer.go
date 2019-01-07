@@ -1,15 +1,21 @@
 package relay
 
+type ProxyRelayer interface {
+	Stop()
+	Start()
+	Close()
+}
 type ProxyRelay struct {
 	t *TcpRelay
 	u *UdpRelay
-	*ProxyInfo
+	*proxyinfo
+	ProxyRelayer
 }
 
-func NewProxyRelay(p ProxyInfo) (r *ProxyRelay, err error) {
+func NewProxyRelay(p proxyinfo) (r *ProxyRelay, err error) {
 	t, err1 := NewTcpRelayByProxyInfo(&p)
 	u, _ := NewUdpRelayByProxyInfo(&p)
-	return &ProxyRelay{t: t, u: u, ProxyInfo: &p}, err1
+	return &ProxyRelay{t: t, u: u, proxyinfo: &p}, err1
 }
 func (r *ProxyRelay) Start() {
 	if r.running == false {
