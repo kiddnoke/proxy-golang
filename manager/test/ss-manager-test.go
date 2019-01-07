@@ -33,6 +33,7 @@ func main() {
 	flag.IntVar(&flags.ServerPort, "port", 0, "ServerPort")
 	flag.Parse()
 	ch := make(chan int, 1)
+	m := manager.New()
 	p := &manager.Proxy{
 		Uid:        flags.Uid,
 		Sid:        flags.Sid,
@@ -42,11 +43,11 @@ func main() {
 		Method:     flags.Method,
 		Password:   flags.Password,
 	}
-	p.Init()
-	p.Start()
+	m.Add(*p)
 	timer2 := setInterval(time.Second*5, func() {
-		tu, td, uu, ud := p.GetTraffic()
-		p.Printf("[%d] [%d] [%d] [%d]", tu, td, uu, ud)
+		pr, _ := m.Get(*p)
+		tu, td, uu, ud := pr.GetTraffic()
+		pr.Printf("[%d] [%d] [%d] [%d]", tu, td, uu, ud)
 	})
 	<-ch
 	clearInterval(timer2)
