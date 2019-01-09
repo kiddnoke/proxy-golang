@@ -3,7 +3,7 @@ package main
 import (
 	. "../../relay"
 	"context"
-	"github.com/pkg/profile"
+	"flag"
 	"log"
 	"math"
 	"runtime"
@@ -37,37 +37,23 @@ func Monitor(ctx context.Context) {
 		}
 	}
 }
+
 func main() {
-	stoper := profile.Start(profile.MemProfile, profile.MemProfileRate(100), profile.ProfilePath("."))
-	defer stoper.Stop()
-	//go Monitor(context.Background())
+
+	var flags struct {
+		ServerPort int
+		Method     string
+		Password   string
+		Speed      int
+	}
+	flag.StringVar(&flags.Password, "k", "test", "Password")
+	flag.StringVar(&flags.Method, "m", "AES-128-cfb", "Method")
+	flag.IntVar(&flags.Speed, "s", 500, "Limit")
+	flag.IntVar(&flags.ServerPort, "port", 0, "ServerPort")
+	flag.Parse()
 	ch := make(chan int, 1)
-	pi, _ := NewProxy(29999, "AES-128-cfb", "test", 300)
+	pi, _ := NewProxyInfo(flags.ServerPort, flags.Method, flags.Password, flags.Speed)
 	pr, _ := NewProxyRelay(*pi)
-	time.AfterFunc(time.Second*10, func() {
-		pr.Stop()
-		time.AfterFunc(time.Second*5, func() {
-			tu, td, uu, ud := pr.GetTraffic()
-			log.Printf("总量 [%d] [%d] [%d] [%d]", tu, td, uu, ud)
-		})
-	})
-	time.AfterFunc(time.Second*20, func() {
-		pr.Start()
-	})
-	time.AfterFunc(time.Second*30, func() {
-		pr.Stop()
-	})
-	time.AfterFunc(time.Second*35, func() {
-		pr.Start()
-	})
-	time.AfterFunc(time.Second*50, func() {
-		pr.Stop()
-		pr.Close()
-		_ = pr
-	})
-	time.AfterFunc(time.Second*100, func() {
-		ch <- 1
-	})
 	pr.Start()
 	<-ch
 }
