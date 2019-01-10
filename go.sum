@@ -8,8 +8,6 @@ github.com/graarh/golang-socketio v0.0.0-20170510162725-2c44953b9b5f h1:utzdm9zU
 github.com/graarh/golang-socketio v0.0.0-20170510162725-2c44953b9b5f/go.mod h1:8gudiNCFh3ZfvInknmoXzPeV17FSH+X2J5k2cUPIwnA=
 github.com/kataras/go-events v0.0.2 h1:fhyUPXvUbrjIPmH4vRdrAAGoNzdcwJPQmjhg47m1nMU=
 github.com/kataras/go-events v0.0.2/go.mod h1:6IxMW59VJdEIqj3bjFGJvGLRdb0WHtrlxPZy9qXctcg=
-github.com/mitchellh/mapstructure v1.1.2 h1:fmNYVwqnSfB9mZU6OS2O6GsXM+wcskZDuKQzvN1EDeE=
-github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/riobard/go-shadowsocks2 v0.1.0 h1:Wr7QWdS4ddtYlrDJEb1Fn5Wje+3xxsHxQpUb4lhVf5o=
 github.com/riobard/go-shadowsocks2 v0.1.0/go.mod h1:JlY/22I2QJplH9gAE+Ych+YXM9aUWQaD4WAYcOQUZHU=
 golang.org/x/crypto v0.0.0-20190103213133-ff983b9c42bc h1:F5tKCVGp+MUAHhKp5MZtGqAlGX3+oCsiL1Q629FL90M=

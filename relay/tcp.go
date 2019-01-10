@@ -1,12 +1,13 @@
 package relay
 
 import (
-	"github.com/riobard/go-shadowsocks2/core"
-	"github.com/riobard/go-shadowsocks2/socks"
 	"log"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/riobard/go-shadowsocks2/core"
+	"github.com/riobard/go-shadowsocks2/socks"
 )
 
 const AcceptTimeout = 1000

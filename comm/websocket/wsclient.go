@@ -1,17 +1,19 @@
 package wswarpper
 
 import (
-	"Vpn-golang/comm"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/graarh/golang-socketio"
-	"github.com/graarh/golang-socketio/transport"
 	"log"
 	"net/url"
 	"reflect"
 	"strconv"
 	"time"
+
+	"proxy-golang/comm"
+
+	"github.com/graarh/golang-socketio"
+	"github.com/graarh/golang-socketio/transport"
 )
 
 const (

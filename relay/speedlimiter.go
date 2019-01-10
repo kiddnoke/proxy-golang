@@ -2,8 +2,9 @@ package relay
 
 import (
 	"context"
-	"golang.org/x/time/rate"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 type Limiter struct {

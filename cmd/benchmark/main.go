@@ -1,8 +1,8 @@
 package main
 
 import (
-	"Vpn-golang/manager"
 	"flag"
+	"proxy-golang/manager"
 	"runtime"
 	"sync"
 )

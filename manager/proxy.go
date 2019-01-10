@@ -1,9 +1,10 @@
 package manager
 
 import (
-	"Vpn-golang/relay"
 	"fmt"
 	"time"
+
+	"proxy-golang/relay"
 )
 
 type Proxy struct {

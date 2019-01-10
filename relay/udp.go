@@ -1,12 +1,13 @@
 package relay
 
 import (
-	"github.com/riobard/go-shadowsocks2/core"
-	"github.com/riobard/go-shadowsocks2/socks"
 	"net"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/riobard/go-shadowsocks2/core"
+	"github.com/riobard/go-shadowsocks2/socks"
 )
 
 const udpBufSize = 4 * 1024

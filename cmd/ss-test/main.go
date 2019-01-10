@@ -1,13 +1,14 @@
 package main
 
 import (
-	. "../../relay"
 	"context"
 	"flag"
 	"log"
 	"math"
 	"runtime"
 	"time"
+
+	. "proxy-golang/relay"
 )
 
 func memstats() runtime.MemStats {

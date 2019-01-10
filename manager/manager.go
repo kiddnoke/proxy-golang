@@ -1,10 +1,11 @@
 package manager
 
 import (
-	"github.com/CHH/eventemitter"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/CHH/eventemitter"
 )
 
 type manager interface {

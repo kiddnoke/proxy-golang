@@ -1,10 +1,11 @@
 package relay
 
 import (
-	"github.com/riobard/go-shadowsocks2/core"
 	"log"
 	"os"
 	"time"
+
+	"github.com/riobard/go-shadowsocks2/core"
 )
 
 type proxyinfo struct {

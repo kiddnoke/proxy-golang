@@ -14,16 +14,9 @@ import (
 
 var Manager *manager.Manager
 
-func init() {
-	Manager = manager.New()
-	go Manager.CheckLoop()
-}
-
 func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	var LinkMode string
-	var TestMode bool
 	var flags struct {
 		BeginPort      int
 		EndPort        int
@@ -33,9 +26,6 @@ func main() {
 		State          string
 		Area           string
 	}
-	flag.StringVar(&LinkMode, "link-mode", "1", "通信模式")
-	flag.BoolVar(&TestMode, "test", false, "压力测试模式")
-
 	flag.IntVar(&flags.ManagerPort, "manager-port", 8000, "管理端口(作废)")
 	flag.IntVar(&flags.ControllerPort, "controller-port", 9000, "控制端口(作废)")
 	flag.IntVar(&flags.BeginPort, "beginport", 20000, "beginport 起始端口")
@@ -57,7 +47,8 @@ func main() {
 	}
 
 	_ = client.Connect(host, port)
-
+	Manager = manager.New()
+	go Manager.CheckLoop()
 	Manager.On("timeout", func(uid, sid, port int) {
 		var proxyinfo manager.Proxy
 		proxyinfo = manager.Proxy{Sid: int64(sid), Uid: int64(uid), ServerPort: port}
@@ -101,7 +92,6 @@ func main() {
 		}
 		client.Balance(sid, uid, pr.BalanceNotifyDuration)
 	})
-
 	client.OnConnect(func(c wswarpper.Channel) {
 		client.OnOpened(func(msg []byte) {
 			var proxyinfo manager.Proxy
@@ -142,6 +132,5 @@ func main() {
 		client.Connect(host, port)
 		client.Login(flags.ManagerPort, flags.BeginPort, flags.EndPort, flags.ControllerPort, flags.State, flags.Area)
 	})
-
 	wg.Wait()
 }
