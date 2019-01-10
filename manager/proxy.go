@@ -1,7 +1,7 @@
 package manager
 
 import (
-	"../relay"
+	"Vpn-golang/relay"
 	"fmt"
 	"time"
 )

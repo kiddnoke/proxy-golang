@@ -5,10 +5,10 @@ import (
 	"encoding/hex"
 	"github.com/graarh/golang-socketio"
 	"github.com/graarh/golang-socketio/transport"
+	"log"
 	"net/url"
 	"reflect"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -58,20 +58,33 @@ func New() (client *WarpperClient) {
 		callbacks: make(map[int64]interface{}),
 	}
 }
-func (w *WarpperClient) Connect(host string, port int) (err error) {
+func (w *WarpperClient) connect(host string, port int) (err error) {
 	query := &url.Values{}
 	query.Add("keys", w.keys)
 	query.Add("timestamp", w.timestamp)
 	w.client, err = gosocketio.Dial(
 		getUrlWithOpt(host, port, *query, false),
 		&transport.WebsocketTransport{
-			PingInterval:   20 * time.Second,
-			PingTimeout:    20 * time.Second,
-			ReceiveTimeout: transport.WsDefaultReceiveTimeout,
-			SendTimeout:    transport.WsDefaultSendTimeout,
+			PingInterval:   5 * time.Second,
+			PingTimeout:    10 * time.Second,
+			ReceiveTimeout: 15 * time.Second,
+			SendTimeout:    20 * time.Second,
 			BufferSize:     transport.WsDefaultBufferSize,
 		})
 	return
+}
+func (w *WarpperClient) Connect(host string, port int) (err error) {
+	for {
+		time.Sleep(time.Second)
+		err := w.connect(host, port)
+		if err != nil {
+			log.Printf("wsclient connecting error :[%s]", err.Error())
+			continue
+		} else {
+			break
+		}
+	}
+	return nil
 }
 func (w *WarpperClient) Request(router string, msg interface{}, callback interface{}) {
 	w.seqid++
@@ -120,12 +133,7 @@ func (w *WarpperClient) Login(manager_port, beginport, endport, controrller_port
 		Endport:        endport,
 		State:          state, Area: area,
 	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	w.Request("login", request, func(ack string) {
-		wg.Done()
-	})
-	wg.Wait()
+	w.Notify("login", request)
 	return
 }
 func (w *WarpperClient) Logout() {
@@ -206,15 +214,18 @@ func (w *WarpperClient) Balance(sid, uid int, FreeUid string, duration int) {
 func (w *WarpperClient) Echo(json interface{}) {
 	w.Notify("echo", json)
 }
-func (w *WarpperClient) OnOpened(callback func(msg interface{})) {
-	_ = w.client.On("open", func(channel Channel, Msg Message) {
-		args := []reflect.Value{reflect.ValueOf(Msg.Body)}
-		callback(args)
+func (w *WarpperClient) OnOpened(callback func(msg map[string]interface{})) {
+	_ = w.client.On("open", func(channel Channel, Msg interface{}) {
+		callback(Msg.(map[string]interface{}))
 	})
 }
-func (w *WarpperClient) OnClosed(callback func(msg interface{})) {
-	_ = w.client.On("close", func(channel Channel, Msg Message) {
-		args := []reflect.Value{reflect.ValueOf(Msg.Body)}
-		callback(args)
+func (w *WarpperClient) OnClosed(callback func(msg map[string]interface{})) {
+	_ = w.client.On("close", func(channel Channel, Msg interface{}) {
+		callback(Msg.(map[string]interface{}))
+	})
+}
+func (w *WarpperClient) OnLimit(callback func(msg interface{})) {
+	_ = w.client.On("limit", func(channel Channel, Msg Message) {
+		callback(Msg)
 	})
 }

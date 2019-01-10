@@ -2,6 +2,7 @@ package manager
 
 import (
 	"github.com/CHH/eventemitter"
+	"github.com/mitchellh/mapstructure"
 	"strconv"
 	"sync"
 	"time"
@@ -27,10 +28,12 @@ func New() (m *Manager) {
 func (m *Manager) Add(proxy interface{}) (err error) {
 	m.Lock()
 	defer m.Unlock()
+	var proxyinfo Proxy
+	mapstructure.Decode(proxy, &proxyinfo)
 	var key string
-	key = strconv.FormatInt(int64(proxy.(Proxy).Uid), 10)
-	key += strconv.FormatInt(int64(proxy.(Proxy).Sid), 10)
-	key += strconv.FormatInt(int64(proxy.(Proxy).ServerPort), 10)
+	key = strconv.FormatInt(int64(proxyinfo.Uid), 10)
+	key += strconv.FormatInt(int64(proxyinfo.Sid), 10)
+	key += strconv.FormatInt(int64(proxyinfo.ServerPort), 10)
 	if _, found := m.proxyTable[key]; found {
 		return KeyExist
 	} else {
@@ -85,7 +88,6 @@ func (m *Manager) Update(keys interface{}) error {
 		if keys.(Proxy).Expire != 0 {
 			p.Expire = keys.(Proxy).Expire
 		}
-		p.SetLimit(p.Limit * 1024)
 	} else {
 		return KeyNotExist
 	}
