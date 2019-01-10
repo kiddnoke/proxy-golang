@@ -1,8 +1,10 @@
 package wswarpper
 
 import (
+	"Vpn-golang/comm"
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"github.com/graarh/golang-socketio"
 	"github.com/graarh/golang-socketio/transport"
 	"log"
@@ -35,11 +37,12 @@ func getUrlWithOpt(host string, port int, values url.Values, secure bool) (retUr
 }
 
 type WarpperClient struct {
-	client    *gosocketio.Client
+	*gosocketio.Client
 	seqid     int64
 	callbacks map[int64]interface{}
 	keys      string
 	timestamp string
+	comm.Community
 }
 type Channel *gosocketio.Channel
 
@@ -62,7 +65,7 @@ func (w *WarpperClient) connect(host string, port int) (err error) {
 	query := &url.Values{}
 	query.Add("keys", w.keys)
 	query.Add("timestamp", w.timestamp)
-	w.client, err = gosocketio.Dial(
+	w.Client, err = gosocketio.Dial(
 		getUrlWithOpt(host, port, *query, false),
 		&transport.WebsocketTransport{
 			PingInterval:   5 * time.Second,
@@ -90,9 +93,9 @@ func (w *WarpperClient) Request(router string, msg interface{}, callback interfa
 	w.seqid++
 	Id := w.seqid
 	message := Message{Id: Id, Body: msg}
-	_ = w.client.Emit(router, message)
+	_ = w.Client.Emit(router, message)
 	w.callbacks[Id] = callback
-	_ = w.client.On(router, func(channel Channel, Msg Message) {
+	_ = w.Client.On(router, func(channel Channel, Msg Message) {
 		if Msg.Id == Id {
 			args := []reflect.Value{reflect.ValueOf(Msg.Body)}
 			Caller := reflect.ValueOf(w.callbacks[Id])
@@ -103,19 +106,19 @@ func (w *WarpperClient) Request(router string, msg interface{}, callback interfa
 }
 func (w *WarpperClient) Notify(router string, msg interface{}) {
 	message := Message{Id: 0, Body: msg}
-	_ = w.client.Emit(router, message)
+	_ = w.Emit(router, message)
 }
 func (w *WarpperClient) SocketId() (id string) {
-	return w.client.Id()
+	return w.Id()
 }
 func (w *WarpperClient) OnDisconnect(callback func(c Channel)) {
-	_ = w.client.On(gosocketio.OnDisconnection, callback)
+	_ = w.On(gosocketio.OnDisconnection, callback)
 }
 func (w *WarpperClient) OnConnect(callback func(c Channel)) {
-	_ = w.client.On(gosocketio.OnConnection, callback)
+	_ = w.On(gosocketio.OnConnection, callback)
 }
 func (w *WarpperClient) OnError(callback func(c Channel)) {
-	_ = w.client.On(gosocketio.OnError, callback)
+	_ = w.On(gosocketio.OnError, callback)
 }
 
 func (w *WarpperClient) Login(manager_port, beginport, endport, controrller_port int, state, area string) {
@@ -146,10 +149,10 @@ func (w *WarpperClient) HeartBeat() {
 	w.Notify("heartbeat", nil)
 
 }
-func (w *WarpperClient) Transfer(sid int, transfer []int) {
+func (w *WarpperClient) Transfer(sid int, transfer []int64) {
 	request := struct {
-		Sid      int   `json:"sid"`
-		Transfer []int `json:"transfer"`
+		Sid      int     `json:"sid"`
+		Transfer []int64 `json:"transfer"`
 	}{
 		Sid:      sid,
 		Transfer: transfer,
@@ -157,12 +160,12 @@ func (w *WarpperClient) Transfer(sid int, transfer []int) {
 	w.Notify("transfer", request)
 
 }
-func (w *WarpperClient) Timeout(sid, uid int, transfer []int, activestamp int) {
+func (w *WarpperClient) Timeout(sid, uid int, transfer []int64, activestamp int64) {
 	request := struct {
-		Sid         int   `json:"sid"`
-		Uid         int   `json:"uid"`
-		Transfer    []int `json:"transfer"`
-		Activectamp int   `json:"activestamp"`
+		Sid         int     `json:"sid"`
+		Uid         int     `json:"uid"`
+		Transfer    []int64 `json:"transfer"`
+		Activectamp int64   `json:"activestamp"`
 	}{
 		Sid:         sid,
 		Uid:         uid,
@@ -185,11 +188,11 @@ func (w *WarpperClient) Overflow(sid, uid int, limit int) {
 	}
 	w.Notify("overflow", request)
 }
-func (w *WarpperClient) Expire(sid, uid int, transfer []int) {
+func (w *WarpperClient) Expire(sid, uid int, transfer []int64) {
 	request := struct {
-		Sid      int   `json:"sid"`
-		Uid      int   `json:"uid"`
-		Transfer []int `json:"transfer"`
+		Sid      int     `json:"sid"`
+		Uid      int     `json:"uid"`
+		Transfer []int64 `json:"transfer"`
 	}{
 		Sid:      sid,
 		Uid:      uid,
@@ -197,35 +200,35 @@ func (w *WarpperClient) Expire(sid, uid int, transfer []int) {
 	}
 	w.Notify("overflow", request)
 }
-func (w *WarpperClient) Balance(sid, uid int, FreeUid string, duration int) {
+func (w *WarpperClient) Balance(sid, uid int, duration int) {
 	request := struct {
-		Sid     int    `json:"sid"`
-		Uid     int    `json:"uid"`
-		FreeUid string `json:"FreeUid"`
-		Time    int    `json:"Time"`
+		Sid  int `json:"sid"`
+		Uid  int `json:"uid"`
+		Time int `json:"NoticeTime"`
 	}{
-		Sid:     sid,
-		Uid:     uid,
-		FreeUid: FreeUid,
-		Time:    duration,
+		Sid:  sid,
+		Uid:  uid,
+		Time: duration,
 	}
 	w.Notify("balance", request)
 }
 func (w *WarpperClient) Echo(json interface{}) {
 	w.Notify("echo", json)
 }
-func (w *WarpperClient) OnOpened(callback func(msg map[string]interface{})) {
-	_ = w.client.On("open", func(channel Channel, Msg interface{}) {
-		callback(Msg.(map[string]interface{}))
+func (w *WarpperClient) OnOpened(callback func(msg []byte)) {
+	_ = w.On("open", func(channel Channel, Msg interface{}) {
+		jsonstr, _ := json.Marshal(Msg)
+		callback(jsonstr)
 	})
 }
-func (w *WarpperClient) OnClosed(callback func(msg map[string]interface{})) {
-	_ = w.client.On("close", func(channel Channel, Msg interface{}) {
-		callback(Msg.(map[string]interface{}))
+func (w *WarpperClient) OnClosed(callback func(msg []byte)) {
+	_ = w.On("close", func(channel Channel, Msg interface{}) {
+		jsonstr, _ := json.Marshal(Msg)
+		callback(jsonstr)
 	})
 }
-func (w *WarpperClient) OnLimit(callback func(msg interface{})) {
-	_ = w.client.On("limit", func(channel Channel, Msg Message) {
-		callback(Msg)
+func (w *WarpperClient) OnLimit(callback func(msg map[string]interface{})) {
+	_ = w.On("limit", func(channel Channel, Msg interface{}) {
+		callback(Msg.(map[string]interface{}))
 	})
 }

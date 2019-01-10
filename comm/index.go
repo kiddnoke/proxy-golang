@@ -27,11 +27,11 @@ type Community interface {
 	/*
 	 * [ {sid , transfer}]
 	 */
-	Transfer(sid int, transfer []int)
+	Transfer(sid int, transfer []int64)
 	/*
 	 * { sid, uid, transfer, active }
 	 */
-	Timeout(sid, uid int, transfer []int, activestamp int)
+	Timeout(sid, uid int, transfer []int64, activestamp int64)
 	/*
 	 * { sid, uid, limitup, limitdown }
 	 */
@@ -39,12 +39,13 @@ type Community interface {
 	/*
 	 * { sid, uid, transfer }
 	 */
-	Expire(sid, uid int, transfer []int)
+	Expire(sid, uid int, transfer []int64)
 	/*
 	 * { uid, sid, FreeUid, Time }
 	 */
-	Balance(sid, uid int, FreeUid string, duration int)
+	Balance(sid, uid int, duration int)
 	Echo(json interface{})
-	OnOpened(callback func(msg interface{}))
-	OnClosed(callback func(msg interface{}))
+	OnOpened(callback func(msg []byte))
+	OnClosed(callback func(msg []byte))
+	OnLimit(callback func(msg map[string]interface{}))
 }
