@@ -7,16 +7,16 @@ import (
 )
 
 type Proxy struct {
-	Uid             int64  `json:"uid"`
-	Sid             int64  `json:"sid"`
-	ServerPort      int    `json:"server_port"`
-	Method          string `json:"method"`
-	Password        string `json:"password"`
-	Limit           int    `json:"limit"`
-	Timeout         int64  `json:"timeout"`
-	Remain          int64  `json:"remain"`
-	Expire          int64  `json:"expire"`
-	NotifyTimestamp int    `json:"notifytimestamp"`
+	Uid                   int64  `json:"uid"`
+	Sid                   int64  `json:"sid"`
+	ServerPort            int    `json:"server_port"`
+	Method                string `json:"method"`
+	Password              string `json:"password"`
+	Limit                 int    `json:"limit"`
+	Timeout               int64  `json:"timeout"`
+	Remain                int64  `json:"remain"`
+	Expire                int64  `json:"expire"`
+	BalanceNotifyDuration int    `json:"balancenotifytime"`
 	relay.ProxyRelay
 }
 
@@ -65,10 +65,10 @@ func (p *Proxy) IsOverflow() bool {
 	}
 }
 func (p *Proxy) IsNotify() bool {
-	if p.NotifyTimestamp == 0 {
+	if p.BalanceNotifyDuration == 0 {
 		return false
 	} else {
-		if int64(p.Expire)-time.Now().UTC().Unix() < int64(p.NotifyTimestamp) {
+		if int64(p.Expire)-time.Now().UTC().Unix() < int64(p.BalanceNotifyDuration) {
 			return true
 		} else {
 			return false
