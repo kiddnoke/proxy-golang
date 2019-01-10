@@ -7,17 +7,16 @@ import (
 )
 
 type Proxy struct {
-	Uid             uint   `json:"uid"`
-	Sid             uint   `json:"sid"`
+	Uid             int64  `json:"uid"`
+	Sid             int64  `json:"sid"`
 	ServerPort      int    `json:"server_port"`
 	Method          string `json:"method"`
 	Password        string `json:"password"`
 	Limit           int    `json:"limit"`
-	Timeout         uint   `json:"timeout"`
-	Remain          uint   `json:"remain"`
-	Expire          uint   `json:"expire"`
-	NotifyId        uint   `json:"notifyid"`
-	NotifyTimestamp uint   `json:"notifytimestamp"`
+	Timeout         int64  `json:"timeout"`
+	Remain          int64  `json:"remain"`
+	Expire          int64  `json:"expire"`
+	NotifyTimestamp int    `json:"notifytimestamp"`
 	relay.ProxyRelay
 }
 
