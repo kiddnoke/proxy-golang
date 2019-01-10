@@ -85,12 +85,12 @@ func (t *TcpRelay) Loop() {
 			go func() {
 				PipeThenClose(rc, c, func(n int) {
 					t.Limiter.WaitN(n)
-					t.AddTraffic(0, n, 0, 0)
+					go t.AddTraffic(0, n, 0, 0)
 				})
 			}()
 			PipeThenClose(c, rc, func(n int) {
 				t.Limiter.WaitN(n)
-				t.AddTraffic(n, 0, 0, 0)
+				go t.AddTraffic(n, 0, 0, 0)
 			})
 		}()
 	}
