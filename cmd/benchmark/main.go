@@ -30,6 +30,9 @@ func main() {
 	}
 	Manager := manager.New()
 	for freeport := flags.BeginPort; freeport <= flags.EndPort; freeport++ {
+		if err := manager.IsFreePort(freeport); err != nil {
+			continue
+		}
 		pi := manager.Proxy{
 			ServerPort: freeport,
 			Method:     flags.Method,
