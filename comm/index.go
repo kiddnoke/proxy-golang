@@ -29,24 +29,24 @@ type Community interface {
 	/*
 	 * [{sid , transfer}]
 	 */
-	Transfer(sid int, transfer []int64)
+	Transfer(sid int64, transfer []int64)
 	TransferList(transfer []interface{})
 	/*
 	 * { sid, uid, transfer, active }
 	 */
-	Timeout(sid, uid int, transfer []int64, activestamp int64)
+	Timeout(sid, uid int64, transfer []int64, activestamp int64)
 	/*
 	 * { sid, uid, limitup, limitdown }
 	 */
-	Overflow(sid, uid int, limit int)
+	Overflow(sid, uid int64, limit int)
 	/*
 	 * { sid, uid, transfer }
 	 */
-	Expire(sid, uid int, transfer []int64)
+	Expire(sid, uid int64, transfer []int64)
 	/*
 	 * { uid, sid, FreeUid, Time }
 	 */
-	Balance(sid, uid int, duration int)
+	Balance(sid, uid int64, duration int)
 	Echo(json interface{})
 	OnOpened(callback func(msg []byte))
 	OnClosed(callback func(msg []byte))

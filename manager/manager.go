@@ -35,13 +35,16 @@ func (m *Manager) Add(proxy interface{}) (err error) {
 		return KeyExist
 	} else {
 		p := &Proxy{
-			Uid:        proxy.(Proxy).Uid,
-			Sid:        proxy.(Proxy).Sid,
-			Timeout:    proxy.(Proxy).Timeout,
-			Limit:      proxy.(Proxy).Limit,
-			ServerPort: proxy.(Proxy).ServerPort,
-			Method:     proxy.(Proxy).Method,
-			Password:   proxy.(Proxy).Password,
+			Uid:                   proxy.(Proxy).Uid,
+			Sid:                   proxy.(Proxy).Sid,
+			Timeout:               proxy.(Proxy).Timeout,
+			Limit:                 proxy.(Proxy).Limit,
+			ServerPort:            proxy.(Proxy).ServerPort,
+			Method:                proxy.(Proxy).Method,
+			Password:              proxy.(Proxy).Password,
+			Remain:                proxy.(Proxy).Remain,
+			Expire:                proxy.(Proxy).Expire,
+			BalanceNotifyDuration: proxy.(Proxy).BalanceNotifyDuration,
 		}
 		err = p.Init()
 		m.proxyTable[key] = p

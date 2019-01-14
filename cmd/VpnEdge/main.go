@@ -57,9 +57,9 @@ func main() {
 
 	_ = client.Connect(host, port)
 
-	Manager.On("timeout", func(uid, sid, port int) {
+	Manager.On("timeout", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
-		proxyinfo = manager.Proxy{Sid: int64(sid), Uid: int64(uid), ServerPort: port}
+		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
@@ -68,12 +68,16 @@ func main() {
 		transfer := []int64{tu, td, uu, ud}
 
 		timestamp := pr.GetLastTimeStamp()
+		pr.Close()
+		Manager.Delete(proxyinfo)
+
 		client.Timeout(sid, uid, transfer, timestamp.Unix())
+		log.Printf("sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d]", sid, uid, tu, td, uu, ud, timestamp.Unix())
 		client.Health(Manager.Size())
 	})
-	Manager.On("expire", func(uid, sid, port int) {
+	Manager.On("expire", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
-		proxyinfo = manager.Proxy{Sid: int64(sid), Uid: int64(uid), ServerPort: port}
+		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
@@ -81,26 +85,32 @@ func main() {
 		tu, td, uu, ud := pr.GetTraffic()
 		transfer := []int64{tu, td, uu, ud}
 
+		pr.Close()
+		Manager.Delete(proxyinfo)
 		client.Expire(sid, uid, transfer)
+		log.Printf("sid[%d] uid[%d] ,transfer[%d,%d,%d,%d]", sid, uid, tu, td, uu, ud)
 		client.Health(Manager.Size())
 	})
-	Manager.On("overflow", func(uid, sid, port int) {
+	Manager.On("overflow", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
-		proxyinfo = manager.Proxy{Sid: int64(sid), Uid: int64(uid), ServerPort: port}
+		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
 		}
+		log.Printf("sid[%d] uid[%d] ,Limit[%d]", sid, uid, pr.Limit)
 		client.Overflow(sid, uid, pr.Limit)
 	})
-	Manager.On("balance", func(uid, sid, port int) {
+	Manager.On("balance", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
-		proxyinfo = manager.Proxy{Sid: int64(sid), Uid: int64(uid), ServerPort: port}
+		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
 		}
+		log.Printf("sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", sid, uid, pr.BalanceNotifyDuration)
 		client.Balance(sid, uid, pr.BalanceNotifyDuration)
+		pr.BalanceNotifyDuration = 0
 	})
 	Manager.On("health", func(n int) {
 		client.Health(n)
@@ -110,6 +120,7 @@ func main() {
 	})
 	client.OnConnect(func(c wswarpper.Channel) {
 		client.OnOpened(func(msg []byte) {
+			log.Printf("OnOpend %s", msg)
 			var proxyinfo manager.Proxy
 			port := manager.GetFreePort(flags.BeginPort, flags.EndPort)
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {

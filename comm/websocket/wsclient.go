@@ -144,7 +144,7 @@ func (w *WarpperClient) Health(health int) {
 func (w *WarpperClient) HeartBeat() {
 	w.Notify("heartbeat", nil)
 }
-func (w *WarpperClient) Transfer(sid int, transfer []int64) {
+func (w *WarpperClient) Transfer(sid int64, transfer []int64) {
 	request := make(map[string]interface{})
 	request["sid"] = sid
 	request["transfer"] = transfer
@@ -153,7 +153,7 @@ func (w *WarpperClient) Transfer(sid int, transfer []int64) {
 func (w *WarpperClient) TransferList(transferList []interface{}) {
 	w.Notify("transfer", transferList)
 }
-func (w *WarpperClient) Timeout(sid, uid int, transfer []int64, activestamp int64) {
+func (w *WarpperClient) Timeout(sid, uid int64, transfer []int64, activestamp int64) {
 	request := make(map[string]interface{})
 	request["sid"] = sid
 	request["uid"] = uid
@@ -161,7 +161,7 @@ func (w *WarpperClient) Timeout(sid, uid int, transfer []int64, activestamp int6
 	request["activestamp"] = activestamp
 	w.Notify("transfer", request)
 }
-func (w *WarpperClient) Overflow(sid, uid int, limit int) {
+func (w *WarpperClient) Overflow(sid, uid int64, limit int) {
 	request := make(map[string]interface{})
 	request["sid"] = sid
 	request["uid"] = uid
@@ -169,18 +169,18 @@ func (w *WarpperClient) Overflow(sid, uid int, limit int) {
 	request["limitup"] = limit
 	w.Notify("overflow", request)
 }
-func (w *WarpperClient) Expire(sid, uid int, transfer []int64) {
+func (w *WarpperClient) Expire(sid, uid int64, transfer []int64) {
 	request := make(map[string]interface{})
 	request["sid"] = sid
 	request["uid"] = uid
 	request["transfer"] = transfer
-	w.Notify("overflow", request)
+	w.Notify("expire", request)
 }
-func (w *WarpperClient) Balance(sid, uid int, duration int) {
+func (w *WarpperClient) Balance(sid, uid int64, duration int) {
 	request := make(map[string]interface{})
 	request["sid"] = sid
 	request["uid"] = uid
-	request["NoticeTime"] = duration
+	request["balancenotifytime"] = duration
 	w.Notify("balance", request)
 }
 func (w *WarpperClient) Echo(json interface{}) {
