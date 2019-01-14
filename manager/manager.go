@@ -18,7 +18,6 @@ type Manager struct {
 	manager
 	proxyTable map[string]*Proxy
 	sync.Mutex
-	checktimer *interval
 	*eventemitter.EventEmitter
 }
 
@@ -92,6 +91,9 @@ func (m *Manager) Update(keys interface{}) error {
 	}
 	return nil
 }
+func (m *Manager) Size() (size int) {
+	return len(m.proxyTable)
+}
 func (m *Manager) Get(keys interface{}) (proxy *Proxy, err error) {
 	var key string
 	key = strconv.FormatInt(int64(keys.(Proxy).Uid), 10)
@@ -104,7 +106,7 @@ func (m *Manager) Get(keys interface{}) (proxy *Proxy, err error) {
 	}
 }
 func (m *Manager) CheckLoop() {
-	m.checktimer = setInterval(time.Minute, func(when time.Time) {
+	setInterval(time.Second*10, func(when time.Time) {
 		for _, p := range m.proxyTable {
 			if p.IsTimeout() {
 				m.Emit("timeout", p.Uid, p.Sid, p.ServerPort)
@@ -118,6 +120,20 @@ func (m *Manager) CheckLoop() {
 			if p.IsNotify() {
 				m.Emit("balance", p.Uid, p.Sid, p.ServerPort)
 			}
+		}
+	})
+	setInterval(time.Minute, func(when time.Time) {
+		m.Emit("health", len(m.proxyTable))
+		var transferLists []interface{}
+		for _, p := range m.proxyTable {
+			tu, td, uu, ud := p.GetTraffic()
+			item := make(map[string]interface{})
+			item["sid"] = p.Sid
+			item["transfer"] = []int64{tu, td, uu, ud}
+			transferLists = append(transferLists, item)
+		}
+		if len(transferLists) > 0 {
+			m.Emit("transfer", transferLists)
 		}
 	})
 }

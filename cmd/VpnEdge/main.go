@@ -12,18 +12,20 @@ import (
 	"proxy-golang/manager"
 )
 
+const VERSION = "v.1.1.0"
+
 var Manager *manager.Manager
 
 func init() {
 	Manager = manager.New()
-	go Manager.CheckLoop()
+	Manager.CheckLoop()
 }
 
 func main() {
+	log.Printf("version [%s]", VERSION)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	var LinkMode string
-	var TestMode bool
 	var flags struct {
 		BeginPort      int
 		EndPort        int
@@ -34,24 +36,21 @@ func main() {
 		Area           string
 	}
 	flag.StringVar(&LinkMode, "link-mode", "1", "通信模式")
-	flag.BoolVar(&TestMode, "test", false, "压力测试模式")
-
 	flag.IntVar(&flags.ManagerPort, "manager-port", 8000, "管理端口(作废)")
-	flag.IntVar(&flags.ControllerPort, "controller-port", 9000, "控制端口(作废)")
 	flag.IntVar(&flags.BeginPort, "beginport", 20000, "beginport 起始端口")
 	flag.IntVar(&flags.EndPort, "endport", 30000, "endport 结束端口")
 	flag.StringVar(&flags.CenterUrl, "url", "localhost:7001", "中心的url地址")
-	flag.StringVar(&flags.State, "state", "SG", "本实例所要注册的国家")
-	flag.StringVar(&flags.Area, "area", "1", "本实例所要注册的地区")
+	flag.StringVar(&flags.State, "state", "NULL", "本实例所要注册的国家")
+	flag.StringVar(&flags.Area, "area", "0", "本实例所要注册的地区")
 	flag.Parse()
 
 	client := wswarpper.New()
 
-	host, port_str, err := net.SplitHostPort(flags.CenterUrl)
+	host, portStr, err := net.SplitHostPort(flags.CenterUrl)
 	if err != nil {
 		log.Println(err.Error())
 	}
-	port, err := strconv.Atoi(port_str)
+	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -70,6 +69,7 @@ func main() {
 
 		timestamp := pr.GetLastTimeStamp()
 		client.Timeout(sid, uid, transfer, timestamp.Unix())
+		client.Health(Manager.Size())
 	})
 	Manager.On("expire", func(uid, sid, port int) {
 		var proxyinfo manager.Proxy
@@ -82,6 +82,7 @@ func main() {
 		transfer := []int64{tu, td, uu, ud}
 
 		client.Expire(sid, uid, transfer)
+		client.Health(Manager.Size())
 	})
 	Manager.On("overflow", func(uid, sid, port int) {
 		var proxyinfo manager.Proxy
@@ -101,7 +102,12 @@ func main() {
 		}
 		client.Balance(sid, uid, pr.BalanceNotifyDuration)
 	})
-
+	Manager.On("health", func(n int) {
+		client.Health(n)
+	})
+	Manager.On("transfer", func(transferList []interface{}) {
+		client.TransferList(transferList)
+	})
 	client.OnConnect(func(c wswarpper.Channel) {
 		client.OnOpened(func(msg []byte) {
 			var proxyinfo manager.Proxy
@@ -115,6 +121,7 @@ func main() {
 				log.Printf(err.Error())
 			}
 			client.Notify("open", proxyinfo)
+			client.Health(Manager.Size())
 		})
 		client.OnClosed(func(msg []byte) {
 			var proxyinfo manager.Proxy
@@ -125,22 +132,22 @@ func main() {
 				log.Printf(err.Error())
 			} else {
 				tu, td, uu, ud := p.GetTraffic()
-				transfer := []int64{tu, td, uu, ud}
 				p.Close()
-				Manager.Delete(proxyinfo)
 				CloseRetMsg := make(map[string]interface{})
 				CloseRetMsg["server_port"] = proxyinfo.ServerPort
-				CloseRetMsg["transfer"] = transfer
+				CloseRetMsg["transfer"] = []int64{tu, td, uu, ud}
 				CloseRetMsg["sid"] = proxyinfo.Sid
 				CloseRetMsg["uid"] = proxyinfo.Uid
+				Manager.Delete(proxyinfo)
 				client.Notify("close", CloseRetMsg)
+				client.Health(Manager.Size())
 			}
 		})
-		client.Login(flags.ManagerPort, flags.BeginPort, flags.EndPort, flags.ControllerPort, flags.State, flags.Area)
+		client.Login(flags.ManagerPort, flags.BeginPort, flags.EndPort, flags.ManagerPort+1000, flags.State, flags.Area)
 	})
 	client.OnDisconnect(func(c wswarpper.Channel) {
 		client.Connect(host, port)
-		client.Login(flags.ManagerPort, flags.BeginPort, flags.EndPort, flags.ControllerPort, flags.State, flags.Area)
+		client.Login(flags.ManagerPort, flags.BeginPort, flags.EndPort, flags.ManagerPort+1000, flags.State, flags.Area)
 	})
 
 	wg.Wait()

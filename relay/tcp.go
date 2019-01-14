@@ -83,6 +83,7 @@ func (t *TcpRelay) Loop() {
 			//tcpKeepAlive(rc)
 
 			//logf("proxy %s <-> %s", c.RemoteAddr(), tgt)
+			t.proxyinfo.Printf("proxy %s <-> %s ", c.RemoteAddr(), tgt)
 			go func() {
 				PipeThenClose(rc, c, func(n int) {
 					t.Limiter.WaitN(n)
