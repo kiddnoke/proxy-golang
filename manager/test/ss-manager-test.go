@@ -1,16 +1,17 @@
 package main
 
 import (
-	"../../manager"
 	"flag"
 	"time"
+
+	"proxy-golang/manager"
 )
 
 func main() {
 	var flags struct {
-		Uid             uint
-		Sid             uint
-		Timeout         uint
+		Uid             int64
+		Sid             int64
+		Timeout         int64
 		Remain          uint
 		Expire          uint
 		NotifyId        uint
@@ -20,9 +21,9 @@ func main() {
 		Password        string
 		Limit           int
 	}
-	flag.UintVar(&flags.Uid, "uid", 0, "uid")
-	flag.UintVar(&flags.Sid, "sid", 0, "sid")
-	flag.UintVar(&flags.Timeout, "timeout", 0, "timeout")
+	flag.Int64Var(&flags.Uid, "uid", 0, "uid")
+	flag.Int64Var(&flags.Sid, "sid", 0, "sid")
+	flag.Int64Var(&flags.Timeout, "timeout", 0, "timeout")
 	flag.UintVar(&flags.Remain, "remain", 0, "remain")
 	flag.UintVar(&flags.Expire, "expire", 0, "expire")
 	flag.UintVar(&flags.NotifyId, "notifyid", 0, "notifyid")

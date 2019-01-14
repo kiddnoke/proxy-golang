@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"runtime"
+	"sync"
 	"time"
 
 	. "proxy-golang/relay"
@@ -40,7 +41,8 @@ func Monitor(ctx context.Context) {
 }
 
 func main() {
-
+	var wg sync.WaitGroup
+	wg.Add(1)
 	var flags struct {
 		ServerPort int
 		Method     string
@@ -49,12 +51,11 @@ func main() {
 	}
 	flag.StringVar(&flags.Password, "k", "test", "Password")
 	flag.StringVar(&flags.Method, "m", "AES-128-cfb", "Method")
-	flag.IntVar(&flags.Speed, "s", 500, "Limit")
+	flag.IntVar(&flags.Speed, "limit", 500, "Limit")
 	flag.IntVar(&flags.ServerPort, "port", 0, "ServerPort")
 	flag.Parse()
-	ch := make(chan int, 1)
 	pi, _ := NewProxyInfo(flags.ServerPort, flags.Method, flags.Password, flags.Speed)
 	pr, _ := NewProxyRelay(*pi)
 	pr.Start()
-	<-ch
+	wg.Wait()
 }
