@@ -21,6 +21,7 @@ const (
 	webSocketSecureProtocol = "wss://"
 	socketioUrl             = "/socket.io/?EIO=3&transport=websocket"
 )
+const VERSION = "v1.1.0"
 
 type Message struct {
 	Id   int64       `json:"id"`
@@ -78,19 +79,6 @@ func (w *WarpperClient) connect(host string, port int) (err error) {
 		})
 	return
 }
-func (w *WarpperClient) Connect(host string, port int) (err error) {
-	for {
-		time.Sleep(time.Second)
-		err := w.connect(host, port)
-		if err != nil {
-			log.Printf("wsclient connecting error :[%s]", err.Error())
-			continue
-		} else {
-			break
-		}
-	}
-	return nil
-}
 func (w *WarpperClient) Request(router string, msg interface{}, callback interface{}) {
 	w.seqid++
 	Id := w.seqid
@@ -123,21 +111,27 @@ func (w *WarpperClient) OnError(callback func(c Channel)) {
 	_ = w.On(gosocketio.OnError, callback)
 }
 
-func (w *WarpperClient) Login(manager_port, beginport, endport, controrller_port int, state, area string) {
-	request := struct {
-		ManagerPort    int    `json:"manager_port"`
-		ControllerPort int    `json:"controller_port"`
-		Beginport      int    `json:"beginport"`
-		Endport        int    `json:"endport"`
-		State          string `json:"state"`
-		Area           string `json:"area"`
-	}{
-		ManagerPort:    manager_port,
-		ControllerPort: controrller_port,
-		Beginport:      beginport,
-		Endport:        endport,
-		State:          state, Area: area,
+func (w *WarpperClient) Connect(host string, port int) (err error) {
+	for {
+		time.Sleep(time.Second)
+		err := w.connect(host, port)
+		if err != nil {
+			log.Printf("wsclient connecting error :[%s]", err.Error())
+			continue
+		} else {
+			break
+		}
 	}
+	return nil
+}
+func (w *WarpperClient) Login(manager_port, beginport, endport, controrller_port int, state, area string) {
+	request := make(map[string]interface{})
+	request["manager_port"] = manager_port
+	request["controller_port"] = controrller_port
+	request["beginport"] = beginport
+	request["endport"] = endport
+	request["state"] = state
+	request["area"] = area
 	w.Notify("login", request)
 	return
 }
@@ -149,69 +143,44 @@ func (w *WarpperClient) Health(health int) {
 }
 func (w *WarpperClient) HeartBeat() {
 	w.Notify("heartbeat", nil)
-
 }
 func (w *WarpperClient) Transfer(sid int, transfer []int64) {
-	request := struct {
-		Sid      int     `json:"sid"`
-		Transfer []int64 `json:"transfer"`
-	}{
-		Sid:      sid,
-		Transfer: transfer,
-	}
-	w.Notify("transfer", request)
-
+	request := make(map[string]interface{})
+	request["sid"] = sid
+	request["transfer"] = transfer
+	w.Notify("transfer", []interface{}{request})
+}
+func (w *WarpperClient) TransferList(transferList []interface{}) {
+	w.Notify("transfer", transferList)
 }
 func (w *WarpperClient) Timeout(sid, uid int, transfer []int64, activestamp int64) {
-	request := struct {
-		Sid         int     `json:"sid"`
-		Uid         int     `json:"uid"`
-		Transfer    []int64 `json:"transfer"`
-		Activectamp int64   `json:"activestamp"`
-	}{
-		Sid:         sid,
-		Uid:         uid,
-		Transfer:    transfer,
-		Activectamp: activestamp,
-	}
+	request := make(map[string]interface{})
+	request["sid"] = sid
+	request["uid"] = uid
+	request["transfer"] = transfer
+	request["activestamp"] = activestamp
 	w.Notify("transfer", request)
 }
 func (w *WarpperClient) Overflow(sid, uid int, limit int) {
-	request := struct {
-		Sid       int `json:"sid"`
-		Uid       int `json:"uid"`
-		Limitup   int `json:"limitup"`
-		Limitdown int `json:"limitdown"`
-	}{
-		Sid:       sid,
-		Uid:       uid,
-		Limitup:   limit,
-		Limitdown: limit,
-	}
+	request := make(map[string]interface{})
+	request["sid"] = sid
+	request["uid"] = uid
+	request["limitup"] = limit
+	request["limitup"] = limit
 	w.Notify("overflow", request)
 }
 func (w *WarpperClient) Expire(sid, uid int, transfer []int64) {
-	request := struct {
-		Sid      int     `json:"sid"`
-		Uid      int     `json:"uid"`
-		Transfer []int64 `json:"transfer"`
-	}{
-		Sid:      sid,
-		Uid:      uid,
-		Transfer: transfer,
-	}
+	request := make(map[string]interface{})
+	request["sid"] = sid
+	request["uid"] = uid
+	request["transfer"] = transfer
 	w.Notify("overflow", request)
 }
 func (w *WarpperClient) Balance(sid, uid int, duration int) {
-	request := struct {
-		Sid  int `json:"sid"`
-		Uid  int `json:"uid"`
-		Time int `json:"NoticeTime"`
-	}{
-		Sid:  sid,
-		Uid:  uid,
-		Time: duration,
-	}
+	request := make(map[string]interface{})
+	request["sid"] = sid
+	request["uid"] = uid
+	request["NoticeTime"] = duration
 	w.Notify("balance", request)
 }
 func (w *WarpperClient) Echo(json interface{}) {

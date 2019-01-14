@@ -1,5 +1,7 @@
 package comm
 
+const VERSION = "v1.1.0"
+
 type Community interface {
 	Connect(host string, port int) (err error)
 	/**
@@ -25,9 +27,10 @@ type Community interface {
 	 */
 	HeartBeat()
 	/*
-	 * [ {sid , transfer}]
+	 * [{sid , transfer}]
 	 */
 	Transfer(sid int, transfer []int64)
+	TransferList(transfer []interface{})
 	/*
 	 * { sid, uid, transfer, active }
 	 */
