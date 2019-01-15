@@ -13,7 +13,10 @@ type Proxy struct {
 	ServerPort            int    `json:"server_port"`
 	Method                string `json:"method"`
 	Password              string `json:"password"`
-	Limit                 int    `json:"limit"`
+	CurrLimitUp           int    `json:"currlimitup"`
+	CurrLimitDown         int    `json:"currlimitdown"`
+	NextLimitUp           int    `json:"nextlimitup"`
+	NextLimitDown         int    `json:"nextlimitdown"`
 	Timeout               int64  `json:"timeout"`
 	Remain                int64  `json:"remain"`
 	Expire                int64  `json:"expire"`
@@ -22,7 +25,7 @@ type Proxy struct {
 }
 
 func (p *Proxy) Init() (err error) {
-	pi, e := relay.NewProxyInfo(p.ServerPort, p.Method, p.Password, p.Limit)
+	pi, e := relay.NewProxyInfo(p.ServerPort, p.Method, p.Password, p.CurrLimitDown)
 	if e != nil {
 		return e
 	}

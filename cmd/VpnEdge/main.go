@@ -99,7 +99,7 @@ func main() {
 			log.Println(err)
 		}
 		log.Printf("sid[%d] uid[%d] ,Limit[%d]", sid, uid, pr.Limit)
-		client.Overflow(sid, uid, pr.Limit)
+		client.Overflow(sid, uid, pr.CurrLimitDown)
 	})
 	Manager.On("balance", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
