@@ -37,12 +37,12 @@ func (m *Manager) Add(proxy interface{}) (err error) {
 		p := &Proxy{
 			Uid:                   proxy.(Proxy).Uid,
 			Sid:                   proxy.(Proxy).Sid,
-			Timeout:               proxy.(Proxy).Timeout,
-			CurrLimitDown:         proxy.(Proxy).CurrLimitDown,
-			NextLimitDown:         proxy.(Proxy).NextLimitDown,
 			ServerPort:            proxy.(Proxy).ServerPort,
 			Method:                proxy.(Proxy).Method,
 			Password:              proxy.(Proxy).Password,
+			Timeout:               proxy.(Proxy).Timeout,
+			CurrLimitDown:         proxy.(Proxy).CurrLimitDown,
+			NextLimitDown:         proxy.(Proxy).NextLimitDown,
 			Remain:                proxy.(Proxy).Remain,
 			Expire:                proxy.(Proxy).Expire,
 			BalanceNotifyDuration: proxy.(Proxy).BalanceNotifyDuration,
@@ -79,7 +79,6 @@ func (m *Manager) Update(keys interface{}) error {
 	if p, found := m.proxyTable[key]; found {
 		if keys.(Proxy).CurrLimitDown != 0 {
 			p.CurrLimitDown = keys.(Proxy).CurrLimitDown
-			p.SetLimit(p.CurrLimitDown * 1024)
 		}
 		if keys.(Proxy).Timeout != 0 {
 			p.Timeout = keys.(Proxy).Timeout
