@@ -39,6 +39,7 @@ func (m *Manager) Add(proxy interface{}) (err error) {
 			Sid:                   proxy.(Proxy).Sid,
 			Timeout:               proxy.(Proxy).Timeout,
 			CurrLimitDown:         proxy.(Proxy).CurrLimitDown,
+			NextLimitDown:         proxy.(Proxy).NextLimitDown,
 			ServerPort:            proxy.(Proxy).ServerPort,
 			Method:                proxy.(Proxy).Method,
 			Password:              proxy.(Proxy).Password,

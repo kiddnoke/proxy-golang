@@ -68,6 +68,7 @@ func main() {
 		transfer := []int64{tu, td, uu, ud}
 
 		timestamp := pr.GetLastTimeStamp()
+		// 关闭实例
 		pr.Close()
 		Manager.Delete(proxyinfo)
 
@@ -84,7 +85,7 @@ func main() {
 		}
 		tu, td, uu, ud := pr.GetTraffic()
 		transfer := []int64{tu, td, uu, ud}
-
+		// 关闭实例
 		pr.Close()
 		Manager.Delete(proxyinfo)
 		client.Expire(sid, uid, transfer)
@@ -100,6 +101,7 @@ func main() {
 		}
 		log.Printf("sid[%d] uid[%d] ,Limit[%d]", sid, uid, pr.Limit)
 		client.Overflow(sid, uid, pr.CurrLimitDown)
+		pr.SetLimit(pr.NextLimitDown * 1024)
 	})
 	Manager.On("balance", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy

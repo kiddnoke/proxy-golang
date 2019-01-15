@@ -34,10 +34,10 @@ func main() {
 			continue
 		}
 		pi := manager.Proxy{
-			ServerPort: freeport,
-			Method:     flags.Method,
-			Password:   flags.Password,
-			Limit:      flags.Limit,
+			ServerPort:    freeport,
+			Method:        flags.Method,
+			Password:      flags.Password,
+			CurrLimitDown: flags.Limit,
 		}
 		Manager.Add(pi)
 	}
