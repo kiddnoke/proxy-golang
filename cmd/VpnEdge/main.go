@@ -102,7 +102,6 @@ func main() {
 		log.Printf("sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, pr.NextLimitDown)
 		client.Overflow(sid, uid, pr.NextLimitDown)
 		pr.SetLimit(pr.NextLimitDown * 1024)
-		log.Printf("sid[%d] uid[%d] ,After SetLimit pr is Limit[%f]", sid, uid, pr.Limit())
 		pr.Remain = 0
 	})
 	Manager.On("balance", func(uid, sid int64, port int) {
