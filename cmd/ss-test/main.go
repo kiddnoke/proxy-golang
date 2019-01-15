@@ -57,5 +57,6 @@ func main() {
 	pi, _ := NewProxyInfo(flags.ServerPort, flags.Method, flags.Password, flags.Speed)
 	pr, _ := NewProxyRelay(*pi)
 	pr.Start()
+	pr.SetLimit(100 * 1024)
 	wg.Wait()
 }

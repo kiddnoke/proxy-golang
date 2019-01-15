@@ -166,7 +166,7 @@ func (w *WarpperClient) Overflow(sid, uid int64, limit int) {
 	request["sid"] = sid
 	request["uid"] = uid
 	request["limitup"] = limit
-	request["limitup"] = limit
+	request["limitdown"] = limit
 	w.Notify("overflow", request)
 }
 func (w *WarpperClient) Expire(sid, uid int64, transfer []int64) {
