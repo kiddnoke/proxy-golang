@@ -62,7 +62,7 @@ func (p *Proxy) IsOverflow() bool {
 		return false
 	}
 	tu, td, uu, ud := p.GetTraffic()
-	if tu+td+uu+ud > int64(p.Remain) {
+	if tu+td+uu+ud > int64(p.Remain*1024) {
 		return true
 	} else {
 		return false

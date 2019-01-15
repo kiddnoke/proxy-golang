@@ -109,6 +109,7 @@ func (m *Manager) Get(keys interface{}) (proxy *Proxy, err error) {
 	}
 }
 func (m *Manager) CheckLoop() {
+	// 10 second timer
 	setInterval(time.Second*10, func(when time.Time) {
 		for _, p := range m.proxyTable {
 			if p.IsTimeout() {
@@ -125,6 +126,7 @@ func (m *Manager) CheckLoop() {
 			}
 		}
 	})
+	// 1 min timer
 	setInterval(time.Minute, func(when time.Time) {
 		m.Emit("health", len(m.proxyTable))
 		var transferLists []interface{}
