@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/riobard/go-shadowsocks2/socks"
+	"github.com/shadowsocks/go-shadowsocks2/socks"
 )
 
 func tcpKeepAlive(c net.Conn) {

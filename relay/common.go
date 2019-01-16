@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/riobard/go-shadowsocks2/core"
+	"github.com/shadowsocks/go-shadowsocks2/core"
 )
 
 type proxyinfo struct {

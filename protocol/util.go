@@ -1,12 +1,12 @@
 package protocol
 
 import (
-	"../log"
+	"log"
 	"net/url"
 )
 
 func logf(f string, v ...interface{}) {
-	log.Logf(f, v...)
+	log.Printf(f, v...)
 }
 
 func parseURL(s string) (addr, cipher, password string, err error) {
