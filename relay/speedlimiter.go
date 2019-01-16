@@ -13,12 +13,7 @@ type Limiter struct {
 }
 
 func NewWithContext(ctx context.Context, bytesPerSec int) *Limiter {
-	var burstsize int
-	if bytesPerSec == 0 {
-		burstsize = 1024 * 1024
-	} else {
-		burstsize = bytesPerSec * 3
-	}
+	burstsize := bytesPerSec * 1
 	limiter := rate.NewLimiter(rate.Limit(bytesPerSec), burstsize)
 	limiter.AllowN(time.Now(), burstsize)
 	ctx = context.Background()
@@ -34,7 +29,8 @@ func MakeSpeedLimiter(bytesPerSec int) Limiter {
 	return *NewWithContext(context.Background(), bytesPerSec)
 }
 func (s *Limiter) SetLimit(bytesPerSec int) {
-	s.Limiter.SetLimit(rate.Limit(bytesPerSec))
+	burstsize := bytesPerSec * 1
+	s.Limiter = rate.NewLimiter(rate.Limit(bytesPerSec), burstsize)
 }
 func (s *Limiter) WaitN(n int) error {
 	return s.Limiter.WaitN(s.ctx, n)

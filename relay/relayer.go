@@ -9,7 +9,6 @@ type ProxyRelay struct {
 	t *TcpRelay
 	u *UdpRelay
 	*proxyinfo
-	ProxyRelayer
 }
 
 func NewProxyRelay(p proxyinfo) (r *ProxyRelay, err error) {
