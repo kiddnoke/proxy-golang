@@ -12,6 +12,7 @@ import (
 
 	"proxy-golang/comm"
 
+	"github.com/CHH/eventemitter"
 	"github.com/graarh/golang-socketio"
 	"github.com/graarh/golang-socketio/transport"
 )
@@ -45,6 +46,7 @@ type WarpperClient struct {
 	callbacks map[int64]interface{}
 	keys      string
 	timestamp string
+	emmiter   *eventemitter.EventEmitter
 	comm.Community
 }
 type Channel *gosocketio.Channel
@@ -62,6 +64,7 @@ func New() (client *WarpperClient) {
 		keys:      hex.EncodeToString(hasher.Sum(nil)),
 		timestamp: currtimestamp,
 		callbacks: make(map[int64]interface{}),
+		emmiter:   eventemitter.New(),
 	}
 }
 func (w *WarpperClient) connect(host string, port int) (err error) {
@@ -77,6 +80,18 @@ func (w *WarpperClient) connect(host string, port int) (err error) {
 			SendTimeout:    20 * time.Second,
 			BufferSize:     transport.WsDefaultBufferSize,
 		})
+	if err != nil {
+		return
+	}
+	_ = w.Client.On(gosocketio.OnConnection, func(c Channel) {
+		w.emmiter.Emit("connect", c)
+	})
+	_ = w.Client.On(gosocketio.OnDisconnection, func(c Channel) {
+		w.emmiter.Emit("disconnect", c)
+	})
+	_ = w.Client.On(gosocketio.OnError, func(c Channel) {
+		w.emmiter.Emit("error", c)
+	})
 	return
 }
 func (w *WarpperClient) Request(router string, msg interface{}, callback interface{}) {
@@ -102,13 +117,15 @@ func (w *WarpperClient) SocketId() (id string) {
 	return w.Id()
 }
 func (w *WarpperClient) OnDisconnect(callback func(c Channel)) {
-	_ = w.On(gosocketio.OnDisconnection, callback)
+	w.emmiter.On("disconnect", callback)
 }
 func (w *WarpperClient) OnConnect(callback func(c Channel)) {
 	_ = w.On(gosocketio.OnConnection, callback)
+	w.emmiter.On("connect", callback)
 }
 func (w *WarpperClient) OnError(callback func(c Channel)) {
 	_ = w.On(gosocketio.OnError, callback)
+	w.emmiter.On("error", callback)
 }
 
 func (w *WarpperClient) Connect(host string, port int) (err error) {

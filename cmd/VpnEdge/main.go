@@ -161,7 +161,6 @@ func main() {
 	})
 	client.OnDisconnect(func(c wswarpper.Channel) {
 		client.Connect(host, port)
-		client.Login(flags.ManagerPort, flags.BeginPort, flags.EndPort, flags.ManagerPort+1000, flags.State, flags.Area)
 	})
 
 	wg.Wait()
