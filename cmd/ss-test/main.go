@@ -51,12 +51,11 @@ func main() {
 	}
 	flag.StringVar(&flags.Password, "k", "test", "Password")
 	flag.StringVar(&flags.Method, "m", "AES-128-cfb", "Method")
-	flag.IntVar(&flags.Speed, "limit", 500, "Limit")
-	flag.IntVar(&flags.ServerPort, "port", 0, "ServerPort")
+	flag.IntVar(&flags.Speed, "limit", 0, "Limit")
+	flag.IntVar(&flags.ServerPort, "port", 29999, "ServerPort")
 	flag.Parse()
 	pi, _ := NewProxyInfo(flags.ServerPort, flags.Method, flags.Password, flags.Speed)
 	pr, _ := NewProxyRelay(*pi)
 	pr.Start()
-	pr.SetLimit(100 * 1024)
 	wg.Wait()
 }
