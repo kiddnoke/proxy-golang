@@ -21,6 +21,8 @@ type Proxy struct {
 	Remain                int64  `json:"remain"`
 	Expire                int64  `json:"expire"`
 	BalanceNotifyDuration int    `json:"balancenotifytime"`
+	State                 string `json:"state"`
+	Operators             string `json:"operators"`
 	relay.ProxyRelay
 }
 
@@ -33,7 +35,7 @@ func (p *Proxy) Init() (err error) {
 	if e != nil {
 		return e
 	}
-	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] ", p.Uid, p.Sid, p.ServerPort))
+	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] State[%s] Operators[%s]", p.Uid, p.Sid, p.ServerPort, p.State, p.Operators))
 	p.ProxyRelay = *pr
 	return
 }

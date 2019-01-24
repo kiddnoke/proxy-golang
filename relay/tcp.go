@@ -1,7 +1,6 @@
 package relay
 
 import (
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -82,10 +81,16 @@ func (t *TcpRelay) Loop() {
 			t.conns.Store(rc.RemoteAddr().String(), rc)
 			//tcpKeepAlive(rc)
 
-			//logf("proxy %s <-> %s", c.RemoteAddr(), tgt)
-			t.proxyinfo.Printf("proxy %s <-> %s ", c.RemoteAddr(), tgt)
+			//t.proxyinfo.Printf("proxy %s <-> %s ", c.RemoteAddr(), tgt)
+			var flow int
+			currstamp := time.Now()
 			go func() {
+				defer func() {
+					duration := time.Since(currstamp)
+					t.proxyinfo.Printf("proxy %s <-> %s , flow[%d b] , Duration[%f sec] , rate[%f b/s]", c.RemoteAddr(), tgt, flow, duration.Seconds(), float64(flow)/duration.Seconds())
+				}()
 				PipeThenClose(rc, c, func(n int) {
+					flow += n
 					t.Limiter.WaitN(n)
 					go t.AddTraffic(0, n, 0, 0)
 				})
@@ -128,7 +133,6 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) {
 		}
 		if n > 0 {
 			if _, err := right.Write(buf[0:n]); err != nil {
-				log.Println("write:", err)
 				break
 			}
 		}
