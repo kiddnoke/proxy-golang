@@ -48,7 +48,7 @@ func main() {
 	_ = client.Connect(host, port)
 	Manager = manager.New()
 	Manager.CheckLoop()
-	Manager.On("timeout", func(uid, sid, port int) {
+	Manager.On("timeout", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
 		proxyinfo = manager.Proxy{Sid: int64(sid), Uid: int64(uid), ServerPort: port}
 		pr, err := Manager.Get(proxyinfo)
@@ -61,7 +61,7 @@ func main() {
 		timestamp := pr.GetLastTimeStamp()
 		client.Timeout(sid, uid, transfer, timestamp.Unix())
 	})
-	Manager.On("expire", func(uid, sid, port int) {
+	Manager.On("expire", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
 		proxyinfo = manager.Proxy{Sid: int64(sid), Uid: int64(uid), ServerPort: port}
 		pr, err := Manager.Get(proxyinfo)
@@ -72,16 +72,16 @@ func main() {
 		transfer := []int64{tu, td, uu, ud}
 		client.Expire(sid, uid, transfer)
 	})
-	Manager.On("overflow", func(uid, sid, port int) {
+	Manager.On("overflow", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
 		proxyinfo = manager.Proxy{Sid: int64(sid), Uid: int64(uid), ServerPort: port}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
 		}
-		client.Overflow(sid, uid, pr.Limit)
+		client.Overflow(sid, uid, pr.CurrLimitDown)
 	})
-	Manager.On("balance", func(uid, sid, port int) {
+	Manager.On("balance", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
 		proxyinfo = manager.Proxy{Sid: int64(sid), Uid: int64(uid), ServerPort: port}
 		pr, err := Manager.Get(proxyinfo)
