@@ -73,7 +73,7 @@ func main() {
 		Manager.Delete(proxyinfo)
 
 		client.Timeout(sid, uid, transfer, timestamp.Unix())
-		log.Printf("sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d]", sid, uid, tu, td, uu, ud, timestamp.Unix())
+		log.Printf("timeout: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d]", sid, uid, tu, td, uu, ud, timestamp.Unix())
 		client.Health(Manager.Size())
 	})
 	Manager.On("expire", func(uid, sid int64, port int) {
@@ -89,7 +89,7 @@ func main() {
 		pr.Close()
 		Manager.Delete(proxyinfo)
 		client.Expire(sid, uid, transfer)
-		log.Printf("sid[%d] uid[%d] ,transfer[%d,%d,%d,%d]", sid, uid, tu, td, uu, ud)
+		log.Printf("expire: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d]", sid, uid, tu, td, uu, ud)
 		client.Health(Manager.Size())
 	})
 	Manager.On("overflow", func(uid, sid int64, port int) {
@@ -99,7 +99,7 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
-		log.Printf("sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, pr.NextLimitDown)
+		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, pr.NextLimitDown)
 		client.Overflow(sid, uid, pr.NextLimitDown)
 		pr.SetLimit(pr.NextLimitDown * 1024)
 		pr.Remain = 0
@@ -111,7 +111,7 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
-		log.Printf("sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", sid, uid, pr.BalanceNotifyDuration)
+		log.Printf("balance: sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", sid, uid, pr.BalanceNotifyDuration)
 		client.Balance(sid, uid, pr.BalanceNotifyDuration)
 		pr.BalanceNotifyDuration = 0
 	})
