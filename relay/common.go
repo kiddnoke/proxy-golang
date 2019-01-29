@@ -38,6 +38,9 @@ func (t *Traffic) GetTrafficWithClear() (tu, td, uu, ud int64) {
 	return t.tu, t.td, t.uu, t.ud
 }
 func (t *Traffic) AddTraffic(tu, td, uu, ud int) {
+	if tu+td+uu+ud == 0 {
+		return
+	}
 	t.tu += int64(tu)
 	t.td += int64(td)
 	t.uu += int64(uu)
