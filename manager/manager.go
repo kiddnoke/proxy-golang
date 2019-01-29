@@ -131,7 +131,7 @@ func (m *Manager) CheckLoop() {
 		m.Emit("health", len(m.proxyTable))
 		var transferLists []interface{}
 		for _, p := range m.proxyTable {
-			if p.GetLastTimeStamp().Add(time.Second * 30).Before(time.Now().UTC()) {
+			if p.GetLastTimeStamp().Add(time.Minute * 2).Before(time.Now().UTC()) {
 				continue
 			}
 			tu, td, uu, ud := p.GetTraffic()
