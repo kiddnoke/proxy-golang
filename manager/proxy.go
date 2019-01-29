@@ -2,12 +2,14 @@ package manager
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"proxy-golang/relay"
 )
 
 type Proxy struct {
+	// v1.1
 	Uid                   int64  `json:"uid"`
 	Sid                   int64  `json:"sid"`
 	ServerPort            int    `json:"server_port"`
@@ -21,8 +23,12 @@ type Proxy struct {
 	Remain                int64  `json:"remain"`
 	Expire                int64  `json:"expire"`
 	BalanceNotifyDuration int    `json:"balancenotifytime"`
-	State                 string `json:"state"`
-	Operators             string `json:"operators"`
+	// v1.1.1
+	SnId             int64  `json:"sn_id"`
+	AppVersion       string `json:"app_version"`
+	CarrierOperators string `json:"carrier_operators"`
+	Os               int    `json:"os"`
+
 	relay.ProxyRelay
 }
 
@@ -35,7 +41,8 @@ func (p *Proxy) Init() (err error) {
 	if e != nil {
 		return e
 	}
-	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] State[%s] Operators[%s]", p.Uid, p.Sid, p.ServerPort, p.State, p.Operators))
+	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
+	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] ", p.Uid, p.Sid, p.ServerPort))
 	p.ProxyRelay = *pr
 	return
 }

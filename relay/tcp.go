@@ -47,9 +47,7 @@ func (t *TcpRelay) Loop() {
 		_ = t.l.SetDeadline(time.Now().Add(time.Millisecond * AcceptTimeout))
 		c, err := t.l.Accept()
 		if err != nil {
-			//logf("failed to accept: %v", err)
 			if opError, ok := err.(*net.OpError); ok && opError.Timeout() {
-				// log.Printf("%v", err)
 				continue
 			}
 			continue
@@ -61,17 +59,14 @@ func (t *TcpRelay) Loop() {
 				c.Close()
 			}()
 			t.conns.Store(c.RemoteAddr().String(), c)
-			tcpKeepAlive(c)
 			tgt, err := socks.ReadAddr(c)
 
 			if err != nil {
-				//logf("failed to get target address: %v", err)
 				return
 			}
 
 			rc, err := net.Dial("tcp", tgt.String())
 			if err != nil {
-				//logf("failed to connect to target: %v", err)
 				return
 			}
 			defer func() {
@@ -81,13 +76,13 @@ func (t *TcpRelay) Loop() {
 			t.conns.Store(rc.RemoteAddr().String(), rc)
 			//tcpKeepAlive(rc)
 
-			//t.proxyinfo.Printf("proxy %s <-> %s ", c.RemoteAddr(), tgt)
 			var flow int
 			currstamp := time.Now()
 			go func() {
 				defer func() {
 					duration := time.Since(currstamp)
-					t.proxyinfo.Printf("proxy %s <-> %s , flow[%d b] , Duration[%f sec] , rate[%f b/s]", c.RemoteAddr(), tgt, flow, duration.Seconds(), float64(flow)/duration.Seconds())
+					t.proxyinfo.Printf("proxy %s <-> %s\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]",
+						c.RemoteAddr(), tgt, float64(flow)/duration.Seconds()/1024, flow/1024, duration.Seconds())
 				}()
 				PipeThenClose(rc, c, func(n int) {
 					flow += n
@@ -96,6 +91,7 @@ func (t *TcpRelay) Loop() {
 				})
 			}()
 			PipeThenClose(c, rc, func(n int) {
+				flow += n
 				t.Limiter.WaitN(n)
 				go t.AddTraffic(n, 0, 0, 0)
 			})

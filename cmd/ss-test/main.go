@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/profile"
+
 	. "proxy-golang/relay"
 )
 
@@ -41,6 +43,8 @@ func Monitor(ctx context.Context) {
 }
 
 func main() {
+	stoper := profile.Start(profile.CPUProfile, profile.ProfilePath("."))
+	defer stoper.Stop()
 	var wg sync.WaitGroup
 	wg.Add(1)
 	var flags struct {
@@ -56,6 +60,7 @@ func main() {
 	flag.Parse()
 	pi, _ := NewProxyInfo(flags.ServerPort, flags.Method, flags.Password, flags.Speed)
 	pr, _ := NewProxyRelay(*pi)
+	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	pr.Start()
 	wg.Wait()
 }
