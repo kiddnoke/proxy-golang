@@ -81,11 +81,6 @@ func (t *TcpRelay) Loop() {
 			go func() {
 				defer func() {
 					duration := time.Since(currstamp)
-					t.proxyinfo.Printf("proxy %s <-> %s\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]",
-						c.RemoteAddr(), tgt, float64(flow)/duration.Seconds()/1024, flow/1024, duration.Seconds())
-				}()
-				defer func() {
-					duration := time.Since(currstamp)
 					if rate := float64(flow) / duration.Seconds() / 1024; rate > 1.0 {
 						t.proxyinfo.Printf("proxy %s <-> %s\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]",
 							c.RemoteAddr(), tgt, rate, flow/1024, duration.Seconds())
