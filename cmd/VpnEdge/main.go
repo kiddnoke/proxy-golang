@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"strconv"
@@ -12,8 +14,6 @@ import (
 	"proxy-golang/manager"
 )
 
-const VERSION = "v.1.1.0"
-
 var Manager *manager.Manager
 
 func init() {
@@ -22,9 +22,9 @@ func init() {
 }
 
 func main() {
-	log.Printf("version [%s]", VERSION)
 	var wg sync.WaitGroup
 	wg.Add(1)
+	var generate bool
 	var LinkMode string
 	var flags struct {
 		BeginPort      int
@@ -35,6 +35,7 @@ func main() {
 		State          string
 		Area           string
 	}
+	flag.BoolVar(&generate, "G", false, "生成pm2可识别的版本文件")
 	flag.StringVar(&LinkMode, "link-mode", "1", "通信模式")
 	flag.IntVar(&flags.ManagerPort, "manager-port", 8000, "管理端口(作废)")
 	flag.IntVar(&flags.BeginPort, "beginport", 20000, "beginport 起始端口")
@@ -43,6 +44,15 @@ func main() {
 	flag.StringVar(&flags.State, "state", "NULL", "本实例所要注册的国家")
 	flag.StringVar(&flags.Area, "area", "0", "本实例所要注册的地区")
 	flag.Parse()
+
+	if generate {
+		log.Printf("生成pm2版本文件")
+		var writeString = fmt.Sprintf("{\"version\":\"%s\"}", BuildDate)
+		filename := "./package.json"
+		var d1 = []byte(writeString)
+		ioutil.WriteFile(filename, d1, 0666)
+		return
+	}
 
 	client := wswarpper.New()
 
