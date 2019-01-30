@@ -84,6 +84,13 @@ func (t *TcpRelay) Loop() {
 					t.proxyinfo.Printf("proxy %s <-> %s\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]",
 						c.RemoteAddr(), tgt, float64(flow)/duration.Seconds()/1024, flow/1024, duration.Seconds())
 				}()
+				defer func() {
+					duration := time.Since(currstamp)
+					if rate := float64(flow) / duration.Seconds() / 1024; rate > 1.0 {
+						t.proxyinfo.Printf("proxy %s <-> %s\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]",
+							c.RemoteAddr(), tgt, rate, flow/1024, duration.Seconds())
+					}
+				}()
 				PipeThenClose(rc, c, func(n int) {
 					flow += n
 					t.Limiter.WaitN(n)
@@ -122,7 +129,7 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) {
 	buf := leakyBuf.Get()
 	defer leakyBuf.Put(buf)
 	for {
-		left.SetReadDeadline(time.Now().Add(time.Second * 15))
+		//left.SetReadDeadline(time.Now().Add(time.Second * 15))
 		n, err := left.Read(buf)
 		if addTraffic != nil && n > 0 {
 			addTraffic(n)
