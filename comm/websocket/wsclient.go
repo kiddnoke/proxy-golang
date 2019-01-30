@@ -176,7 +176,7 @@ func (w *WarpperClient) Timeout(sid, uid int64, transfer []int64, activestamp in
 	request["uid"] = uid
 	request["transfer"] = transfer
 	request["activestamp"] = activestamp
-	w.Notify("transfer", request)
+	w.Notify("timeout", request)
 }
 func (w *WarpperClient) Overflow(sid, uid int64, limit int) {
 	request := make(map[string]interface{})
