@@ -1,7 +1,6 @@
 package relay
 
 import (
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -82,15 +81,24 @@ func (t *TcpRelay) Loop() {
 			t.conns.Store(rc.RemoteAddr().String(), rc)
 			//tcpKeepAlive(rc)
 
-			//logf("proxy %s <-> %s", c.RemoteAddr(), tgt)
-			t.proxyinfo.Printf("proxy %s <-> %s ", c.RemoteAddr(), tgt)
+			var flow int
+			currstamp := time.Now()
 			go func() {
+				defer func() {
+					duration := time.Since(currstamp)
+					if rate := float64(flow) / duration.Seconds() / 1024; rate > 1.0 {
+						t.proxyinfo.Printf("proxy %s <-> %s\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]",
+							c.RemoteAddr(), tgt, rate, flow/1024, duration.Seconds())
+					}
+				}()
 				PipeThenClose(rc, c, func(n int) {
+					flow += n
 					t.Limiter.WaitN(n)
 					go t.AddTraffic(0, n, 0, 0)
 				})
 			}()
 			PipeThenClose(c, rc, func(n int) {
+				flow += n
 				t.Limiter.WaitN(n)
 				go t.AddTraffic(n, 0, 0, 0)
 			})
@@ -121,14 +129,13 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) {
 	buf := leakyBuf.Get()
 	defer leakyBuf.Put(buf)
 	for {
-		left.SetReadDeadline(time.Now().Add(time.Second * 15))
+		//left.SetReadDeadline(time.Now().Add(time.Second * 15))
 		n, err := left.Read(buf)
 		if addTraffic != nil && n > 0 {
 			addTraffic(n)
 		}
 		if n > 0 {
 			if _, err := right.Write(buf[0:n]); err != nil {
-				log.Println("write:", err)
 				break
 			}
 		}

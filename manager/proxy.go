@@ -2,6 +2,7 @@ package manager
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"proxy-golang/relay"
@@ -33,6 +34,7 @@ func (p *Proxy) Init() (err error) {
 	if e != nil {
 		return e
 	}
+	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] ", p.Uid, p.Sid, p.ServerPort))
 	p.ProxyRelay = *pr
 	return
