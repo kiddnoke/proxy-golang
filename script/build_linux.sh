@@ -4,7 +4,7 @@ export GOARCH=amd64
 export CGO_ENABLED=0
 
 COMMIT_HASH=`git rev-parse HEAD 2>/dev/null`
-BUILD_DATE=`date  +%Y-%m-%d-%H:%M:%S`
+BUILD_DATE=`date  +%Y-%m-%d-%H:%M`
 TARGET=../../bin/vpnedge_linux
 SOURCE=../cmd/VpnEdge
 cd ${SOURCE}
