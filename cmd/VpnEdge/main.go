@@ -35,7 +35,7 @@ func main() {
 		State          string
 		Area           string
 	}
-	flag.BoolVar(&generate, "G", false, "生成pm2可识别的版本文件")
+	flag.BoolVar(&generate, "pm2", false, "生成pm2可识别的版本文件")
 	flag.StringVar(&LinkMode, "link-mode", "1", "通信模式")
 	flag.IntVar(&flags.ManagerPort, "manager-port", 8000, "管理端口(作废)")
 	flag.IntVar(&flags.BeginPort, "beginport", 20000, "beginport 起始端口")
