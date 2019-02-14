@@ -84,13 +84,13 @@ func (w *WarpperClient) connect(host string, port int) (err error) {
 		return
 	}
 	_ = w.Client.On(gosocketio.OnConnection, func(c Channel) {
-		w.emmiter.Emit("connect", c)
+		<-w.emmiter.Emit("connect", c)
 	})
 	_ = w.Client.On(gosocketio.OnDisconnection, func(c Channel) {
-		w.emmiter.Emit("disconnect", c)
+		<-w.emmiter.Emit("disconnect", c)
 	})
 	_ = w.Client.On(gosocketio.OnError, func(c Channel) {
-		w.emmiter.Emit("error", c)
+		<-w.emmiter.Emit("error", c)
 	})
 	return
 }

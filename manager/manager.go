@@ -113,22 +113,22 @@ func (m *Manager) CheckLoop() {
 	setInterval(time.Second*10, func(when time.Time) {
 		for _, p := range m.proxyTable {
 			if p.IsTimeout() {
-				m.Emit("timeout", p.Uid, p.Sid, p.ServerPort)
+				<-m.Emit("timeout", p.Uid, p.Sid, p.ServerPort)
 			}
 			if p.IsExpire() {
-				m.Emit("expire", p.Uid, p.Sid, p.ServerPort)
+				<-m.Emit("expire", p.Uid, p.Sid, p.ServerPort)
 			}
 			if p.IsOverflow() {
-				m.Emit("overflow", p.Uid, p.Sid, p.ServerPort)
+				<-m.Emit("overflow", p.Uid, p.Sid, p.ServerPort)
 			}
 			if p.IsNotify() {
-				m.Emit("balance", p.Uid, p.Sid, p.ServerPort)
+				<-m.Emit("balance", p.Uid, p.Sid, p.ServerPort)
 			}
 		}
 	})
 	// 1 min timer
 	setInterval(time.Minute, func(when time.Time) {
-		m.Emit("health", len(m.proxyTable))
+		<-m.Emit("health", len(m.proxyTable))
 		var transferLists []interface{}
 		for _, p := range m.proxyTable {
 			if p.GetLastTimeStamp().Add(time.Minute * 2).Before(time.Now().UTC()) {
@@ -141,7 +141,7 @@ func (m *Manager) CheckLoop() {
 			transferLists = append(transferLists, item)
 		}
 		if len(transferLists) > 0 {
-			m.Emit("transfer", transferLists)
+			<-m.Emit("transfer", transferLists)
 		}
 	})
 }
