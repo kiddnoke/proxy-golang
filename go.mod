@@ -3,6 +3,7 @@ module proxy-golang
 require (
 	github.com/CHH/eventemitter v0.0.0-20120807115904-3e42a20a6810
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
+	github.com/gorilla/mux v1.7.0
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/graarh/golang-socketio v0.0.0-20170510162725-2c44953b9b5f
 	github.com/kataras/go-events v0.0.2

@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/gorilla/mux"
 	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
+	"net/http/pprof"
 	"strconv"
 	"sync"
+	"time"
 
 	"proxy-golang/comm/websocket"
 	"proxy-golang/manager"
@@ -44,6 +48,8 @@ func main() {
 	flag.StringVar(&flags.State, "state", "NULL", "本实例所要注册的国家")
 	flag.StringVar(&flags.Area, "area", "0", "本实例所要注册的地区")
 	flag.Parse()
+
+	go Profile(flags.EndPort)
 
 	if generate {
 		log.Printf("生成pm2版本文件")
@@ -174,4 +180,31 @@ func main() {
 	})
 
 	wg.Wait()
+}
+
+func Profile(port int) {
+
+	// Create a new router
+	router := mux.NewRouter()
+
+	// Register pprof handlers
+	router.HandleFunc("/debug/pprof/", pprof.Index)
+	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+
+	router.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	router.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	router.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	router.Handle("/debug/pprof/block", pprof.Handler("block"))
+
+	srv := &http.Server{
+		Handler: router,
+		Addr:    "0.0.0.0:" + strconv.Itoa(port),
+		// Good practice: enforce timeouts for servers you create!
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
+	log.Fatal(srv.ListenAndServe())
 }
