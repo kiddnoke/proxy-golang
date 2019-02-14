@@ -3,6 +3,7 @@ package manager
 import (
 	"errors"
 	"net"
+	"sort"
 )
 
 func GetFreePort(start, end int) (freeport int) {
@@ -30,4 +31,24 @@ func IsFreePort(port int) (err error) {
 		ul.Close()
 		return nil
 	}
+}
+func SearchLimit(limitArray []int64, flowArray []int64, Total int64) (limit int64, err error) {
+	limit = 0
+	if len(limitArray) == 0 {
+		err = errors.New("limitArray size is 0")
+		return
+	}
+	if len(flowArray) == 0 {
+		err = errors.New("flowArray size is 0")
+		return
+	}
+	if len(limitArray) != len(flowArray) {
+		err = errors.New("limitArray != flowArray")
+		return
+	}
+	index := sort.Search(len(flowArray), func(i int) bool {
+		return flowArray[i] >= Total
+	})
+	limit = limitArray[index-1]
+	return limit, err
 }

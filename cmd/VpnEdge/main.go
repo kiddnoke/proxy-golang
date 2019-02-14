@@ -109,10 +109,16 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
-		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, pr.NextLimitDown)
-		client.Overflow(sid, uid, pr.NextLimitDown)
-		pr.SetLimit(pr.NextLimitDown * 1024)
-		pr.Remain = 0
+		tu, td, uu, ud := pr.GetTraffic()
+		nextLimit, err := manager.SearchLimit(pr.LimitArray, pr.FlowArray, tu+td+uu+ud/1024+pr.UsedTotalTraffic)
+		if err != nil {
+			log.Printf("Manager.On overflow event err:%v", err.Error())
+		}
+		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, nextLimit)
+		client.Overflow(sid, uid, int(nextLimit))
+		pr.SetLimit(int(nextLimit) * 1024)
+		pr.CurrLimitDown = int(nextLimit)
+		pr.CurrLimitUp = int(nextLimit)
 	})
 	Manager.On("balance", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
