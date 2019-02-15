@@ -45,7 +45,7 @@ func (p *Proxy) Init() (err error) {
 	if e != nil {
 		return e
 	}
-	pr, e := relay.NewProxyRelay(*pi)
+	pr, e := relay.NewProxyRelay(pi)
 	if e != nil {
 		return e
 	}

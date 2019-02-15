@@ -59,7 +59,7 @@ func main() {
 	flag.IntVar(&flags.ServerPort, "port", 29999, "ServerPort")
 	flag.Parse()
 	pi, _ := NewProxyInfo(flags.ServerPort, flags.Method, flags.Password, flags.Speed)
-	pr, _ := NewProxyRelay(*pi)
+	pr, _ := NewProxyRelay(pi)
 	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	pr.Start()
 	wg.Wait()
