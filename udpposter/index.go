@@ -2,10 +2,12 @@ package udpposter
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	"net"
-	pb "proxy-golang/proto"
 	"strconv"
+
+	pb "proxy-golang/proto"
+
+	"github.com/golang/protobuf/proto"
 )
 
 const _port = 6666
@@ -27,5 +29,24 @@ func Post(record pb.Record) (err error) {
 	return
 }
 func PostDict(item map[string]interface{}) (err error) {
-	return Post(pb.ConvertMaptoRecordByReflect(item))
+	return Post(pb.ConvertMapToRecordByReflect(item))
+}
+func PostParams(user_id, sn_id int64,
+	device_id, app_version, os, user_type, carrier_operator string,
+	ip, websit string, time_stamp, rate, connect_time, traffic int64) (err error) {
+	return Post(pb.Record{
+		UserId:          user_id,
+		SnId:            sn_id,
+		DeviceId:        device_id,
+		AppVersion:      app_version,
+		Os:              os,
+		UserType:        user_type,
+		CarrierOperator: carrier_operator,
+		Ip:              ip,
+		Website:         websit,
+		Time:            time_stamp,
+		Rate:            rate,
+		ConnectTime:     connect_time,
+		Traffic:         traffic,
+	})
 }
