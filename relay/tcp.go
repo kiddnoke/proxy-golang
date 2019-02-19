@@ -11,6 +11,7 @@ import (
 )
 
 const AcceptTimeout = 1000
+const MaxAcceptConnection = 400
 
 type listener struct {
 	*net.TCPListener
@@ -45,6 +46,7 @@ func tcpKeepAlive(c net.Conn) {
 	}
 }
 func (t *TcpRelay) Loop() {
+	ConnCount := 0
 	for t.running {
 		_ = t.l.SetDeadline(time.Now().Add(time.Millisecond * AcceptTimeout))
 		c, err := t.l.Accept()
@@ -54,13 +56,18 @@ func (t *TcpRelay) Loop() {
 			}
 			continue
 		}
-
+		if ConnCount > MaxAcceptConnection {
+			c.Close()
+			continue
+		}
 		go func() {
 			defer func() {
 				t.conns.Delete(c.RemoteAddr().String())
 				c.Close()
+				ConnCount--
 			}()
 			t.conns.Store(c.RemoteAddr().String(), c)
+			ConnCount++
 			tgt, err := socks.ReadAddr(c)
 
 			if err != nil {
@@ -76,7 +83,7 @@ func (t *TcpRelay) Loop() {
 				rc.Close()
 			}()
 			t.conns.Store(rc.RemoteAddr().String(), rc)
-			//tcpKeepAlive(rc)
+			tcpKeepAlive(rc)
 
 			var flow int
 			currstamp := time.Now()
@@ -126,9 +133,6 @@ func (t *TcpRelay) Close() {
 	}
 }
 func PipeThenClose(left, right net.Conn, addTraffic func(n int)) {
-	defer func() {
-		right.Close()
-	}()
 	buf := leakyBuf.Get()
 	defer leakyBuf.Put(buf)
 	for {
