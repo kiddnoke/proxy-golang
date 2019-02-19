@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"proxy-golang/relay"
+
+	"proxy-golang/udpposter"
 )
 
 type Proxy struct {
@@ -17,10 +19,7 @@ type Proxy struct {
 	Password              string `json:"password"`
 	CurrLimitUp           int    `json:"currlimitup"`
 	CurrLimitDown         int    `json:"currlimitdown"`
-	NextLimitUp           int    `json:"nextlimitup"`
-	NextLimitDown         int    `json:"nextlimitdown"`
 	Timeout               int64  `json:"timeout"`
-	Remain                int64  `json:"remain"`
 	Expire                int64  `json:"expire"`
 	BalanceNotifyDuration int    `json:"balancenotifytime"`
 	// v1.1.1
@@ -28,7 +27,8 @@ type Proxy struct {
 	AppVersion       string  `json:"app_version"`
 	UserType         string  `json:"user_type"`
 	CarrierOperators string  `json:"carrier_operators"`
-	Os               int     `json:"os"`
+	Os               string  `json:"os"`
+	DeviceId         string  `json:"device_id"`
 	UsedTotalTraffic int64   `json:"used_total_traffic" unit:"kb"`
 	LimitArray       []int64 `json:"limit_array" unit:"kb"`
 	FlowArray        []int64 `json:"flow_array" unit:"kb"`
@@ -45,13 +45,31 @@ func (p *Proxy) Init() (err error) {
 	if e != nil {
 		return e
 	}
+
 	pr, e := relay.NewProxyRelay(pi)
 	if e != nil {
 		return e
 	}
+
+	pr.ConnectInfoCallback = func(time_stamp int64, rate int64, localAddress, RemoteAddress string, traffic int64, duration time.Duration) {
+		user_id := p.Uid
+		sn_id := p.SnId
+		device_id := p.DeviceId
+		app_version := p.AppVersion
+		os := p.Os
+		user_type := p.UserType
+		carrier_operator := p.CarrierOperators
+		connect_time := int64(duration.Seconds() * 100)
+		_ = udpposter.PostParams(user_id, sn_id,
+			device_id, app_version, os, user_type, carrier_operator,
+			localAddress, RemoteAddress, time_stamp,
+			rate, connect_time, traffic)
+	}
+	pr.Start()
 	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] ", p.Uid, p.Sid, p.ServerPort))
 	p.ProxyRelay = *pr
+
 	return
 }
 func (p *Proxy) IsTimeout() bool {
