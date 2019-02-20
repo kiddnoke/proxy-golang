@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"net"
 	"strconv"
 	"sync"
@@ -123,11 +124,12 @@ func main() {
 		if err != nil {
 			log.Printf("Manager.On overflow event err:%v", err.Error())
 		}
+		pr.CurrLimitDown = int(math.Min(float64(nextLimit), float64(pr.CurrLimitDown)))
+		pr.CurrLimitUp = pr.CurrLimitDown
 		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, nextLimit)
-		client.Overflow(sid, uid, int(nextLimit))
-		pr.SetLimit(int(nextLimit) * 1024)
-		pr.CurrLimitDown = int(nextLimit)
-		pr.CurrLimitUp = int(nextLimit)
+		client.Overflow(sid, uid, int(pr.CurrLimitDown))
+		pr.SetLimit(int(pr.CurrLimitDown) * 1024)
+
 	})
 	Manager.On("balance", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
