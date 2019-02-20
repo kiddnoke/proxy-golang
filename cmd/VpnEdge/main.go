@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -50,8 +51,6 @@ func main() {
 	flag.StringVar(&flags.Area, "area", "0", "本实例所要注册的地区")
 	flag.Parse()
 
-	go Profile(flags.EndPort)
-
 	if generate {
 		log.Printf("生成pm2版本文件")
 		var writeString = fmt.Sprintf("{\"version\":\"%s\"}", BuildDate)
@@ -85,10 +84,13 @@ func main() {
 		transfer := []int64{tu, td, uu, ud}
 
 		timestamp := pr.GetLastTimeStamp()
-		// 关闭实例
-		pr.Close()
-		Manager.Delete(proxyinfo)
-
+		pr.Timeout = 0
+		time.AfterFunc(time.Minute*2, func() {
+			// 关闭实例
+			pr.Close()
+			// 回收
+			Manager.Delete(proxyinfo)
+		})
 		client.Timeout(sid, uid, transfer, timestamp.Unix())
 		log.Printf("timeout: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d]", sid, uid, tu, td, uu, ud, timestamp.Unix())
 		client.Health(Manager.Size())
@@ -102,9 +104,14 @@ func main() {
 		}
 		tu, td, uu, ud := pr.GetTraffic()
 		transfer := []int64{tu, td, uu, ud}
-		// 关闭实例
-		pr.Close()
-		Manager.Delete(proxyinfo)
+		pr.Expire = 0
+		time.AfterFunc(time.Minute, func() {
+			// 关闭实例
+			pr.Close()
+			// 回收
+			Manager.Delete(proxyinfo)
+		})
+
 		client.Expire(sid, uid, transfer)
 		log.Printf("expire: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d]", sid, uid, tu, td, uu, ud)
 		client.Health(Manager.Size())
@@ -121,11 +128,11 @@ func main() {
 		if err != nil {
 			log.Printf("Manager.On overflow event err:%v", err.Error())
 		}
+		pr.CurrLimitDown = int(math.Min(float64(nextLimit), float64(pr.CurrLimitDown)))
+		pr.CurrLimitUp = pr.CurrLimitDown
 		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, nextLimit)
-		client.Overflow(sid, uid, int(nextLimit))
-		pr.SetLimit(int(nextLimit) * 1024)
-		pr.CurrLimitDown = int(nextLimit)
-		pr.CurrLimitUp = int(nextLimit)
+		client.Overflow(sid, uid, int(pr.CurrLimitDown))
+		pr.SetLimit(int(pr.CurrLimitDown) * 1024)
 	})
 	Manager.On("balance", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy

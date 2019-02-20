@@ -2,19 +2,18 @@ syntax = "proto3"; //指定proto版本
 
 package igg.reporter;
 
-
 message Record {
-    int32 sn_id = 1 ;
-    int32 user_id = 2 ;
-    string device_id  = 3 ;
+    int64 snId = 1 ;
+    int64 userId = 2 ;
+    string deviceId  = 3 ;
     string os = 4 ;
-    string app_version = 5 ;
+    string appVersion = 5 ;
     string ip  = 6 ;
-    int64 time_stamp = 7 ;
+    int64 time  = 7 ;
     string website = 8 ;
-    int32 connect_time = 9 ;
-    int32 rate = 10 ;
-    int32 traffic = 11 ;
-    string carrier_operator = 12 ;
-    string user_type  = 13 ;
+    int64 connectTime = 9 ;
+    int64 rate = 10 ;
+    int64 traffic = 11 ;
+    string carrierOperator = 12 ;
+    string userType  = 13 ;
 }

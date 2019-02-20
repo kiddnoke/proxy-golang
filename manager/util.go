@@ -47,7 +47,7 @@ func SearchLimit(limitArray []int64, flowArray []int64, Total int64) (limit int6
 		return
 	}
 	index := sort.Search(len(flowArray), func(i int) bool {
-		return flowArray[i] >= Total
+		return flowArray[i] > Total
 	})
 	limit = limitArray[index-1]
 	return limit, err

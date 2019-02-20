@@ -42,8 +42,6 @@ func (m *Manager) Add(proxy interface{}) (err error) {
 			Password:              proxy.(Proxy).Password,
 			Timeout:               proxy.(Proxy).Timeout,
 			CurrLimitDown:         proxy.(Proxy).CurrLimitDown,
-			NextLimitDown:         proxy.(Proxy).NextLimitDown,
-			Remain:                proxy.(Proxy).Remain,
 			Expire:                proxy.(Proxy).Expire,
 			BalanceNotifyDuration: proxy.(Proxy).BalanceNotifyDuration,
 		}
@@ -82,9 +80,6 @@ func (m *Manager) Update(keys interface{}) error {
 		}
 		if keys.(Proxy).Timeout != 0 {
 			p.Timeout = keys.(Proxy).Timeout
-		}
-		if keys.(Proxy).Remain != 0 {
-			p.Remain = keys.(Proxy).Remain
 		}
 		if keys.(Proxy).Expire != 0 {
 			p.Expire = keys.(Proxy).Expire

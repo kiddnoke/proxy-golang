@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -10,6 +11,7 @@ import (
 )
 
 const AcceptTimeout = 1000
+const MaxAcceptConnection = 400
 
 type listener struct {
 	*net.TCPListener
@@ -29,7 +31,8 @@ func (l *listener) Accept() (net.Conn, error) {
 type TcpRelay struct {
 	l listener
 	*proxyinfo
-	conns sync.Map
+	conns               sync.Map
+	ConnectInfoCallback func(time_stamp int64, rate int64, localAddress, RemoteAddress string, traffic int64, duration time.Duration)
 }
 
 func NewTcpRelayByProxyInfo(c *proxyinfo) (tp *TcpRelay, err error) {
@@ -43,6 +46,7 @@ func tcpKeepAlive(c net.Conn) {
 	}
 }
 func (t *TcpRelay) Loop() {
+	ConnCount := 0
 	for t.running {
 		_ = t.l.SetDeadline(time.Now().Add(time.Millisecond * AcceptTimeout))
 		c, err := t.l.Accept()
@@ -52,13 +56,18 @@ func (t *TcpRelay) Loop() {
 			}
 			continue
 		}
-
+		if ConnCount > MaxAcceptConnection {
+			c.Close()
+			continue
+		}
 		go func() {
 			defer func() {
 				t.conns.Delete(c.RemoteAddr().String())
 				c.Close()
+				ConnCount--
 			}()
 			t.conns.Store(c.RemoteAddr().String(), c)
+			ConnCount++
 			tgt, err := socks.ReadAddr(c)
 
 			if err != nil {
@@ -74,16 +83,23 @@ func (t *TcpRelay) Loop() {
 				rc.Close()
 			}()
 			t.conns.Store(rc.RemoteAddr().String(), rc)
-			//tcpKeepAlive(rc)
+			tcpKeepAlive(rc)
 
 			var flow int
 			currstamp := time.Now()
 			go func() {
 				defer func() {
 					duration := time.Since(currstamp)
+					time_stamp := time.Now().UnixNano() / 1000000
 					if rate := float64(flow) / duration.Seconds() / 1024; rate > 1.0 {
 						t.proxyinfo.Printf("proxy %s <-> %s\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]",
 							c.RemoteAddr(), tgt, rate, flow/1024, duration.Seconds())
+						ip := fmt.Sprintf("%v", c.RemoteAddr())
+						website := fmt.Sprintf("%v", tgt)
+						rate := int64(rate * 100)
+						if t.ConnectInfoCallback != nil {
+							t.ConnectInfoCallback(time_stamp, int64(rate*100), ip, website, int64(flow/1024)*100, duration)
+						}
 					}
 				}()
 				PipeThenClose(rc, c, func(n int) {
@@ -116,15 +132,11 @@ func (t *TcpRelay) Close() {
 		t.l.Close()
 	}
 }
-
 func PipeThenClose(left, right net.Conn, addTraffic func(n int)) {
-	defer func() {
-		right.Close()
-	}()
 	buf := leakyBuf.Get()
 	defer leakyBuf.Put(buf)
 	for {
-		//left.SetReadDeadline(time.Now().Add(time.Second * 15))
+		left.SetReadDeadline(time.Now().Add(time.Second * 10))
 		n, err := left.Read(buf)
 		if addTraffic != nil && n > 0 {
 			addTraffic(n)
