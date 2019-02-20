@@ -129,7 +129,6 @@ func main() {
 		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, nextLimit)
 		client.Overflow(sid, uid, int(pr.CurrLimitDown))
 		pr.SetLimit(int(pr.CurrLimitDown) * 1024)
-
 	})
 	Manager.On("balance", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
