@@ -146,7 +146,7 @@ func (m *Manager) CheckLoop() {
 			<-m.Emit("transfer", transferLists)
 		}
 	})
-	setInterval(time.Minute*10, func(when time.Time) {
+	setInterval(time.Minute*5, func(when time.Time) {
 		for _, p := range m.proxyTable {
 			if p.IsOverflow() {
 				<-m.Emit("overflow", p.Uid, p.Sid, p.ServerPort)
