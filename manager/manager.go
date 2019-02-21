@@ -123,9 +123,6 @@ func (m *Manager) CheckLoop() {
 			if p.IsExpire() {
 				<-m.Emit("expire", p.Uid, p.Sid, p.ServerPort)
 			}
-			if p.IsOverflow() {
-				<-m.Emit("overflow", p.Uid, p.Sid, p.ServerPort)
-			}
 			if p.IsNotify() {
 				<-m.Emit("balance", p.Uid, p.Sid, p.ServerPort)
 			}
@@ -147,6 +144,13 @@ func (m *Manager) CheckLoop() {
 		}
 		if len(transferLists) > 0 {
 			<-m.Emit("transfer", transferLists)
+		}
+	})
+	setInterval(time.Minute*10, func(when time.Time) {
+		for _, p := range m.proxyTable {
+			if p.IsOverflow() {
+				<-m.Emit("overflow", p.Uid, p.Sid, p.ServerPort)
+			}
 		}
 	})
 }
