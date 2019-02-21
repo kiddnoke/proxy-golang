@@ -51,7 +51,7 @@ func main() {
 	flag.StringVar(&flags.Area, "area", "0", "本实例所要注册的地区")
 	flag.Parse()
 
-	go Profile(flags.EndPort - 10000)
+	go Profile(flags.EndPort%10000 + 10000)
 
 	if generate {
 		log.Printf("生成pm2版本文件")
