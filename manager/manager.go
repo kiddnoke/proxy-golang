@@ -44,6 +44,16 @@ func (m *Manager) Add(proxy interface{}) (err error) {
 			CurrLimitDown:         proxy.(Proxy).CurrLimitDown,
 			Expire:                proxy.(Proxy).Expire,
 			BalanceNotifyDuration: proxy.(Proxy).BalanceNotifyDuration,
+			// v1.1.1
+			SnId:             proxy.(Proxy).SnId,
+			AppVersion:       proxy.(Proxy).AppVersion,
+			UserType:         proxy.(Proxy).UserType,
+			CarrierOperators: proxy.(Proxy).CarrierOperators,
+			Os:               proxy.(Proxy).Os,
+			DeviceId:         proxy.(Proxy).DeviceId,
+			UsedTotalTraffic: proxy.(Proxy).UsedTotalTraffic,
+			LimitArray:       proxy.(Proxy).LimitArray,
+			FlowArray:        proxy.(Proxy).FlowArray,
 		}
 		err = p.Init()
 		m.proxyTable[key] = p
