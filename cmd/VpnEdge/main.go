@@ -51,6 +51,8 @@ func main() {
 	flag.StringVar(&flags.Area, "area", "0", "本实例所要注册的地区")
 	flag.Parse()
 
+	go Profile(flags.EndPort - 10000)
+
 	if generate {
 		log.Printf("生成pm2版本文件")
 		var writeString = fmt.Sprintf("{\"version\":\"%s\"}", BuildDate)
