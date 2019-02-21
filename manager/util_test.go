@@ -35,35 +35,35 @@ func TestIsFreePort(t *testing.T) {
 	}
 }
 func TestSearchLimit(t *testing.T) {
-	limitArray := []int64{0, 1000, 500, 300, 200}
-	flowArray := []int64{0, 5 * 1024 * 1024, 10 * 1024 * 1024, 15 * 1024 * 1024, 20 * 1024 * 1024}
+	limitArray := []int64{20, 40, 60}
+	flowArray := []int64{10240, 20480, 30720}
 	var totalflow int64
-	totalflow = 3 * 1024 * 1024
+	totalflow = 0
 	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 0 || err != nil {
 		t.FailNow()
 	}
-	totalflow = 6 * 1024 * 1024
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 1000 || err != nil {
+	totalflow = 10240
+	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 20 || err != nil {
 		t.FailNow()
 	}
-	totalflow = 7 * 1024 * 1024
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 1000 || err != nil {
+	totalflow = 10240 + 1
+	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 20 || err != nil {
 		t.FailNow()
 	}
-	totalflow = 11 * 1024 * 1024
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 500 || err != nil {
+	totalflow = 20480
+	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 40 || err != nil {
 		t.FailNow()
 	}
-	totalflow = 11*1024*1024 + 20000
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 500 || err != nil {
+	totalflow = 20480 + 1
+	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 40 || err != nil {
 		t.FailNow()
 	}
-	totalflow = 16 * 1024 * 1024
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 300 || err != nil {
+	totalflow = 30720
+	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 60 || err != nil {
 		t.FailNow()
 	}
-	totalflow = 21 * 1024 * 1024
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 200 || err != nil {
+	totalflow = 30720 + 1
+	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 60 || err != nil {
 		t.FailNow()
 	}
 
