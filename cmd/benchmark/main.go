@@ -166,6 +166,7 @@ func main() {
 			err := Manager.Add(proxyinfo)
 			if err != nil {
 				log.Printf(err.Error())
+				return
 			}
 			client.Notify("open", proxyinfo)
 			client.Health(Manager.Size())

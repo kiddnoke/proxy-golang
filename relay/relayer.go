@@ -1,5 +1,10 @@
 package relay
 
+import (
+	"errors"
+	"fmt"
+)
+
 type ProxyRelayer interface {
 	Stop()
 	Start()
@@ -12,9 +17,13 @@ type ProxyRelay struct {
 }
 
 func NewProxyRelay(p *proxyinfo) (r *ProxyRelay, err error) {
-	t, err1 := NewTcpRelayByProxyInfo(p)
-	u, _ := NewUdpRelayByProxyInfo(p)
-	return &ProxyRelay{TcpRelay: t, UdpRelay: u, proxyinfo: p}, err1
+	t, err_t := NewTcpRelayByProxyInfo(p)
+	u, err_u := NewUdpRelayByProxyInfo(p)
+	if err_t == nil && err_u == nil {
+		return &ProxyRelay{TcpRelay: t, UdpRelay: u, proxyinfo: p}, err_t
+	} else {
+		return nil, errors.New(fmt.Sprintf("NewProxyRelay Error:%v, %v", err_t, err_u))
+	}
 }
 func (r *ProxyRelay) Start() {
 	if r.running == false {

@@ -55,7 +55,11 @@ func (m *Manager) Add(proxy interface{}) (err error) {
 			LimitArray:       proxy.(Proxy).LimitArray,
 			FlowArray:        proxy.(Proxy).FlowArray,
 		}
-		err = p.Init()
+
+		if err = p.Init(); err != nil {
+			return err
+		}
+
 		m.proxyTable[key] = p
 		p.Start()
 		return err
