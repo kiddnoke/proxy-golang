@@ -203,6 +203,12 @@ func (w *WarpperClient) Balance(sid, uid int64, duration int) {
 func (w *WarpperClient) Echo(json interface{}) {
 	w.Notify("echo", json)
 }
+func (w *WarpperClient) BenchMark(uid, sid int64) {
+	request := make(map[string]interface{})
+	request["sid"] = sid
+	request["uid"] = uid
+	w.Notify("benchmark", request)
+}
 func (w *WarpperClient) OnOpened(callback func(msg []byte)) {
 	_ = w.On("open", func(channel Channel, Msg interface{}) {
 		jsonstr, _ := json.Marshal(Msg)
