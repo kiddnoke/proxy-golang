@@ -22,7 +22,6 @@ func TestNewProxyRelay(t *testing.T) {
 	if e != nil {
 		t.FailNow()
 	}
-	pi.ExtendParams["sn_id"] = 1
 	pr, e := NewProxyRelay(pi)
 	if e != nil {
 		t.FailNow()
@@ -33,14 +32,14 @@ func TestNewProxyRelay(t *testing.T) {
 		t.FailNow()
 	}
 	fmt.Printf("pi            [%p]=%v\n", pi, pi)
-	fmt.Printf("pr.t.proxyinfo[%p]=%v\n", pr.t.proxyinfo, pr.t.proxyinfo)
-	if pr.t.proxyinfo != pi {
+	fmt.Printf("pr.t.proxyinfo[%p]=%v\n", pr.TcpRelay.proxyinfo, pr.TcpRelay.proxyinfo)
+	if pr.TcpRelay.proxyinfo != pi {
 		t.FailNow()
 	}
 
 	fmt.Printf("pi            [%p]=%v\n", pi, pi)
-	fmt.Printf("pr.u.proxyinfo[%p]=%v\n", pr.u.proxyinfo, pr.u.proxyinfo)
-	if pr.u.proxyinfo != pi {
+	fmt.Printf("pr.u.proxyinfo[%p]=%v\n", pr.UdpRelay.proxyinfo, pr.UdpRelay.proxyinfo)
+	if pr.UdpRelay.proxyinfo != pi {
 		t.FailNow()
 	}
 	pr.Close()
