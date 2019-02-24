@@ -43,12 +43,12 @@ func (p *Proxy) Init() (err error) {
 	}
 	pi, e := relay.NewProxyInfo(p.ServerPort, p.Method, p.Password, p.CurrLimitDown)
 	if e != nil {
-		return e
+		return NewError("Proxy Init", e, relay.NewProxyRelay, p.ServerPort, p.Method, p.Password, p.CurrLimitDown)
 	}
 
 	pr, e := relay.NewProxyRelay(pi)
 	if e != nil {
-		return e
+		return NewError("Proxy Init", e, relay.NewProxyRelay, pi)
 	}
 
 	pr.ConnectInfoCallback = func(time_stamp int64, rate int64, localAddress, RemoteAddress string, traffic int64, duration time.Duration) {
