@@ -24,54 +24,31 @@ type Manager struct {
 func New() (m *Manager) {
 	return &Manager{proxyTable: make(map[string]*Proxy), EventEmitter: eventemitter.New()}
 }
-func (m *Manager) Add(proxy interface{}) (err error) {
+func (m *Manager) Add(proxy Proxy) (err error) {
 	m.Lock()
 	defer m.Unlock()
 	var key string
-	key = strconv.FormatInt(int64(proxy.(Proxy).Uid), 10)
-	key += strconv.FormatInt(int64(proxy.(Proxy).Sid), 10)
-	key += strconv.FormatInt(int64(proxy.(Proxy).ServerPort), 10)
+	key = strconv.FormatInt(int64(proxy.Uid), 10)
+	key += strconv.FormatInt(int64(proxy.Sid), 10)
+	key += strconv.FormatInt(int64(proxy.ServerPort), 10)
 	if _, found := m.proxyTable[key]; found {
 		return KeyExist
 	} else {
-		p := &Proxy{
-			Uid:                   proxy.(Proxy).Uid,
-			Sid:                   proxy.(Proxy).Sid,
-			ServerPort:            proxy.(Proxy).ServerPort,
-			Method:                proxy.(Proxy).Method,
-			Password:              proxy.(Proxy).Password,
-			Timeout:               proxy.(Proxy).Timeout,
-			CurrLimitDown:         proxy.(Proxy).CurrLimitDown,
-			Expire:                proxy.(Proxy).Expire,
-			BalanceNotifyDuration: proxy.(Proxy).BalanceNotifyDuration,
-			// v1.1.1
-			SnId:             proxy.(Proxy).SnId,
-			AppVersion:       proxy.(Proxy).AppVersion,
-			UserType:         proxy.(Proxy).UserType,
-			CarrierOperators: proxy.(Proxy).CarrierOperators,
-			Os:               proxy.(Proxy).Os,
-			DeviceId:         proxy.(Proxy).DeviceId,
-			UsedTotalTraffic: proxy.(Proxy).UsedTotalTraffic,
-			LimitArray:       proxy.(Proxy).LimitArray,
-			FlowArray:        proxy.(Proxy).FlowArray,
-		}
-
-		if err = p.Init(); err != nil {
+		if err = proxy.Init(); err != nil {
 			return err
 		}
-
-		m.proxyTable[key] = p
-		p.Start()
+		m.proxyTable[key] = &proxy
+		proxy.Start()
 		return err
 	}
 }
-func (m *Manager) Delete(keys interface{}) error {
+func (m *Manager) Delete(keys Proxy) error {
 	m.Lock()
 	defer m.Unlock()
 	var key string
-	key = strconv.FormatInt(int64(keys.(Proxy).Uid), 10)
-	key += strconv.FormatInt(int64(keys.(Proxy).Sid), 10)
-	key += strconv.FormatInt(int64(keys.(Proxy).ServerPort), 10)
+	key = strconv.FormatInt(int64(keys.Uid), 10)
+	key += strconv.FormatInt(int64(keys.Sid), 10)
+	key += strconv.FormatInt(int64(keys.ServerPort), 10)
 	if _, found := m.proxyTable[key]; found {
 		p := m.proxyTable[key]
 		p.Close()
@@ -81,22 +58,22 @@ func (m *Manager) Delete(keys interface{}) error {
 	}
 	return nil
 }
-func (m *Manager) Update(keys interface{}) error {
+func (m *Manager) Update(keys Proxy) error {
 	m.Lock()
 	defer m.Unlock()
 	var key string
-	key = strconv.FormatInt(int64(keys.(Proxy).Uid), 10)
-	key += strconv.FormatInt(int64(keys.(Proxy).Sid), 10)
-	key += strconv.FormatInt(int64(keys.(Proxy).ServerPort), 10)
+	key = strconv.FormatInt(int64(keys.Uid), 10)
+	key += strconv.FormatInt(int64(keys.Sid), 10)
+	key += strconv.FormatInt(int64(keys.ServerPort), 10)
 	if p, found := m.proxyTable[key]; found {
-		if keys.(Proxy).CurrLimitDown != 0 {
-			p.CurrLimitDown = keys.(Proxy).CurrLimitDown
+		if keys.CurrLimitDown != 0 {
+			p.CurrLimitDown = keys.CurrLimitDown
 		}
-		if keys.(Proxy).Timeout != 0 {
-			p.Timeout = keys.(Proxy).Timeout
+		if keys.Timeout != 0 {
+			p.Timeout = keys.Timeout
 		}
-		if keys.(Proxy).Expire != 0 {
-			p.Expire = keys.(Proxy).Expire
+		if keys.Expire != 0 {
+			p.Expire = keys.Expire
 		}
 	} else {
 		return KeyNotExist
@@ -106,11 +83,11 @@ func (m *Manager) Update(keys interface{}) error {
 func (m *Manager) Size() (size int) {
 	return len(m.proxyTable)
 }
-func (m *Manager) Get(keys interface{}) (proxy *Proxy, err error) {
+func (m *Manager) Get(keys Proxy) (proxy *Proxy, err error) {
 	var key string
-	key = strconv.FormatInt(int64(keys.(Proxy).Uid), 10)
-	key += strconv.FormatInt(int64(keys.(Proxy).Sid), 10)
-	key += strconv.FormatInt(int64(keys.(Proxy).ServerPort), 10)
+	key = strconv.FormatInt(int64(keys.Uid), 10)
+	key += strconv.FormatInt(int64(keys.Sid), 10)
+	key += strconv.FormatInt(int64(keys.ServerPort), 10)
 	if p, found := m.proxyTable[key]; found {
 		return p, nil
 	} else {
