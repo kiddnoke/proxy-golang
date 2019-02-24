@@ -9,10 +9,10 @@ import (
 )
 
 type manager interface {
-	Add(proxy interface{}) error
-	Delete(key interface{}) error
-	Update(key interface{}) error
-	Get(key interface{}) (proxy *Proxy, err error)
+	Add(proxy Proxy) error
+	Delete(key Proxy) error
+	Update(key Proxy) error
+	Get(key Proxy) (proxy *Proxy, err error)
 }
 type Manager struct {
 	manager
