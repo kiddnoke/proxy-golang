@@ -37,7 +37,7 @@ type Proxy struct {
 }
 
 func (p *Proxy) Init() (err error) {
-	if currLimit, err := SearchLimit(p.LimitArray, p.FlowArray, p.UsedTotalTraffic); currLimit < int64(p.CurrLimitDown) && err == nil {
+	if currLimit, err := SearchLimit(p.LimitArray, p.FlowArray, p.UsedTotalTraffic); currLimit != 0 && currLimit < int64(p.CurrLimitDown) && err == nil {
 		p.CurrLimitDown = int(currLimit)
 		p.CurrLimitUp = int(currLimit)
 	}

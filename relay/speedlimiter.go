@@ -32,6 +32,13 @@ func (s *Limiter) SetLimit(bytesPerSec int) {
 	burstsize := bytesPerSec * 1
 	s.Limiter = rate.NewLimiter(rate.Limit(bytesPerSec), burstsize)
 }
-func (s *Limiter) WaitN(n int) error {
-	return s.Limiter.WaitN(s.ctx, n)
+func (s *Limiter) WaitN(n int) (err error) {
+	if err = s.Limiter.WaitN(s.ctx, n); err == nil {
+		return
+	} else {
+		sleepDuration := n * 1000 / s.Limiter.Burst()
+		time.Sleep(time.Duration(sleepDuration) * time.Millisecond)
+		return nil
+	}
+	return
 }
