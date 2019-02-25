@@ -34,7 +34,7 @@ func main() {
 	var flags struct {
 		BeginPort      int
 		EndPort        int
-		ManagerPort    int
+		InstanceID     int
 		ControllerPort int
 		CenterUrl      string
 		State          string
@@ -42,7 +42,7 @@ func main() {
 	}
 	flag.BoolVar(&generate, "pm2", false, "生成pm2可识别的版本文件")
 	flag.StringVar(&LinkMode, "link-mode", "1", "通信模式")
-	flag.IntVar(&flags.ManagerPort, "manager-port", 8000, "管理端口(作废)")
+	flag.IntVar(&flags.InstanceID, "Id", 1, "实例id")
 	flag.IntVar(&flags.BeginPort, "beginport", 20000, "beginport 起始端口")
 	flag.IntVar(&flags.EndPort, "endport", 30000, "endport 结束端口")
 	flag.StringVar(&flags.CenterUrl, "url", "localhost:7001", "中心的url地址")
@@ -164,6 +164,7 @@ func main() {
 				log.Printf(err.Error())
 				return
 			}
+			log.Printf("proxyinfo:%v", proxyinfo)
 			client.Notify("open", proxyinfo)
 			client.Health(Manager.Health())
 		})
@@ -188,7 +189,7 @@ func main() {
 				client.Health(Manager.Health())
 			}
 		})
-		client.Login(flags.ManagerPort, flags.BeginPort, flags.EndPort, flags.ManagerPort+1000, flags.State, flags.Area)
+		client.Login(flags.InstanceID, flags.BeginPort, flags.EndPort, flags.InstanceID+1000, flags.State, flags.Area)
 	})
 	client.OnDisconnect(func(c wswarpper.Channel) {
 		client.Connect(host, port)
