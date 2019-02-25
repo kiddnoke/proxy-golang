@@ -83,6 +83,17 @@ func (m *Manager) Update(keys Proxy) error {
 func (m *Manager) Size() (size int) {
 	return len(m.proxyTable)
 }
+func (m *Manager) Health() (h int) {
+	h = 0
+	for _, p := range m.proxyTable {
+		if b := p.Burst(); b == 0 {
+			h += 1024 * 1024 * 5
+		} else {
+			h += b
+		}
+	}
+	return h
+}
 func (m *Manager) Get(keys Proxy) (proxy *Proxy, err error) {
 	var key string
 	key = strconv.FormatInt(int64(keys.Uid), 10)
@@ -108,7 +119,7 @@ func (m *Manager) CheckLoop() {
 	})
 	// 1 min timer
 	setInterval(time.Minute, func(when time.Time) {
-		<-m.Emit("health", len(m.proxyTable))
+		<-m.Emit("health", m.Health())
 		var transferLists []interface{}
 		for _, p := range m.proxyTable {
 			if p.GetLastTimeStamp().Add(time.Minute * 2).Before(time.Now().UTC()) {

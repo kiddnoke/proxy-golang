@@ -95,7 +95,7 @@ func main() {
 		})
 		client.Timeout(sid, uid, transfer, timestamp.Unix())
 		log.Printf("timeout: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d]", sid, uid, tu, td, uu, ud, timestamp.Unix())
-		client.Health(Manager.Size())
+		client.Health(Manager.Health())
 	})
 	Manager.On("expire", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
@@ -116,7 +116,7 @@ func main() {
 
 		client.Expire(sid, uid, transfer)
 		log.Printf("expire: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d]", sid, uid, tu, td, uu, ud)
-		client.Health(Manager.Size())
+		client.Health(Manager.Health())
 	})
 	Manager.On("overflow", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
@@ -168,7 +168,7 @@ func main() {
 				return
 			}
 			client.Notify("open", proxyinfo)
-			client.Health(Manager.Size())
+			client.Health(Manager.Health())
 		})
 		client.OnClosed(func(msg []byte) {
 			var proxyinfo manager.Proxy
@@ -187,7 +187,7 @@ func main() {
 				CloseRetMsg["uid"] = proxyinfo.Uid
 				Manager.Delete(proxyinfo)
 				client.Notify("close", CloseRetMsg)
-				client.Health(Manager.Size())
+				client.Health(Manager.Health())
 			}
 		})
 		client.Login(flags.ManagerPort, flags.BeginPort, flags.EndPort, flags.ManagerPort+1000, flags.State, flags.Area)

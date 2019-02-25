@@ -17,6 +17,7 @@ func GetFreePort(start, end int) (freeport int) {
 		if _, ok := lockTable.Load(freeport); ok == true {
 			continue
 		}
+		defer lockTable.Store(freeport, true)
 		tl, t_err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: freeport})
 		if t_err != nil {
 			continue
@@ -25,7 +26,6 @@ func GetFreePort(start, end int) (freeport int) {
 		if u_err != nil {
 			continue
 		}
-		lockTable.Store(freeport, true)
 		tl.Close()
 		ul.Close()
 		return
