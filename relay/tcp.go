@@ -104,13 +104,17 @@ func (t *TcpRelay) Loop() {
 				}()
 				PipeThenClose(rc, c, func(n int) {
 					flow += n
-					t.Limiter.WaitN(n)
+					if err := t.Limiter.WaitN(n); err != nil {
+						t.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, c.RemoteAddr(), err)
+					}
 					go t.AddTraffic(0, n, 0, 0)
 				})
 			}()
 			PipeThenClose(c, rc, func(n int) {
 				flow += n
-				t.Limiter.WaitN(n)
+				if err := t.Limiter.WaitN(n); err != nil {
+					t.Printf("[%v] -> [%v] speedlimiter err:%v", c.RemoteAddr(), tgt, err)
+				}
 				go t.AddTraffic(n, 0, 0, 0)
 			})
 		}()
