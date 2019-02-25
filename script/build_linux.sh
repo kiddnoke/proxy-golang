@@ -1,7 +1,6 @@
 #!/bin/bash
 OS="linux"
 export GOOS=${OS}
-export GOOS=linux
 export GOARCH=amd64
 export CGO_ENABLED=0
 
