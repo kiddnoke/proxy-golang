@@ -111,3 +111,13 @@ func (p *Proxy) IsNotify() bool {
 		}
 	}
 }
+func (p *Proxy) IsStairCase() (flag bool, limit int) {
+	tu, td, uu, ud := p.GetTraffic()
+	totalFlow := p.UsedTotalTraffic + (tu+td+uu+ud)/1024
+	nextLimit, _ := SearchLimit(p.LimitArray, p.FlowArray, totalFlow)
+	if p.CurrLimitDown != 0 && int64(p.CurrLimitDown) > nextLimit {
+		return true, int(nextLimit)
+	} else {
+		return false, 0
+	}
+}

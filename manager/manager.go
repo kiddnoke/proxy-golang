@@ -137,8 +137,8 @@ func (m *Manager) CheckLoop() {
 	})
 	setInterval(time.Minute*5, func(when time.Time) {
 		for _, p := range m.proxyTable {
-			if p.IsOverflow() {
-				<-m.Emit("overflow", p.Uid, p.Sid, p.ServerPort)
+			if flag, limit := p.IsStairCase(); flag == true {
+				<-m.Emit("overflow", p.Uid, p.Sid, p.ServerPort, limit)
 			}
 		}
 	})
