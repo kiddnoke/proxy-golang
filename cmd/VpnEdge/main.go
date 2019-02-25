@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -55,7 +54,7 @@ func main() {
 
 	if generate {
 		log.Printf("生成pm2版本文件")
-		var writeString = fmt.Sprintf("{\"version\":\"%s\"}", BuildDate)
+		var writeString = fmt.Sprintf("{\"version\":\"%s\"}", BuildBranch+"-"+BuildDate)
 		filename := "./package.json"
 		var d1 = []byte(writeString)
 		ioutil.WriteFile(filename, d1, 0666)
@@ -118,21 +117,18 @@ func main() {
 		log.Printf("expire: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d]", sid, uid, tu, td, uu, ud)
 		client.Health(Manager.Health())
 	})
-	Manager.On("overflow", func(uid, sid int64, port int) {
+	Manager.On("overflow", func(uid, sid int64, port int, limit int) {
 		var proxyinfo manager.Proxy
 		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
+			return
 		}
-		tu, td, uu, ud := pr.GetTraffic()
-		nextLimit, err := manager.SearchLimit(pr.LimitArray, pr.FlowArray, tu+td+uu+ud/1024+pr.UsedTotalTraffic)
-		if err != nil {
-			log.Printf("Manager.On overflow event err:%v", err.Error())
-		}
-		pr.CurrLimitDown = int(math.Min(float64(nextLimit), float64(pr.CurrLimitDown)))
-		pr.CurrLimitUp = pr.CurrLimitDown
-		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, int(math.Min(float64(nextLimit), float64(pr.CurrLimitDown))))
+
+		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, limit)
+		pr.CurrLimitDown = limit
+		pr.CurrLimitUp = limit
 		client.Overflow(sid, uid, int(pr.CurrLimitDown))
 		pr.SetLimit(int(pr.CurrLimitDown) * 1024)
 	})
@@ -142,6 +138,7 @@ func main() {
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
+			return
 		}
 		log.Printf("balance: sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", sid, uid, pr.BalanceNotifyDuration)
 		client.Balance(sid, uid, pr.BalanceNotifyDuration)
@@ -177,6 +174,7 @@ func main() {
 			}
 			if p, err := Manager.Get(proxyinfo); err != nil {
 				log.Printf(err.Error())
+				return
 			} else {
 				tu, td, uu, ud := p.GetTraffic()
 				p.Close()
