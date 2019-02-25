@@ -115,6 +115,9 @@ func (m *Manager) CheckLoop() {
 			if p.IsNotify() {
 				<-m.Emit("balance", p.Uid, p.Sid, p.ServerPort)
 			}
+			if flag, limit := p.IsStairCase(); flag == true {
+				<-m.Emit("overflow", p.Uid, p.Sid, p.ServerPort, limit)
+			}
 		}
 	})
 	// 1 min timer
@@ -133,13 +136,6 @@ func (m *Manager) CheckLoop() {
 		}
 		if len(transferLists) > 0 {
 			<-m.Emit("transfer", transferLists)
-		}
-	})
-	setInterval(time.Minute*5, func(when time.Time) {
-		for _, p := range m.proxyTable {
-			if flag, limit := p.IsStairCase(); flag == true {
-				<-m.Emit("overflow", p.Uid, p.Sid, p.ServerPort, limit)
-			}
 		}
 	})
 }
