@@ -132,7 +132,7 @@ func main() {
 		}
 		pr.CurrLimitDown = int(math.Min(float64(nextLimit), float64(pr.CurrLimitDown)))
 		pr.CurrLimitUp = pr.CurrLimitDown
-		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, nextLimit)
+		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, int(math.Min(float64(nextLimit), float64(pr.CurrLimitDown))))
 		client.Overflow(sid, uid, int(pr.CurrLimitDown))
 		pr.SetLimit(int(pr.CurrLimitDown) * 1024)
 	})
@@ -216,9 +216,8 @@ func Profile(port int) {
 	router.Handle("/debug/pprof/block", pprof.Handler("block"))
 
 	srv := &http.Server{
-		Handler: router,
-		Addr:    "0.0.0.0:" + strconv.Itoa(port),
-		// Good practice: enforce timeouts for servers you create!
+		Handler:      router,
+		Addr:         "0.0.0.0:" + strconv.Itoa(port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
