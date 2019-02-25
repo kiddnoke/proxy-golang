@@ -142,9 +142,4 @@ func (m *Manager) CheckLoop() {
 			}
 		}
 	})
-	setInterval(time.Second*10, func(when time.Time) {
-		for _, p := range m.proxyTable {
-			<-m.Emit("benchmark", p.Uid, p.Sid)
-		}
-	})
 }
