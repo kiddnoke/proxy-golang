@@ -115,7 +115,7 @@ func (m *Manager) CheckLoop() {
 			if p.IsNotify() {
 				<-m.Emit("balance", p.Uid, p.Sid, p.ServerPort)
 			}
-			if flag, limit := p.IsStairCase(); flag == true {
+			if limit, flag := p.IsStairCase(); flag == true {
 				<-m.Emit("overflow", p.Uid, p.Sid, p.ServerPort, limit)
 			}
 		}

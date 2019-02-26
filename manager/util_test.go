@@ -39,31 +39,31 @@ func TestSearchLimit(t *testing.T) {
 	flowArray := []int64{10240, 20480, 30720}
 	var totalflow int64
 	totalflow = 0
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 0 || err != nil {
+	if limit, err := SearchLimit(0, limitArray, flowArray, totalflow); limit != 0 || err != nil {
 		t.FailNow()
 	}
 	totalflow = 10240
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 20 || err != nil {
+	if limit, err := SearchLimit(30, limitArray, flowArray, totalflow); limit != 20 || err != nil {
 		t.FailNow()
 	}
 	totalflow = 10240 + 1
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 20 || err != nil {
+	if limit, err := SearchLimit(10, limitArray, flowArray, totalflow); limit != 10 || err != nil {
 		t.FailNow()
 	}
 	totalflow = 20480
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 40 || err != nil {
+	if limit, err := SearchLimit(50, limitArray, flowArray, totalflow); limit != 40 || err != nil {
 		t.FailNow()
 	}
 	totalflow = 20480 + 1
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 40 || err != nil {
+	if limit, err := SearchLimit(30, limitArray, flowArray, totalflow); limit != 30 || err != nil {
 		t.FailNow()
 	}
 	totalflow = 30720
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 60 || err != nil {
+	if limit, err := SearchLimit(100, limitArray, flowArray, totalflow); limit != 60 || err != nil {
 		t.FailNow()
 	}
 	totalflow = 30720 + 1
-	if limit, err := SearchLimit(limitArray, flowArray, totalflow); limit != 60 || err != nil {
+	if limit, err := SearchLimit(0, limitArray, flowArray, totalflow); limit != 60 || err != nil {
 		t.FailNow()
 	}
 
@@ -71,7 +71,7 @@ func TestSearchLimit(t *testing.T) {
 	flowArray2 := []int64{1}
 	var totalflow2 int64
 	totalflow2 = 3 * 1024 * 1024
-	if _, err := SearchLimit(limitArray2, flowArray2, totalflow2); err == nil {
+	if _, err := SearchLimit(0, limitArray2, flowArray2, totalflow2); err == nil {
 		t.FailNow()
 	}
 
@@ -79,7 +79,7 @@ func TestSearchLimit(t *testing.T) {
 	flowArray3 := []int64{}
 	var totalflow3 int64
 	totalflow3 = 3 * 1024 * 1024
-	if _, err := SearchLimit(limitArray3, flowArray3, totalflow3); err == nil {
+	if _, err := SearchLimit(0, limitArray3, flowArray3, totalflow3); err == nil {
 		t.FailNow()
 	}
 
@@ -87,7 +87,7 @@ func TestSearchLimit(t *testing.T) {
 	flowArray4 := []int64{1}
 	var totalflow4 int64
 	totalflow3 = 3 * 1024 * 1024
-	if _, err := SearchLimit(limitArray4, flowArray4, totalflow4); err == nil {
+	if _, err := SearchLimit(0, limitArray4, flowArray4, totalflow4); err == nil {
 		t.FailNow()
 	}
 }
@@ -95,7 +95,15 @@ func TestSearchLimit(t *testing.T) {
 func TestSearchLimit2(t *testing.T) {
 	limitArray := []int64{0}
 	flowArray := []int64{0}
-	if limit, err := SearchLimit(limitArray, flowArray, 1); limit != 0 || err != nil {
+	if limit, err := SearchLimit(0, limitArray, flowArray, 1); limit != 0 || err != nil {
+		t.FailNow()
+	}
+}
+
+func TestSearchLimit3(t *testing.T) {
+	limitArray := []int64{10, 50, 100}
+	flowArray := []int64{10240, 20480, 30720}
+	if limit, err := SearchLimit(100, limitArray, flowArray, 583257); limit != 100 || err != nil {
 		t.FailNow()
 	}
 }

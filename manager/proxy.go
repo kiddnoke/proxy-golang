@@ -37,10 +37,10 @@ type Proxy struct {
 }
 
 func (p *Proxy) Init() (err error) {
-	if currLimit, err := SearchLimit(p.LimitArray, p.FlowArray, p.UsedTotalTraffic); currLimit != 0 && currLimit < int64(p.CurrLimitDown) && err == nil {
-		p.CurrLimitDown = int(currLimit)
-		p.CurrLimitUp = int(currLimit)
-	}
+	searchLimit, err := SearchLimit(int64(p.CurrLimitDown), p.LimitArray, p.FlowArray, p.UsedTotalTraffic)
+	p.CurrLimitDown = int(searchLimit)
+	p.CurrLimitUp = int(searchLimit)
+
 	pi, e := relay.NewProxyInfo(p.ServerPort, p.Method, p.Password, p.CurrLimitDown)
 	if e != nil {
 		return NewError("Proxy Init", e, relay.NewProxyRelay, p.ServerPort, p.Method, p.Password, p.CurrLimitDown)
@@ -111,13 +111,14 @@ func (p *Proxy) IsNotify() bool {
 		}
 	}
 }
-func (p *Proxy) IsStairCase() (flag bool, limit int) {
+func (p *Proxy) IsStairCase() (limit int, flag bool) {
 	tu, td, uu, ud := p.GetTraffic()
-	totalFlow := p.UsedTotalTraffic + (tu+td+uu+ud)/1024
-	nextLimit, _ := SearchLimit(p.LimitArray, p.FlowArray, totalFlow)
-	if p.CurrLimitDown != 0 && int64(p.CurrLimitDown) > nextLimit {
-		return true, int(nextLimit)
+	totalFlow := p.UsedTotalTraffic + tu + td + uu + ud
+	preLimit := int64(p.CurrLimitDown)
+	nextLimit, _ := SearchLimit(preLimit, p.LimitArray, p.FlowArray, totalFlow)
+	if preLimit > nextLimit {
+		return int(nextLimit), true
 	} else {
-		return false, 0
+		return 0, false
 	}
 }
