@@ -14,7 +14,7 @@ TARGET_DIR=${SHELL_FOLDER}/../bin/vpnedge_${BRANCH_NAME}
 if [ ! -d ${TARGET_DIR} ]; then
   mkdir ${TARGET_DIR}
 fi
-TARGET=${TARGET_DIR}/vpnedge_${OS}
+TARGET=${TARGET_DIR}/vpnedge_${OS}.exe
 SOURCE=../cmd/VpnEdge
 cd ${SOURCE}
 
