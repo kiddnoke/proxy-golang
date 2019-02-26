@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -53,11 +51,7 @@ func main() {
 	go Profile(flags.EndPort%10000 + 10000)
 
 	if generate {
-		log.Printf("生成pm2版本文件")
-		var writeString = fmt.Sprintf("{\"version\":\"%s\"}", BuildBranch+"-"+BuildDate)
-		filename := "./package.json"
-		var d1 = []byte(writeString)
-		ioutil.WriteFile(filename, d1, 0666)
+		Generate()
 		return
 	}
 
