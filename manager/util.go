@@ -65,5 +65,5 @@ func SearchLimit(limitArray []int64, flowArray []int64, Total int64) (limit int6
 		return
 	}
 	limit = limitArray[index-1]
-	return limit, err
+	return
 }

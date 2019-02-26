@@ -3,6 +3,7 @@ package manager
 import (
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"proxy-golang/relay"
@@ -37,10 +38,11 @@ type Proxy struct {
 }
 
 func (p *Proxy) Init() (err error) {
-	if currLimit, err := SearchLimit(p.LimitArray, p.FlowArray, p.UsedTotalTraffic); currLimit != 0 && currLimit < int64(p.CurrLimitDown) && err == nil {
-		p.CurrLimitDown = int(currLimit)
-		p.CurrLimitUp = int(currLimit)
-	}
+	searchLimit, err := SearchLimit(p.LimitArray, p.FlowArray, p.UsedTotalTraffic)
+	currLimitTmp := math.Min(float64(0-searchLimit), float64(0-p.CurrLimitDown))
+	p.CurrLimitDown = int(math.Abs(currLimitTmp))
+	p.CurrLimitUp = int(math.Abs(currLimitTmp))
+
 	pi, e := relay.NewProxyInfo(p.ServerPort, p.Method, p.Password, p.CurrLimitDown)
 	if e != nil {
 		return NewError("Proxy Init", e, relay.NewProxyRelay, p.ServerPort, p.Method, p.Password, p.CurrLimitDown)

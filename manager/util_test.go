@@ -99,3 +99,11 @@ func TestSearchLimit2(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func TestSearchLimit3(t *testing.T) {
+	limitArray := []int64{10, 50, 100}
+	flowArray := []int64{10240, 20480, 30720}
+	if limit, err := SearchLimit(limitArray, flowArray, 583257); limit != 100 || err != nil {
+		t.FailNow()
+	}
+}
