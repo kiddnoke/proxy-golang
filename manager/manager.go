@@ -109,6 +109,9 @@ func (m *Manager) CheckLoop() {
 	// 10 second timer
 	setInterval(time.Second*10, func(when time.Time) {
 		for _, p := range m.proxyTable {
+			if p.IsTimeout() {
+				<-m.Emit("timeout", p.Uid, p.Sid, p.ServerPort)
+			}
 			if p.IsExpire() {
 				<-m.Emit("expire", p.Uid, p.Sid, p.ServerPort)
 			}
