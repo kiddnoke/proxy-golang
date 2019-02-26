@@ -3,7 +3,6 @@ package manager
 import (
 	"fmt"
 	"log"
-	"math"
 	"time"
 
 	"proxy-golang/relay"
@@ -38,10 +37,9 @@ type Proxy struct {
 }
 
 func (p *Proxy) Init() (err error) {
-	searchLimit, err := SearchLimit(p.LimitArray, p.FlowArray, p.UsedTotalTraffic)
-	currLimitTmp := math.Min(float64(0-searchLimit), float64(0-p.CurrLimitDown))
-	p.CurrLimitDown = int(math.Abs(currLimitTmp))
-	p.CurrLimitUp = int(math.Abs(currLimitTmp))
+	searchLimit, err := SearchLimit(int64(p.CurrLimitDown), p.LimitArray, p.FlowArray, p.UsedTotalTraffic)
+	p.CurrLimitDown = int(searchLimit)
+	p.CurrLimitUp = int(searchLimit)
 
 	pi, e := relay.NewProxyInfo(p.ServerPort, p.Method, p.Password, p.CurrLimitDown)
 	if e != nil {
@@ -113,13 +111,14 @@ func (p *Proxy) IsNotify() bool {
 		}
 	}
 }
-func (p *Proxy) IsStairCase() (flag bool, limit int) {
+func (p *Proxy) IsStairCase() (limit int, flag bool) {
 	tu, td, uu, ud := p.GetTraffic()
-	totalFlow := p.UsedTotalTraffic + (tu+td+uu+ud)/1024
-	nextLimit, _ := SearchLimit(p.LimitArray, p.FlowArray, totalFlow)
-	if p.CurrLimitDown != 0 && int64(p.CurrLimitDown) > nextLimit {
-		return true, int(nextLimit)
+	totalFlow := p.UsedTotalTraffic + tu + td + uu + ud
+	preLimit := int64(p.CurrLimitDown)
+	nextLimit, _ := SearchLimit(preLimit, p.LimitArray, p.FlowArray, totalFlow)
+	if preLimit > nextLimit {
+		return int(nextLimit), true
 	} else {
-		return false, 0
+		return 0, false
 	}
 }
