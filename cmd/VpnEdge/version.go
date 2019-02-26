@@ -22,11 +22,11 @@ func init() {
 	log.Printf("BuildDate [%s]", BuildDate)
 	log.Printf("BuildBranch [%s]", BuildBranch)
 }
-func Generate() {
+func Generate() (err error) {
 	log.Printf("生成pm2版本文件")
 	var writeString = fmt.Sprintf("{\"version\":\"%s\"}", BuildBranch+"-"+BuildDate)
 	filename := "./package.json"
 	var d1 = []byte(writeString)
-	ioutil.WriteFile(filename, d1, 0666)
+	err = ioutil.WriteFile(filename, d1, 0666)
 	return
 }
