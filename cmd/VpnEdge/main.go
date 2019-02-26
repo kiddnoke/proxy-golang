@@ -172,7 +172,6 @@ func main() {
 				return
 			} else {
 				tu, td, uu, ud := p.GetTraffic()
-				p.Close()
 				CloseRetMsg := make(map[string]interface{})
 				CloseRetMsg["server_port"] = proxyinfo.ServerPort
 				CloseRetMsg["transfer"] = []int64{tu, td, uu, ud}
