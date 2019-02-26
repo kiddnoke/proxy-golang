@@ -11,7 +11,7 @@ COMMIT_HASH=`git rev-parse HEAD 2>/dev/null`
 BUILD_DATE=`date  +%Y-%m-%d-%H:%M`
 BRANCH_NAME=`git symbolic-ref --short -q HEAD`
 
-TARGET_DIR=${PROJECT_FOLDER}/bin/IggAgent_${BRANCH_NAME}
+TARGET_DIR=${PROJECT_FOLDER}/bin/VpnApp_${BRANCH_NAME}
 if [ ! -d ${TARGET_DIR} ]; then
   mkdir ${TARGET_DIR}
 fi
