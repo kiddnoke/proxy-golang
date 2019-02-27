@@ -48,6 +48,9 @@ func main() {
 	flag.StringVar(&flags.Area, "area", "0", "本实例所要注册的地区")
 	flag.Parse()
 
+	manager.BeginPort = flags.BeginPort
+	manager.EndPort = flags.EndPort
+
 	go Profile(flags.EndPort%10000 + 10000)
 
 	if generate {
@@ -81,8 +84,6 @@ func main() {
 		timestamp := pr.GetLastTimeStamp()
 		pr.Timeout = 0
 		time.AfterFunc(time.Minute*2, func() {
-			// 关闭实例
-			pr.Close()
 			// 回收
 			Manager.Delete(proxyinfo)
 		})
@@ -101,8 +102,6 @@ func main() {
 		transfer := []int64{tu, td, uu, ud}
 		pr.Expire = 0
 		time.AfterFunc(time.Minute, func() {
-			// 关闭实例
-			pr.Close()
 			// 回收
 			Manager.Delete(proxyinfo)
 		})
@@ -148,18 +147,19 @@ func main() {
 		client.OnOpened(func(msg []byte) {
 			log.Printf("OnOpend %s", msg)
 			var proxyinfo manager.Proxy
-			port := manager.GetFreePort(flags.BeginPort, flags.EndPort)
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
 				log.Printf(err.Error())
 			}
-			proxyinfo.ServerPort = port
-			err := Manager.Add(proxyinfo)
+			err := Manager.Add(&proxyinfo)
 			if err != nil {
 				log.Printf(err.Error())
 				return
 			}
-			log.Printf("proxyinfo:%v", proxyinfo)
-			client.Notify("open", proxyinfo)
+			OpenRetMsg := make(map[string]interface{})
+			OpenRetMsg["server_port"] = proxyinfo.ServerPort
+			OpenRetMsg["sid"] = proxyinfo.Sid
+			OpenRetMsg["uid"] = proxyinfo.Uid
+			client.Notify("open", OpenRetMsg)
 			client.Health(Manager.Health())
 		})
 		client.OnClosed(func(msg []byte) {
@@ -206,6 +206,7 @@ func Profile(port int) {
 	router.Handle("/debug/pprof/heap", pprof.Handler("heap"))
 	router.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
 	router.Handle("/debug/pprof/block", pprof.Handler("block"))
+	router.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
 
 	srv := &http.Server{
 		Handler:      router,
