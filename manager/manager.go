@@ -24,10 +24,11 @@ type Manager struct {
 func New() (m *Manager) {
 	return &Manager{proxyTable: make(map[string]*Proxy), EventEmitter: eventemitter.New()}
 }
-func (m *Manager) Add(proxy Proxy) (err error) {
+func (m *Manager) Add(proxy *Proxy) (err error) {
 	m.Lock()
 	defer m.Unlock()
 	var key string
+	proxy.ServerPort = GetFreePort(BeginPort, EndPort)
 	key = strconv.FormatInt(int64(proxy.Uid), 10)
 	key += strconv.FormatInt(int64(proxy.Sid), 10)
 	key += strconv.FormatInt(int64(proxy.ServerPort), 10)
@@ -37,7 +38,7 @@ func (m *Manager) Add(proxy Proxy) (err error) {
 		if err = proxy.Init(); err != nil {
 			return err
 		}
-		m.proxyTable[key] = &proxy
+		m.proxyTable[key] = proxy
 		proxy.Start()
 		return err
 	}
@@ -53,6 +54,7 @@ func (m *Manager) Delete(keys Proxy) error {
 		p := m.proxyTable[key]
 		p.Close()
 		delete(m.proxyTable, key)
+		ClearPort(keys.ServerPort)
 	} else {
 		return KeyNotExist
 	}
@@ -81,9 +83,14 @@ func (m *Manager) Update(keys Proxy) error {
 	return nil
 }
 func (m *Manager) Size() (size int) {
+	m.Lock()
+	m.Lock()
+	defer m.Unlock()
 	return len(m.proxyTable)
 }
 func (m *Manager) Health() (h int) {
+	m.Lock()
+	defer m.Unlock()
 	h = 0
 	for _, p := range m.proxyTable {
 		if b := p.Burst(); b == 0 {
@@ -95,6 +102,8 @@ func (m *Manager) Health() (h int) {
 	return h
 }
 func (m *Manager) Get(keys Proxy) (proxy *Proxy, err error) {
+	m.Lock()
+	defer m.Unlock()
 	var key string
 	key = strconv.FormatInt(int64(keys.Uid), 10)
 	key += strconv.FormatInt(int64(keys.Sid), 10)
@@ -125,6 +134,8 @@ func (m *Manager) CheckLoop() {
 	})
 	// 1 min timer
 	setInterval(time.Minute, func(when time.Time) {
+		//m.Lock()
+		//defer m.Unlock()
 		<-m.Emit("health", m.Health())
 		var transferLists []interface{}
 		for _, p := range m.proxyTable {
