@@ -70,6 +70,7 @@ func (p *Proxy) Init() (err error) {
 	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] ", p.Uid, p.Sid, p.ServerPort))
 	p.ProxyRelay = *pr
+
 	return
 }
 func (p *Proxy) IsTimeout() bool {

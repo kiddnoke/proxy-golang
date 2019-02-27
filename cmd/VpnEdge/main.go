@@ -83,7 +83,7 @@ func main() {
 
 		timestamp := pr.GetLastTimeStamp()
 		pr.Timeout = 0
-		time.AfterFunc(time.Second*20, func() {
+		time.AfterFunc(time.Minute*2, func() {
 			// 回收
 			Manager.Delete(proxyinfo)
 		})
@@ -159,7 +159,6 @@ func main() {
 			OpenRetMsg["server_port"] = proxyinfo.ServerPort
 			OpenRetMsg["sid"] = proxyinfo.Sid
 			OpenRetMsg["uid"] = proxyinfo.Uid
-			log.Printf("proxy.ServerPort:%v", proxyinfo.ServerPort)
 			client.Notify("open", OpenRetMsg)
 			client.Health(Manager.Health())
 		})
