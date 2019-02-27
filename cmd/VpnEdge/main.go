@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -50,14 +48,13 @@ func main() {
 	flag.StringVar(&flags.Area, "area", "0", "本实例所要注册的地区")
 	flag.Parse()
 
+	manager.BeginPort = flags.BeginPort
+	manager.EndPort = flags.EndPort
+
 	go Profile(flags.EndPort%10000 + 10000)
 
 	if generate {
-		log.Printf("生成pm2版本文件")
-		var writeString = fmt.Sprintf("{\"version\":\"%s\"}", BuildBranch+"-"+BuildDate)
-		filename := "./package.json"
-		var d1 = []byte(writeString)
-		ioutil.WriteFile(filename, d1, 0666)
+		Generate()
 		return
 	}
 
@@ -87,8 +84,6 @@ func main() {
 		timestamp := pr.GetLastTimeStamp()
 		pr.Timeout = 0
 		time.AfterFunc(time.Minute*2, func() {
-			// 关闭实例
-			pr.Close()
 			// 回收
 			Manager.Delete(proxyinfo)
 		})
@@ -107,8 +102,6 @@ func main() {
 		transfer := []int64{tu, td, uu, ud}
 		pr.Expire = 0
 		time.AfterFunc(time.Minute, func() {
-			// 关闭实例
-			pr.Close()
 			// 回收
 			Manager.Delete(proxyinfo)
 		})
@@ -118,8 +111,7 @@ func main() {
 		client.Health(Manager.Health())
 	})
 	Manager.On("overflow", func(uid, sid int64, port int, limit int) {
-		var proxyinfo manager.Proxy
-		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
+		proxyinfo := manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
@@ -129,8 +121,9 @@ func main() {
 		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, limit)
 		pr.CurrLimitDown = limit
 		pr.CurrLimitUp = limit
-		client.Overflow(sid, uid, int(pr.CurrLimitDown))
-		pr.SetLimit(int(pr.CurrLimitDown) * 1024)
+		client.Overflow(sid, uid, limit)
+		client.Health(Manager.Health())
+		pr.SetLimit(limit * 1024)
 	})
 	Manager.On("balance", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
@@ -157,18 +150,19 @@ func main() {
 		client.OnOpened(func(msg []byte) {
 			log.Printf("OnOpend %s", msg)
 			var proxyinfo manager.Proxy
-			port := manager.GetFreePort(flags.BeginPort, flags.EndPort)
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
 				log.Printf(err.Error())
 			}
-			proxyinfo.ServerPort = port
-			err := Manager.Add(proxyinfo)
+			err := Manager.Add(&proxyinfo)
 			if err != nil {
 				log.Printf(err.Error())
 				return
 			}
-			log.Printf("proxyinfo:%v", proxyinfo)
-			client.Notify("open", proxyinfo)
+			OpenRetMsg := make(map[string]interface{})
+			OpenRetMsg["server_port"] = proxyinfo.ServerPort
+			OpenRetMsg["sid"] = proxyinfo.Sid
+			OpenRetMsg["uid"] = proxyinfo.Uid
+			client.Notify("open", OpenRetMsg)
 			client.Health(Manager.Health())
 		})
 		client.OnClosed(func(msg []byte) {
@@ -181,7 +175,6 @@ func main() {
 				return
 			} else {
 				tu, td, uu, ud := p.GetTraffic()
-				p.Close()
 				CloseRetMsg := make(map[string]interface{})
 				CloseRetMsg["server_port"] = proxyinfo.ServerPort
 				CloseRetMsg["transfer"] = []int64{tu, td, uu, ud}
@@ -216,6 +209,7 @@ func Profile(port int) {
 	router.Handle("/debug/pprof/heap", pprof.Handler("heap"))
 	router.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
 	router.Handle("/debug/pprof/block", pprof.Handler("block"))
+	router.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
 
 	srv := &http.Server{
 		Handler:      router,

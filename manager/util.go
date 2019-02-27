@@ -8,30 +8,42 @@ import (
 	"sync"
 )
 
-var lock sync.Mutex
-var lockTable sync.Map
+var opLock sync.Mutex
+var lockPortTable sync.Map
+var BeginPort int
+var EndPort int
 
 func GetFreePort(start, end int) (freeport int) {
-	lock.Lock()
-	defer lock.Unlock()
+	opLock.Lock()
+	defer opLock.Unlock()
 	for freeport = start; freeport <= end; freeport++ {
-		if _, ok := lockTable.Load(freeport); ok == true {
+		if _, ok := lockPortTable.Load(freeport); ok == true {
 			continue
 		}
-		defer lockTable.Store(freeport, true)
 		tl, t_err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: freeport})
 		if t_err != nil {
+			lockPortTable.Store(freeport, true)
 			continue
 		}
 		ul, u_err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("0.0.0.0"), Port: freeport})
 		if u_err != nil {
+			lockPortTable.Store(freeport, true)
 			continue
 		}
 		tl.Close()
 		ul.Close()
+		lockPortTable.Store(freeport, true)
 		return
 	}
 	return freeport
+}
+func ClearPort(port int) (flag bool) {
+	opLock.Lock()
+	defer opLock.Unlock()
+	if _, flag = lockPortTable.Load(port); flag == true {
+		lockPortTable.Delete(port)
+	}
+	return
 }
 func IsFreePort(port int) (err error) {
 	tl, t_err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: port})

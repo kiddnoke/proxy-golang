@@ -101,9 +101,12 @@ func TestSearchLimit2(t *testing.T) {
 }
 
 func TestSearchLimit3(t *testing.T) {
-	limitArray := []int64{10, 50, 100}
+	limitArray := []int64{100, 50, 10}
 	flowArray := []int64{10240, 20480, 30720}
-	if limit, err := SearchLimit(100, limitArray, flowArray, 583257); limit != 100 || err != nil {
+	if limit, err := SearchLimit(100, limitArray, flowArray, 583257); limit != 10 || err != nil {
+		t.FailNow()
+	}
+	if limit, err := SearchLimit(100, limitArray, flowArray, 10241); limit != 100 || err != nil {
 		t.FailNow()
 	}
 }
