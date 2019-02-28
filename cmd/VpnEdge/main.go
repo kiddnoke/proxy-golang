@@ -143,6 +143,9 @@ func main() {
 	Manager.On("transfer", func(transferList []interface{}) {
 		client.TransferList(transferList)
 	})
+	Manager.On("benchmark", func(uid, sid int64) {
+		client.BenchMark(uid, sid)
+	})
 	client.OnConnect(func(c wswarpper.Channel) {
 		client.OnOpened(func(msg []byte) {
 			log.Printf("OnOpend %s", msg)

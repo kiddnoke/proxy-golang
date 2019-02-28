@@ -148,4 +148,10 @@ func (m *Manager) CheckLoop() {
 			<-m.Emit("transfer", transferLists)
 		}
 	})
+	// Benchmark Case
+	setInterval(time.Second*30, func(when time.Time) {
+		for _, p := range m.proxyTable {
+			<-m.Emit("benchmark", p.Uid, p.Sid)
+		}
+	})
 }
