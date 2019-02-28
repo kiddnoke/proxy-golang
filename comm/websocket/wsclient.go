@@ -173,7 +173,7 @@ func (w *WarpperClient) Transfer(sid int64, transfer []int64) {
 	w.Notify("transfer", request)
 }
 func (w *WarpperClient) TransferList(transferList []interface{}) {
-	w.Notify("transfer", transferList)
+	w.Notify("transferlist", transferList)
 }
 func (w *WarpperClient) Timeout(sid, uid int64, transfer []int64, activestamp int64) {
 	request := make(map[string]interface{})
