@@ -16,66 +16,59 @@ type manager interface {
 }
 type Manager struct {
 	manager
-	proxyTable map[string]*Proxy
-	sync.Mutex
+	proxyTable sync.Map
 	*eventemitter.EventEmitter
 }
 
 func New() (m *Manager) {
-	return &Manager{proxyTable: make(map[string]*Proxy), EventEmitter: eventemitter.New()}
+	return &Manager{proxyTable: sync.Map{}, EventEmitter: eventemitter.New()}
 }
 func (m *Manager) Add(proxy *Proxy) (err error) {
-	m.Lock()
-	defer m.Unlock()
 	var key string
 	proxy.ServerPort = GetFreePort(BeginPort, EndPort)
 	key = strconv.FormatInt(int64(proxy.Uid), 10)
 	key += strconv.FormatInt(int64(proxy.Sid), 10)
 	key += strconv.FormatInt(int64(proxy.ServerPort), 10)
-	if _, found := m.proxyTable[key]; found {
+	if _, found := m.proxyTable.Load(key); found {
 		return KeyExist
 	} else {
 		if err = proxy.Init(); err != nil {
 			return err
 		}
-		m.proxyTable[key] = proxy
+		m.proxyTable.Store(key, proxy)
 		proxy.Start()
 		return err
 	}
 }
 func (m *Manager) Delete(keys Proxy) error {
-	m.Lock()
-	defer m.Unlock()
 	var key string
 	key = strconv.FormatInt(int64(keys.Uid), 10)
 	key += strconv.FormatInt(int64(keys.Sid), 10)
 	key += strconv.FormatInt(int64(keys.ServerPort), 10)
-	if _, found := m.proxyTable[key]; found {
-		p := m.proxyTable[key]
-		p.Close()
-		delete(m.proxyTable, key)
+	if p, found := m.proxyTable.Load(key); found {
+		p.(*Proxy).Close()
+		m.proxyTable.Delete(key)
 		ClearPort(keys.ServerPort)
 	} else {
 		return KeyNotExist
 	}
+
 	return nil
 }
 func (m *Manager) Update(keys Proxy) error {
-	m.Lock()
-	defer m.Unlock()
 	var key string
 	key = strconv.FormatInt(int64(keys.Uid), 10)
 	key += strconv.FormatInt(int64(keys.Sid), 10)
 	key += strconv.FormatInt(int64(keys.ServerPort), 10)
-	if p, found := m.proxyTable[key]; found {
+	if p, found := m.proxyTable.Load(key); found {
 		if keys.CurrLimitDown != 0 {
-			p.CurrLimitDown = keys.CurrLimitDown
+			p.(*Proxy).CurrLimitDown = keys.CurrLimitDown
 		}
 		if keys.Timeout != 0 {
-			p.Timeout = keys.Timeout
+			p.(*Proxy).Timeout = keys.Timeout
 		}
 		if keys.Expire != 0 {
-			p.Expire = keys.Expire
+			p.(*Proxy).Expire = keys.Expire
 		}
 	} else {
 		return KeyNotExist
@@ -83,32 +76,32 @@ func (m *Manager) Update(keys Proxy) error {
 	return nil
 }
 func (m *Manager) Size() (size int) {
-	m.Lock()
-	defer m.Unlock()
-	return len(m.proxyTable)
+	length := 0
+	m.proxyTable.Range(func(key, p interface{}) bool {
+		length++
+		return true
+	})
+	return length
 }
 func (m *Manager) Health() (h int) {
-	m.Lock()
-	defer m.Unlock()
-	h = 0
-	for _, p := range m.proxyTable {
-		if b := p.Burst(); b == 0 {
-			h += 1024 * 1024 * 5
+	health := 0
+	m.proxyTable.Range(func(key, p interface{}) bool {
+		if b := p.(*Proxy).Burst(); b == 0 {
+			health += 1024 * 1024 * 5
 		} else {
-			h += b
+			health += b
 		}
-	}
-	return h
+		return true
+	})
+	return health
 }
 func (m *Manager) Get(keys Proxy) (proxy *Proxy, err error) {
-	m.Lock()
-	defer m.Unlock()
 	var key string
 	key = strconv.FormatInt(int64(keys.Uid), 10)
 	key += strconv.FormatInt(int64(keys.Sid), 10)
 	key += strconv.FormatInt(int64(keys.ServerPort), 10)
-	if p, found := m.proxyTable[key]; found {
-		return p, nil
+	if p, found := m.proxyTable.Load(key); found {
+		return p.(*Proxy), nil
 	} else {
 		return nil, KeyNotExist
 	}
@@ -116,7 +109,8 @@ func (m *Manager) Get(keys Proxy) (proxy *Proxy, err error) {
 func (m *Manager) CheckLoop() {
 	// 10 second timer
 	setInterval(time.Second*10, func(when time.Time) {
-		for _, p := range m.proxyTable {
+		m.proxyTable.Range(func(key, proxy interface{}) bool {
+			p := proxy.(*Proxy)
 			if p.IsTimeout() {
 				<-m.Emit("timeout", p.Uid, p.Sid, p.ServerPort)
 			}
@@ -129,7 +123,8 @@ func (m *Manager) CheckLoop() {
 			if limit, flag := p.IsStairCase(); flag == true {
 				<-m.Emit("overflow", p.Uid, p.Sid, p.ServerPort, limit)
 			}
-		}
+			return true
+		})
 	})
 	// 1 min timer
 	setInterval(time.Minute, func(when time.Time) {
@@ -137,16 +132,18 @@ func (m *Manager) CheckLoop() {
 		//defer m.Unlock()
 		<-m.Emit("health", m.Health())
 		var transferLists []interface{}
-		for _, p := range m.proxyTable {
+		m.proxyTable.Range(func(key, proxy interface{}) bool {
+			p := proxy.(*Proxy)
 			if p.GetLastTimeStamp().Add(time.Minute * 2).Before(time.Now().UTC()) {
-				continue
+				return true
 			}
 			tu, td, uu, ud := p.GetTraffic()
 			item := make(map[string]interface{})
 			item["sid"] = p.Sid
 			item["transfer"] = []int64{tu, td, uu, ud}
 			transferLists = append(transferLists, item)
-		}
+			return true
+		})
 		if len(transferLists) > 0 {
 			<-m.Emit("transfer", transferLists)
 		}
