@@ -1,5 +1,7 @@
 package comm
 
+import "time"
+
 const VERSION = "v1.1.0"
 
 type Community interface {
@@ -25,7 +27,7 @@ type Community interface {
 	/*
 	 * nil
 	 */
-	HeartBeat()
+	HeartBeat() (t time.Duration)
 	/*
 	 * [{sid , transfer}]
 	 */
@@ -50,5 +52,4 @@ type Community interface {
 	Echo(json interface{})
 	OnOpened(callback func(msg []byte))
 	OnClosed(callback func(msg []byte))
-	OnLimit(callback func(msg map[string]interface{}))
 }

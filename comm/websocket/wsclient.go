@@ -166,8 +166,14 @@ func (w *WarpperClient) Logout() {
 func (w *WarpperClient) Health(health int) {
 	w.Notify("health", health)
 }
-func (w *WarpperClient) HeartBeat() {
-	w.Notify("heartbeat", nil)
+func (w *WarpperClient) HeartBeat() (duration time.Duration) {
+	c := make(chan time.Duration)
+	preTimeStamp := time.Now()
+	w.Request("heartbeat", time.Now().UnixNano()/100000, func(timestamp float64) {
+		c <- time.Since(preTimeStamp)
+	})
+	duration = <-c
+	return
 }
 func (w *WarpperClient) Transfer(sid int64, transfer []int64) {
 	request := make(map[string]interface{})
@@ -227,10 +233,5 @@ func (w *WarpperClient) OnClosed(callback func(msg []byte)) {
 	_ = w.On("close", func(channel Channel, Msg interface{}) {
 		jsonstr, _ := json.Marshal(Msg)
 		callback(jsonstr)
-	})
-}
-func (w *WarpperClient) OnLimit(callback func(msg map[string]interface{})) {
-	_ = w.On("limit", func(channel Channel, Msg interface{}) {
-		callback(Msg.(map[string]interface{}))
 	})
 }
