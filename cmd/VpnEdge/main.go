@@ -210,6 +210,7 @@ func Profile(port int) {
 	router.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
 	router.Handle("/debug/pprof/block", pprof.Handler("block"))
 	router.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
+	router.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
 
 	srv := &http.Server{
 		Handler:      router,

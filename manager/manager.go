@@ -87,9 +87,9 @@ func (m *Manager) Health() (h int) {
 	health := 0
 	m.proxyTable.Range(func(key, p interface{}) bool {
 		if b := p.(*Proxy).Burst(); b == 0 {
-			health += 1024 * 1024 * 5
+			health += 1024 * 5
 		} else {
-			health += b
+			health += b / 1024
 		}
 		return true
 	})
@@ -128,10 +128,7 @@ func (m *Manager) CheckLoop() {
 	})
 	// 1 min timer
 	setInterval(time.Minute, func(when time.Time) {
-		//m.Lock()
-		//defer m.Unlock()
 		<-m.Emit("health", m.Health())
-		var transferLists []interface{}
 		m.proxyTable.Range(func(key, proxy interface{}) bool {
 			p := proxy.(*Proxy)
 			if p.GetLastTimeStamp().Add(time.Minute * 2).Before(time.Now().UTC()) {
@@ -141,17 +138,16 @@ func (m *Manager) CheckLoop() {
 			item := make(map[string]interface{})
 			item["sid"] = p.Sid
 			item["transfer"] = []int64{tu, td, uu, ud}
-			transferLists = append(transferLists, item)
+			<-m.Emit("transfer", item)
 			return true
 		})
-		if len(transferLists) > 0 {
-			<-m.Emit("transfer", transferLists)
-		}
 	})
 	// Benchmark Case
 	setInterval(time.Second*30, func(when time.Time) {
-		for _, p := range m.proxyTable {
+		m.proxyTable.Range(func(key, proxy interface{}) bool {
+			p := proxy.(*Proxy)
 			<-m.Emit("benchmark", p.Uid, p.Sid)
-		}
+			return true
+		})
 	})
 }
