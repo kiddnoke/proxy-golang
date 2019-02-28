@@ -98,6 +98,9 @@ func (w *WarpperClient) Request(router string, msg interface{}, callback interfa
 	w.seqid++
 	Id := w.seqid
 	message := Message{Id: Id, Body: msg}
+	if w.Client == nil {
+		return
+	}
 	_ = w.Client.Emit(router, message)
 	w.callbacks[Id] = callback
 	_ = w.Client.On(router, func(channel Channel, Msg Message) {
@@ -115,7 +118,7 @@ func (w *WarpperClient) Notify(router string, msg interface{}) {
 		return
 	}
 	if err := w.Emit(router, message); err != nil {
-		log.Printf("wsclient Emit:%v", err.Error())
+		log.Printf("router[%v] msg[%v] err:[%v]", router, msg, err.Error())
 	}
 }
 func (w *WarpperClient) SocketId() (id string) {
