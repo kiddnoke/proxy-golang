@@ -138,7 +138,7 @@ func (m *Manager) CheckLoop() {
 			item := make(map[string]interface{})
 			item["sid"] = p.Sid
 			item["transfer"] = []int64{tu, td, uu, ud}
-			<-m.Emit("transfer", item)
+			<-m.Emit("transfer", p.Sid, []int64{tu, td, uu, ud})
 			return true
 		})
 	})

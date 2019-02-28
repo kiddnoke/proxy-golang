@@ -111,6 +111,9 @@ func (w *WarpperClient) Request(router string, msg interface{}, callback interfa
 }
 func (w *WarpperClient) Notify(router string, msg interface{}) {
 	message := Message{Id: 0, Body: msg}
+	if w.Client == nil {
+		return
+	}
 	if err := w.Emit(router, message); err != nil {
 		log.Printf("wsclient Emit:%v", err.Error())
 	}
@@ -167,7 +170,7 @@ func (w *WarpperClient) Transfer(sid int64, transfer []int64) {
 	request := make(map[string]interface{})
 	request["sid"] = sid
 	request["transfer"] = transfer
-	w.Notify("transfer", []interface{}{request})
+	w.Notify("transfer", request)
 }
 func (w *WarpperClient) TransferList(transferList []interface{}) {
 	w.Notify("transfer", transferList)

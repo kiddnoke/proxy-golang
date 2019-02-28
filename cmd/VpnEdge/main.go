@@ -140,8 +140,8 @@ func main() {
 	Manager.On("health", func(n int) {
 		client.Health(n)
 	})
-	Manager.On("transfer", func(transferList []interface{}) {
-		client.TransferList(transferList)
+	Manager.On("transfer", func(sid int64, transfer []int64) {
+		client.Transfer(sid, transfer)
 	})
 	Manager.On("benchmark", func(uid, sid int64) {
 		client.BenchMark(uid, sid)
