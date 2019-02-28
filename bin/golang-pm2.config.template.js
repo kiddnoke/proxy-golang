@@ -1,6 +1,10 @@
 /*
  Country string 国家
  AreaCode int 区域
+   switch(AreaCode%3)
+      case 1 : free
+      case 2 : vip
+      case 0 : svip
  LEVEL string
  VpnMgrCore string 中心服务器地址 ip:port
  COUNTER_URL string 统计后台地址 ip:port
