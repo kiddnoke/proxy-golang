@@ -51,7 +51,7 @@ func main() {
 	manager.BeginPort = flags.BeginPort
 	manager.EndPort = flags.EndPort
 
-	go Profile(flags.EndPort%10000 + 10000)
+	go Profile(flags.InstanceID + 10000)
 
 	if generate {
 		Generate()
