@@ -84,7 +84,6 @@ func (m *Manager) Update(keys Proxy) error {
 }
 func (m *Manager) Size() (size int) {
 	m.Lock()
-	m.Lock()
 	defer m.Unlock()
 	return len(m.proxyTable)
 }
