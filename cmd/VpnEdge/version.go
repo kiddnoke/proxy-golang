@@ -24,7 +24,7 @@ func init() {
 }
 func Generate() (err error) {
 	log.Printf("生成pm2版本文件")
-	var writeString = fmt.Sprintf("{\"version\":\"%s\"}", BuildBranch+"-"+BuildDate)
+	var writeString = fmt.Sprintf("{\"version\":\"%s\"}", BuildBranch+"-"+BuildVersion+"-"+BuildDate)
 	filename := "./package.json"
 	var d1 = []byte(writeString)
 	err = ioutil.WriteFile(filename, d1, 0666)
