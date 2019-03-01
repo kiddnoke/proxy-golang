@@ -107,7 +107,7 @@ func (m *Manager) Get(keys Proxy) (proxy *Proxy, err error) {
 }
 func (m *Manager) CheckLoop() {
 	// 10 second timer
-	setInterval(time.Second*10, func(when time.Time) {
+	setInterval(time.Second*30, func(when time.Time) {
 		m.proxyTable.Range(func(key, proxy interface{}) bool {
 			p := proxy.(*Proxy)
 			if p.IsTimeout() {
