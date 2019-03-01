@@ -52,7 +52,6 @@ func (m *Manager) Delete(keys Proxy) error {
 	} else {
 		return KeyNotExist
 	}
-
 	return nil
 }
 func (m *Manager) Update(keys Proxy) error {
@@ -139,14 +138,6 @@ func (m *Manager) CheckLoop() {
 			item["sid"] = p.Sid
 			item["transfer"] = []int64{tu, td, uu, ud}
 			<-m.Emit("transfer", p.Sid, []int64{tu, td, uu, ud})
-			return true
-		})
-	})
-	// Benchmark Case
-	setInterval(time.Second*30, func(when time.Time) {
-		m.proxyTable.Range(func(key, proxy interface{}) bool {
-			p := proxy.(*Proxy)
-			<-m.Emit("benchmark", p.Uid, p.Sid)
 			return true
 		})
 	})
