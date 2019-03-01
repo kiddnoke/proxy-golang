@@ -12,8 +12,6 @@ import (
 	"github.com/kataras/go-events"
 )
 
-const VERSION = "v1.0.0"
-
 type Params struct {
 	Open   *interface{} `json:"open"`
 	Close  *interface{} `json:"close"`

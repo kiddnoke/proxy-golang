@@ -22,7 +22,6 @@ const (
 	webSocketSecureProtocol = "wss://"
 	socketioUrl             = "/socket.io/?EIO=3&transport=websocket"
 )
-const VERSION = "v1.1.0"
 
 type Message struct {
 	Id   int64       `json:"id"`

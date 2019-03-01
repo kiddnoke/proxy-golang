@@ -2,8 +2,6 @@ package comm
 
 import "time"
 
-const VERSION = "v1.1.0"
-
 type Community interface {
 	Connect(host string, port int) (err error)
 	/**
