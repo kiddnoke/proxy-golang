@@ -18,7 +18,7 @@ func TestManager_Add(t *testing.T) {
 	if err := json.Unmarshal([]byte(json_str), &proxy); err != nil {
 		t.FailNow()
 	}
-	if err := m.Add(proxy); err != nil {
+	if err := m.Add(&proxy); err != nil {
 		t.FailNow()
 	}
 }
@@ -59,7 +59,7 @@ func TestManager_Delete(t *testing.T) {
 		LimitArray:       []int64{20, 40, 60},
 		FlowArray:        []int64{10240, 20480, 30720},
 	}
-	if err := m.Add(proxy); err != nil {
+	if err := m.Add(&proxy); err != nil {
 		t.FailNow()
 	}
 	if p, err := m.Get(proxy); err != nil {
