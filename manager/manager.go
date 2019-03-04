@@ -128,17 +128,24 @@ func (m *Manager) CheckLoop() {
 	// 1 min timer
 	setInterval(time.Minute, func(when time.Time) {
 		<-m.Emit("health", m.Health())
+		var transferLists []interface{}
 		m.proxyTable.Range(func(key, proxy interface{}) bool {
 			p := proxy.(*Proxy)
 			if p.GetLastTimeStamp().Add(time.Minute * 2).Before(time.Now().UTC()) {
 				return true
 			}
 			tu, td, uu, ud := p.GetTraffic()
+			if tu+td+uu+ud == 0 {
+				return true
+			}
 			item := make(map[string]interface{})
 			item["sid"] = p.Sid
 			item["transfer"] = []int64{tu, td, uu, ud}
-			<-m.Emit("transfer", p.Sid, []int64{tu, td, uu, ud})
+			transferLists = append(transferLists, item)
 			return true
 		})
+		if len(transferLists) > 0 {
+			<-m.Emit("transferlist", transferLists)
+		}
 	})
 }
