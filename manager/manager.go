@@ -25,7 +25,7 @@ func New() (m *Manager) {
 }
 func (m *Manager) Add(proxy *Proxy) (err error) {
 	var key string
-	proxy.ServerPort = GetFreePort(BeginPort, EndPort)
+	proxy.ServerPort = getFreePort(BeginPort, EndPort)
 	key = strconv.FormatInt(int64(proxy.Uid), 10)
 	key += strconv.FormatInt(int64(proxy.Sid), 10)
 	key += strconv.FormatInt(int64(proxy.ServerPort), 10)
@@ -48,7 +48,7 @@ func (m *Manager) Delete(keys Proxy) error {
 	if p, found := m.proxyTable.Load(key); found {
 		p.(*Proxy).Close()
 		m.proxyTable.Delete(key)
-		ClearPort(keys.ServerPort)
+		clearPort(keys.ServerPort)
 	} else {
 		return KeyNotExist
 	}

@@ -37,7 +37,7 @@ type Proxy struct {
 }
 
 func (p *Proxy) Init() (err error) {
-	searchLimit, err := SearchLimit(int64(p.CurrLimitDown), p.LimitArray, p.FlowArray, p.UsedTotalTraffic)
+	searchLimit, err := searchLimit(int64(p.CurrLimitDown), p.LimitArray, p.FlowArray, p.UsedTotalTraffic)
 
 	pi, e := relay.NewProxyInfo(p.ServerPort, p.Method, p.Password, int(searchLimit))
 	if e != nil {
@@ -115,7 +115,7 @@ func (p *Proxy) IsStairCase() (limit int, flag bool) {
 	tu, td, uu, ud := p.GetTraffic()
 	totalFlow := p.UsedTotalTraffic + (tu+td+uu+ud)/1024
 	preLimit := int64(p.CurrLimitDown)
-	nextLimit, err := SearchLimit(preLimit, p.LimitArray, p.FlowArray, totalFlow)
+	nextLimit, err := searchLimit(preLimit, p.LimitArray, p.FlowArray, totalFlow)
 	if preLimit != nextLimit && err == nil {
 		log.Printf("Proxy.IsStairCase totalFlow[%v] CurrLimit[%v] NextLimit[%v]", totalFlow, p.CurrLimitDown, nextLimit)
 		return int(nextLimit), true

@@ -13,7 +13,7 @@ var lockPortTable sync.Map
 var BeginPort int
 var EndPort int
 
-func GetFreePort(start, end int) (freeport int) {
+func getFreePort(start, end int) (freeport int) {
 	opLock.Lock()
 	defer opLock.Unlock()
 	for freeport = start; freeport <= end; freeport++ {
@@ -37,7 +37,7 @@ func GetFreePort(start, end int) (freeport int) {
 	}
 	return freeport
 }
-func ClearPort(port int) (flag bool) {
+func clearPort(port int) (flag bool) {
 	opLock.Lock()
 	defer opLock.Unlock()
 	if _, flag = lockPortTable.Load(port); flag == true {
@@ -57,7 +57,7 @@ func IsFreePort(port int) (err error) {
 		return nil
 	}
 }
-func SearchLimit(CurrLimit int64, limitArray []int64, flowArray []int64, TotalFlow int64) (limit int64, err error) {
+func searchLimit(CurrLimit int64, limitArray []int64, flowArray []int64, TotalFlow int64) (limit int64, err error) {
 	limit = 0
 	if len(limitArray) == 0 {
 		err = errors.New("limitArray size is 0")
