@@ -6,18 +6,19 @@ import (
 )
 
 func ConvertMapToRecord(item map[string]interface{}) (record Record) {
-	record.SnId = item["sn_id"].(int64)
-	record.UserId = item["user_id"].(int64)
-	record.DeviceId = item["device_id"].(string)
+	record.SnId = item["snId"].(int64)
+	record.UserId = item["userId"].(int64)
+	record.DeviceId = item["deviceId"].(string)
 	record.Os = item["os"].(string)
-	record.AppVersion = item["app_version"].(string)
+	record.AppVersion = item["appVersion"].(string)
 	record.Ip = item["ip"].(string)
-	record.Time = item["time_stamp"].(int64)
+	record.Time = item["time"].(int64)
 	record.Website = item["website"].(string)
-	record.ConnectTime = item["connect_time"].(int64)
+	record.ConnectTime = item["connectTime"].(int64)
 	record.Rate = item["rate"].(int64)
 	record.Traffic = item["traffic"].(int64)
-	record.CarrierOperator = item["carrier_operator"].(string)
+	record.CarrierOperator = item["carrierOperator"].(string)
+	record.UserType = item["userType"].(string)
 	return
 }
 func ConvertMapToRecordByReflect(item map[string]interface{}) (record Record) {
