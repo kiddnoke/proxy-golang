@@ -39,7 +39,7 @@ func getUrlWithOpt(host string, port int, values url.Values, secure bool) (retUr
 	return
 }
 
-type WarpperClient struct {
+type WrapperClient struct {
 	*gosocketio.Client
 	seqid     int64
 	callbacks map[int64]interface{}
@@ -50,15 +50,15 @@ type WarpperClient struct {
 }
 type Channel *gosocketio.Channel
 
-func Make() (client WarpperClient) {
+func Make() (client WrapperClient) {
 	return *New()
 }
-func New() (client *WarpperClient) {
+func New() (client *WrapperClient) {
 	currtimestamp := strconv.FormatInt(time.Now().UTC().Unix()*1000, 10)
 	hasher := md5.New()
 	hasher.Write([]byte(currtimestamp))
 	hasher.Write([]byte("VpnMgrCore"))
-	return &WarpperClient{
+	return &WrapperClient{
 		seqid:     0,
 		keys:      hex.EncodeToString(hasher.Sum(nil)),
 		timestamp: currtimestamp,
@@ -66,7 +66,7 @@ func New() (client *WarpperClient) {
 		emmiter:   eventemitter.New(),
 	}
 }
-func (w *WarpperClient) connect(host string, port int) (err error) {
+func (w *WrapperClient) connect(host string, port int) (err error) {
 	query := &url.Values{}
 	query.Add("keys", w.keys)
 	query.Add("timestamp", w.timestamp)
@@ -93,7 +93,7 @@ func (w *WarpperClient) connect(host string, port int) (err error) {
 	})
 	return
 }
-func (w *WarpperClient) Request(router string, msg interface{}, callback interface{}) {
+func (w *WrapperClient) Request(router string, msg interface{}, callback interface{}) {
 	w.seqid++
 	Id := w.seqid
 	message := Message{Id: Id, Body: msg}
@@ -111,7 +111,7 @@ func (w *WarpperClient) Request(router string, msg interface{}, callback interfa
 		}
 	})
 }
-func (w *WarpperClient) Notify(router string, msg interface{}) {
+func (w *WrapperClient) Notify(router string, msg interface{}) {
 	message := Message{Id: 0, Body: msg}
 	if w.Client == nil {
 		return
@@ -120,22 +120,22 @@ func (w *WarpperClient) Notify(router string, msg interface{}) {
 		log.Printf("router[%v] msg[%v] err:[%v]", router, msg, err.Error())
 	}
 }
-func (w *WarpperClient) SocketId() (id string) {
+func (w *WrapperClient) SocketId() (id string) {
 	return w.Id()
 }
-func (w *WarpperClient) OnDisconnect(callback func(c Channel)) {
+func (w *WrapperClient) OnDisconnect(callback func(c Channel)) {
 	w.emmiter.On("disconnect", callback)
 }
-func (w *WarpperClient) OnConnect(callback func(c Channel)) {
+func (w *WrapperClient) OnConnect(callback func(c Channel)) {
 	_ = w.On(gosocketio.OnConnection, callback)
 	w.emmiter.On("connect", callback)
 }
-func (w *WarpperClient) OnError(callback func(c Channel)) {
+func (w *WrapperClient) OnError(callback func(c Channel)) {
 	_ = w.On(gosocketio.OnError, callback)
 	w.emmiter.On("error", callback)
 }
 
-func (w *WarpperClient) Connect(host string, port int) (err error) {
+func (w *WrapperClient) Connect(host string, port int) (err error) {
 	for {
 		time.Sleep(time.Second)
 		err := w.connect(host, port)
@@ -148,7 +148,7 @@ func (w *WarpperClient) Connect(host string, port int) (err error) {
 	}
 	return nil
 }
-func (w *WarpperClient) Login(manager_port, beginport, endport, controrller_port int, state, area string) {
+func (w *WrapperClient) Login(manager_port, beginport, endport, controrller_port int, state, area string) {
 	request := make(map[string]interface{})
 	request["manager_port"] = manager_port
 	request["controller_port"] = controrller_port
@@ -159,13 +159,13 @@ func (w *WarpperClient) Login(manager_port, beginport, endport, controrller_port
 	w.Notify("login", request)
 	return
 }
-func (w *WarpperClient) Logout() {
+func (w *WrapperClient) Logout() {
 	w.Notify("logout", nil)
 }
-func (w *WarpperClient) Health(health int) {
+func (w *WrapperClient) Health(health int) {
 	w.Notify("health", health)
 }
-func (w *WarpperClient) HeartBeat() (duration time.Duration) {
+func (w *WrapperClient) HeartBeat() (duration time.Duration) {
 	c := make(chan time.Duration)
 	preTimeStamp := time.Now()
 	w.Request("heartbeat", time.Now().UnixNano()/100000, func(timestamp float64) {
@@ -174,16 +174,16 @@ func (w *WarpperClient) HeartBeat() (duration time.Duration) {
 	duration = <-c
 	return
 }
-func (w *WarpperClient) Transfer(sid int64, transfer []int64) {
+func (w *WrapperClient) Transfer(sid int64, transfer []int64) {
 	request := make(map[string]interface{})
 	request["sid"] = sid
 	request["transfer"] = transfer
 	w.Notify("transfer", request)
 }
-func (w *WarpperClient) TransferList(transferList []interface{}) {
+func (w *WrapperClient) TransferList(transferList []interface{}) {
 	w.Notify("transferlist", transferList)
 }
-func (w *WarpperClient) Timeout(sid, uid int64, transfer []int64, activestamp int64) {
+func (w *WrapperClient) Timeout(sid, uid int64, transfer []int64, activestamp int64) {
 	request := make(map[string]interface{})
 	request["sid"] = sid
 	request["uid"] = uid
@@ -191,7 +191,7 @@ func (w *WarpperClient) Timeout(sid, uid int64, transfer []int64, activestamp in
 	request["activestamp"] = activestamp
 	w.Notify("timeout", request)
 }
-func (w *WarpperClient) Overflow(sid, uid int64, limit int) {
+func (w *WrapperClient) Overflow(sid, uid int64, limit int) {
 	request := make(map[string]interface{})
 	request["sid"] = sid
 	request["uid"] = uid
@@ -199,36 +199,36 @@ func (w *WarpperClient) Overflow(sid, uid int64, limit int) {
 	request["limitdown"] = limit
 	w.Notify("overflow", request)
 }
-func (w *WarpperClient) Expire(sid, uid int64, transfer []int64) {
+func (w *WrapperClient) Expire(sid, uid int64, transfer []int64) {
 	request := make(map[string]interface{})
 	request["sid"] = sid
 	request["uid"] = uid
 	request["transfer"] = transfer
 	w.Notify("expire", request)
 }
-func (w *WarpperClient) Balance(sid, uid int64, duration int) {
+func (w *WrapperClient) Balance(sid, uid int64, duration int) {
 	request := make(map[string]interface{})
 	request["sid"] = sid
 	request["uid"] = uid
 	request["balancenotifytime"] = duration
 	w.Notify("balance", request)
 }
-func (w *WarpperClient) Echo(json interface{}) {
+func (w *WrapperClient) Echo(json interface{}) {
 	w.Notify("echo", json)
 }
-func (w *WarpperClient) BenchMark(uid, sid int64) {
+func (w *WrapperClient) BenchMark(uid, sid int64) {
 	request := make(map[string]interface{})
 	request["sid"] = sid
 	request["uid"] = uid
 	w.Notify("benchmark", request)
 }
-func (w *WarpperClient) OnOpened(callback func(msg []byte)) {
+func (w *WrapperClient) OnOpened(callback func(msg []byte)) {
 	_ = w.On("open", func(channel Channel, Msg interface{}) {
 		jsonstr, _ := json.Marshal(Msg)
 		callback(jsonstr)
 	})
 }
-func (w *WarpperClient) OnClosed(callback func(msg []byte)) {
+func (w *WrapperClient) OnClosed(callback func(msg []byte)) {
 	_ = w.On("close", func(channel Channel, Msg interface{}) {
 		jsonstr, _ := json.Marshal(Msg)
 		callback(jsonstr)
