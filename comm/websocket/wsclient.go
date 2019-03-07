@@ -1,4 +1,4 @@
-package wswarpper
+package wswrapper
 
 import (
 	"crypto/md5"
