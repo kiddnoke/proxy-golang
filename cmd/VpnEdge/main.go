@@ -11,17 +11,41 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/graarh/golang-socketio"
+	"github.com/graarh/golang-socketio/transport"
 
 	"proxy-golang/comm/websocket"
 	"proxy-golang/manager"
 )
 
+type Message struct {
+	Id   int         `json:"id"`
+	Body interface{} `json:"body"`
+}
+
 var Manager *manager.Manager
+var wsServer *gosocketio.Server
 
 func init() {
 	Manager = manager.New()
 	Manager.CheckLoop()
+
+	wsServer = gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
+
+	_ = wsServer.On(gosocketio.OnConnection, func(c *gosocketio.Channel) {
+		log.Printf("Connected Client:EventId[%s] Uid[%s] ,", c.RequestHeader().Get("EventId"), c.RequestHeader().Get("Uid"))
+	})
+	_ = wsServer.On(gosocketio.OnDisconnection, func(c *gosocketio.Channel) {
+		log.Printf("Disconnected Client:EventId[%s] Uid[%s] ,", c.RequestHeader().Get("EventId"), c.RequestHeader().Get("Uid"))
+	})
+	_ = wsServer.On(gosocketio.OnError, func(c *gosocketio.Channel) {
+		log.Printf("OnError Client:EventId[%s] Uid[%s] ,", c.RequestHeader().Get("EventId"), c.RequestHeader().Get("Uid"))
+
+	})
+	_ = wsServer.On("delay", func(c *gosocketio.Channel, msg Message) (err error) {
+		err = c.Emit("delay", msg)
+		return
+	})
 }
 
 func main() {
@@ -51,14 +75,14 @@ func main() {
 	manager.BeginPort = flags.BeginPort
 	manager.EndPort = flags.EndPort
 
-	go Profile(flags.InstanceID + 10000)
+	go HttpSrv(flags.InstanceID + 10000)
 
 	if generate {
 		Generate()
 		return
 	}
 
-	client := wswarpper.New()
+	client := wswrapper.New()
 
 	host, portStr, err := net.SplitHostPort(flags.CenterUrl)
 	if err != nil {
@@ -146,7 +170,7 @@ func main() {
 	Manager.On("transferlist", func(transferlist []interface{}) {
 		client.TransferList(transferlist)
 	})
-	client.OnConnect(func(c wswarpper.Channel) {
+	client.OnConnect(func(c wswrapper.Channel) {
 		client.OnOpened(func(msg []byte) {
 			log.Printf("OnOpend %s", msg)
 			var proxyinfo manager.Proxy
@@ -187,17 +211,17 @@ func main() {
 		})
 		client.Login(flags.InstanceID, flags.BeginPort, flags.EndPort, flags.InstanceID+1000, flags.State, flags.Area)
 	})
-	client.OnDisconnect(func(c wswarpper.Channel) {
+	client.OnDisconnect(func(c wswrapper.Channel) {
 		client.Connect(host, port)
 	})
 
 	wg.Wait()
 }
 
-func Profile(port int) {
+func HttpSrv(port int) {
 
 	// Create a new router
-	router := mux.NewRouter()
+	router := http.NewServeMux()
 
 	// Register pprof handlers
 	router.HandleFunc("/debug/pprof/", pprof.Index)
@@ -211,6 +235,8 @@ func Profile(port int) {
 	router.Handle("/debug/pprof/block", pprof.Handler("block"))
 	router.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
 	router.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
+	// Register wsServer handlers
+	router.Handle("/socket.io/", wsServer)
 
 	srv := &http.Server{
 		Handler:      router,
