@@ -1,7 +1,7 @@
 package manager
 
 import (
-	"strconv"
+	"fmt"
 	"sync"
 	"time"
 
@@ -23,12 +23,19 @@ type Manager struct {
 func New() (m *Manager) {
 	return &Manager{proxyTable: sync.Map{}, EventEmitter: eventemitter.New()}
 }
+func generatorKey(args ...interface{}) (keystr string) {
+	keystr = ""
+	for _, value := range args[:len(args)-1] {
+		keystr += fmt.Sprintf("%v", value)
+		keystr += "-"
+	}
+	keystr += fmt.Sprintf("%v", args[len(args)-1])
+	return keystr
+}
 func (m *Manager) Add(proxy *Proxy) (err error) {
 	var key string
 	proxy.ServerPort = getFreePort(BeginPort, EndPort)
-	key = strconv.FormatInt(int64(proxy.Uid), 10)
-	key += strconv.FormatInt(int64(proxy.Sid), 10)
-	key += strconv.FormatInt(int64(proxy.ServerPort), 10)
+	key = generatorKey(proxy.Uid, proxy.Sid, proxy.ServerPort)
 	if _, found := m.proxyTable.Load(key); found {
 		return KeyExist
 	} else {
@@ -42,9 +49,7 @@ func (m *Manager) Add(proxy *Proxy) (err error) {
 }
 func (m *Manager) Delete(keys Proxy) error {
 	var key string
-	key = strconv.FormatInt(int64(keys.Uid), 10)
-	key += strconv.FormatInt(int64(keys.Sid), 10)
-	key += strconv.FormatInt(int64(keys.ServerPort), 10)
+	key = generatorKey(keys.Uid, keys.Sid, keys.ServerPort)
 	if p, found := m.proxyTable.Load(key); found {
 		p.(*Proxy).Close()
 		m.proxyTable.Delete(key)
@@ -56,9 +61,7 @@ func (m *Manager) Delete(keys Proxy) error {
 }
 func (m *Manager) Update(keys Proxy) error {
 	var key string
-	key = strconv.FormatInt(int64(keys.Uid), 10)
-	key += strconv.FormatInt(int64(keys.Sid), 10)
-	key += strconv.FormatInt(int64(keys.ServerPort), 10)
+	key = generatorKey(keys.Uid, keys.Sid, keys.ServerPort)
 	if p, found := m.proxyTable.Load(key); found {
 		if keys.CurrLimitDown != 0 {
 			p.(*Proxy).CurrLimitDown = keys.CurrLimitDown
@@ -96,9 +99,7 @@ func (m *Manager) Health() (h int) {
 }
 func (m *Manager) Get(keys Proxy) (proxy *Proxy, err error) {
 	var key string
-	key = strconv.FormatInt(int64(keys.Uid), 10)
-	key += strconv.FormatInt(int64(keys.Sid), 10)
-	key += strconv.FormatInt(int64(keys.ServerPort), 10)
+	key = generatorKey(keys.Uid, keys.Sid, keys.ServerPort)
 	if p, found := m.proxyTable.Load(key); found {
 		return p.(*Proxy), nil
 	} else {
