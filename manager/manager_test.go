@@ -73,12 +73,17 @@ func TestManager_Delete(t *testing.T) {
 		t.FailNow()
 	}
 }
-func TestManager_Update(t *testing.T) {
-
-}
 
 func TestManager_Size(t *testing.T) {
 	if m.Size() != 1 {
+		t.FailNow()
+	}
+}
+func TestGeneratorKey(t *testing.T) {
+	if key := generatorKey(1, 2, 3); key != "1-2-3" {
+		t.FailNow()
+	}
+	if key := generatorKey("111", "222", "333"); key != "111-222-333" {
 		t.FailNow()
 	}
 }
