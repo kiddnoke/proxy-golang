@@ -10,7 +10,7 @@ import (
 	"github.com/graarh/golang-socketio/transport"
 )
 
-func generatorKey(args ...interface{}) (keystr string) {
+func GeneratorKey(args ...interface{}) (keystr string) {
 	keystr = ""
 	for _, value := range args[:len(args)-1] {
 		keystr += fmt.Sprintf("%v", value)
@@ -41,9 +41,12 @@ func NewPushService() (push *PushService, err error) {
 	p := &PushService{}
 	p.Server = gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
 	err = p.Server.On(gosocketio.OnConnection, func(c *gosocketio.Channel) {
+		EventId := c.RequestHeader().Get("EventId")
+		Uid := c.RequestHeader().Get("Uid")
+		Port := c.RequestHeader().Get("Port")
 		log.Printf("Connected Client:EventId[%s] Uid[%s] Port[%s]",
-			c.RequestHeader().Get("EventId"), c.RequestHeader().Get("Uid"), c.RequestHeader().Get("Port"))
-		key := generatorKey(c.RequestHeader().Get("EventId"), c.RequestHeader().Get("Uid"), c.RequestHeader().Get("Port"))
+			EventId, Uid, Port)
+		key := GeneratorKey(EventId, Uid, Port)
 		sid := c.Id()
 		if _, loaded := p.UserSids.LoadOrStore(key, sid); loaded {
 			log.Printf("load")
@@ -55,18 +58,24 @@ func NewPushService() (push *PushService, err error) {
 		goto End
 	}
 	err = p.Server.On(gosocketio.OnDisconnection, func(c *gosocketio.Channel) {
-		log.Printf("Disconnected Client:EventId[%s] Uid[%s] Port[%s]",
-			c.RequestHeader().Get("EventId"), c.RequestHeader().Get("Uid"), c.RequestHeader().Get("Port"))
-		key := generatorKey(c.RequestHeader().Get("EventId"), c.RequestHeader().Get("Uid"), c.RequestHeader().Get("Port"))
+		EventId := c.RequestHeader().Get("EventId")
+		Uid := c.RequestHeader().Get("Uid")
+		Port := c.RequestHeader().Get("Port")
+		log.Printf("OnDisconnection Client:EventId[%s] Uid[%s] Port[%s]",
+			EventId, Uid, Port)
+		key := GeneratorKey(EventId, Uid, Port)
 		p.UserSids.Delete(key)
 	})
 	if err != nil {
 		goto End
 	}
 	err = p.Server.On(gosocketio.OnError, func(c *gosocketio.Channel) {
+		EventId := c.RequestHeader().Get("EventId")
+		Uid := c.RequestHeader().Get("Uid")
+		Port := c.RequestHeader().Get("Port")
 		log.Printf("OnError Client:EventId[%s] Uid[%s] Port[%s]",
-			c.RequestHeader().Get("EventId"), c.RequestHeader().Get("Uid"), c.RequestHeader().Get("Port"))
-		key := generatorKey(c.RequestHeader().Get("EventId"), c.RequestHeader().Get("Uid"), c.RequestHeader().Get("Port"))
+			EventId, Uid, Port)
+		key := GeneratorKey(EventId, Uid, Port)
 		p.UserSids.Delete(key)
 	})
 	if err != nil {

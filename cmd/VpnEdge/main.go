@@ -11,41 +11,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/graarh/golang-socketio"
-	"github.com/graarh/golang-socketio/transport"
-
 	"proxy-golang/comm/websocket"
 	"proxy-golang/manager"
+	"proxy-golang/pushService"
 )
 
-type Message struct {
-	Id   int         `json:"id"`
-	Body interface{} `json:"body"`
-}
-
 var Manager *manager.Manager
-var wsServer *gosocketio.Server
+var pushSrv *pushService.PushService
 
 func init() {
 	Manager = manager.New()
 	Manager.CheckLoop()
-
-	wsServer = gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
-
-	_ = wsServer.On(gosocketio.OnConnection, func(c *gosocketio.Channel) {
-		log.Printf("Connected Client:EventId[%s] Uid[%s] ,", c.RequestHeader().Get("EventId"), c.RequestHeader().Get("Uid"))
-	})
-	_ = wsServer.On(gosocketio.OnDisconnection, func(c *gosocketio.Channel) {
-		log.Printf("Disconnected Client:EventId[%s] Uid[%s] ,", c.RequestHeader().Get("EventId"), c.RequestHeader().Get("Uid"))
-	})
-	_ = wsServer.On(gosocketio.OnError, func(c *gosocketio.Channel) {
-		log.Printf("OnError Client:EventId[%s] Uid[%s] ,", c.RequestHeader().Get("EventId"), c.RequestHeader().Get("Uid"))
-
-	})
-	_ = wsServer.On("delay", func(c *gosocketio.Channel, msg Message) (err error) {
-		err = c.Emit("delay", msg)
-		return
-	})
+	pushSrv, _ = pushService.NewPushService()
 }
 
 func main() {
@@ -94,7 +71,7 @@ func main() {
 	}
 
 	_ = client.Connect(host, port)
-
+	// timeout Handle
 	Manager.On("timeout", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
 		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
@@ -114,7 +91,10 @@ func main() {
 		client.Timeout(sid, uid, transfer, timestamp.Unix())
 		log.Printf("timeout: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d]", sid, uid, tu, td, uu, ud, timestamp.Unix())
 		client.Health(Manager.Health())
+		key := pushService.GeneratorKey(uid, sid, port)
+		_ = pushSrv.Push(key, "timeout", time.Now().UTC().Unix())
 	})
+	//expire Handle
 	Manager.On("expire", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
 		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
@@ -133,7 +113,10 @@ func main() {
 		client.Expire(sid, uid, transfer)
 		log.Printf("expire: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d]", sid, uid, tu, td, uu, ud)
 		client.Health(Manager.Health())
+		key := pushService.GeneratorKey(uid, sid, port)
+		_ = pushSrv.Push(key, "expire", time.Now().UTC().Unix())
 	})
+	// overflow Handle
 	Manager.On("overflow", func(uid, sid int64, port int, limit int) {
 		proxyinfo := manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
 		pr, err := Manager.Get(proxyinfo)
@@ -148,7 +131,11 @@ func main() {
 		client.Overflow(sid, uid, limit)
 		client.Health(Manager.Health())
 		pr.SetLimit(limit * 1024)
+		key := pushService.GeneratorKey(uid, sid, port)
+		_ = pushSrv.Push(key, "overflow", limit)
+
 	})
+	// balance Handle
 	Manager.On("balance", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
 		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
@@ -160,17 +147,24 @@ func main() {
 		log.Printf("balance: sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", sid, uid, pr.BalanceNotifyDuration)
 		client.Balance(sid, uid, pr.BalanceNotifyDuration)
 		pr.BalanceNotifyDuration = 0
+		key := pushService.GeneratorKey(uid, sid, port)
+		_ = pushSrv.Push(key, "balance", time.Now().UTC().Unix())
 	})
+	// health Handle
 	Manager.On("health", func(n int) {
 		client.Health(n)
 	})
+	// transfer Handle
 	Manager.On("transfer", func(sid int64, transfer []int64) {
 		client.Transfer(sid, transfer)
 	})
+	// trnasferlist Handle
 	Manager.On("transferlist", func(transferlist []interface{}) {
 		client.TransferList(transferlist)
 	})
+	//
 	client.OnConnect(func(c wswrapper.Channel) {
+		//
 		client.OnOpened(func(msg []byte) {
 			log.Printf("OnOpend %s", msg)
 			var proxyinfo manager.Proxy
@@ -189,6 +183,7 @@ func main() {
 			client.Notify("open", OpenRetMsg)
 			client.Health(Manager.Health())
 		})
+		//
 		client.OnClosed(func(msg []byte) {
 			var proxyinfo manager.Proxy
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
@@ -209,8 +204,10 @@ func main() {
 				client.Health(Manager.Health())
 			}
 		})
+		//
 		client.Login(flags.InstanceID, flags.BeginPort, flags.EndPort, flags.InstanceID+1000, flags.State, flags.Area)
 	})
+	//
 	client.OnDisconnect(func(c wswrapper.Channel) {
 		client.Connect(host, port)
 	})
@@ -236,7 +233,7 @@ func HttpSrv(port int) {
 	router.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
 	router.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
 	// Register wsServer handlers
-	router.Handle("/socket.io/", wsServer)
+	router.Handle("/socket.io/", pushSrv)
 
 	srv := &http.Server{
 		Handler:      router,
