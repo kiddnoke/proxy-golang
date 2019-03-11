@@ -11,8 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/mux"
-
 	"proxy-golang/comm/websocket"
 	"proxy-golang/manager"
 )
@@ -51,14 +49,14 @@ func main() {
 	manager.BeginPort = flags.BeginPort
 	manager.EndPort = flags.EndPort
 
-	go Profile(flags.InstanceID + 10000)
+	go HttpSrv(flags.InstanceID + 10000)
 
 	if generate {
 		Generate()
 		return
 	}
 
-	client := wswarpper.New()
+	client := wswrapper.New()
 
 	host, portStr, err := net.SplitHostPort(flags.CenterUrl)
 	if err != nil {
@@ -90,6 +88,7 @@ func main() {
 		client.Timeout(sid, uid, transfer, timestamp.Unix())
 		log.Printf("timeout: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d]", sid, uid, tu, td, uu, ud, timestamp.Unix())
 		client.Health(Manager.Health())
+		client.Size(Manager.Size())
 	})
 	Manager.On("expire", func(uid, sid int64, port int) {
 		var proxyinfo manager.Proxy
@@ -109,6 +108,7 @@ func main() {
 		client.Expire(sid, uid, transfer)
 		log.Printf("expire: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d]", sid, uid, tu, td, uu, ud)
 		client.Health(Manager.Health())
+		client.Size(Manager.Size())
 	})
 	Manager.On("overflow", func(uid, sid int64, port int, limit int) {
 		proxyinfo := manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
@@ -137,8 +137,10 @@ func main() {
 		client.Balance(sid, uid, pr.BalanceNotifyDuration)
 		pr.BalanceNotifyDuration = 0
 	})
-	Manager.On("health", func(n int) {
-		client.Health(n)
+	// health Handle
+	Manager.On("health", func() {
+		client.Health(Manager.Health())
+		client.Size(Manager.Size())
 	})
 	Manager.On("transfer", func(sid int64, transfer []int64) {
 		client.Transfer(sid, transfer)
@@ -146,7 +148,9 @@ func main() {
 	Manager.On("transferlist", func(transferlist []interface{}) {
 		client.TransferList(transferlist)
 	})
-	client.OnConnect(func(c wswarpper.Channel) {
+	//
+	client.OnConnect(func(c wswrapper.Channel) {
+		//
 		client.OnOpened(func(msg []byte) {
 			log.Printf("OnOpend %s", msg)
 			var proxyinfo manager.Proxy
@@ -164,6 +168,7 @@ func main() {
 			OpenRetMsg["uid"] = proxyinfo.Uid
 			client.Notify("open", OpenRetMsg)
 			client.Health(Manager.Health())
+			client.Size(Manager.Size())
 		})
 		client.OnClosed(func(msg []byte) {
 			var proxyinfo manager.Proxy
@@ -183,21 +188,23 @@ func main() {
 				Manager.Delete(proxyinfo)
 				client.Notify("close", CloseRetMsg)
 				client.Health(Manager.Health())
+				client.Size(Manager.Size())
 			}
 		})
 		client.Login(flags.InstanceID, flags.BeginPort, flags.EndPort, flags.InstanceID+1000, flags.State, flags.Area)
 	})
-	client.OnDisconnect(func(c wswarpper.Channel) {
+	//
+	client.OnDisconnect(func(c wswrapper.Channel) {
 		client.Connect(host, port)
 	})
 
 	wg.Wait()
 }
 
-func Profile(port int) {
+func HttpSrv(port int) {
 
 	// Create a new router
-	router := mux.NewRouter()
+	router := http.NewServeMux()
 
 	// Register pprof handlers
 	router.HandleFunc("/debug/pprof/", pprof.Index)

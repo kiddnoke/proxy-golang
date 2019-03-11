@@ -27,9 +27,12 @@ type Community interface {
 	 */
 	HeartBeat() (t time.Duration)
 	/*
-	 * [{sid , transfer}]
+	 * {sid , transfer}
 	 */
 	Transfer(sid int64, transfer []int64)
+	/*
+	 * [{sid , transfer}]
+	 */
 	TransferList(transfer []interface{})
 	/*
 	 * { sid, uid, transfer, active }
