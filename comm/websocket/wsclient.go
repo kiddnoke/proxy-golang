@@ -166,7 +166,7 @@ func (w *WrapperClient) Health(health int) {
 	w.Notify("health", health)
 }
 func (w *WrapperClient) Size(Size int) {
-	w.Notify("Size", Size)
+	w.Notify("size", Size)
 }
 
 func (w *WrapperClient) HeartBeat() (duration time.Duration) {

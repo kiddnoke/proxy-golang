@@ -84,6 +84,7 @@ func (t *TcpRelay) Loop() {
 			}()
 			t.conns.Store(rc.RemoteAddr().String(), rc)
 			tcpKeepAlive(rc)
+			t.Active()
 
 			var flow int
 			currstamp := time.Now()

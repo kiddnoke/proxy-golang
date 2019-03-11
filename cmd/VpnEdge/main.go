@@ -91,6 +91,7 @@ func main() {
 		client.Timeout(sid, uid, transfer, timestamp.Unix())
 		log.Printf("timeout: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d]", sid, uid, tu, td, uu, ud, timestamp.Unix())
 		client.Health(Manager.Health())
+		client.Size(Manager.Size())
 		key := pushService.GeneratorKey(uid, sid, port)
 		_ = pushSrv.Push(key, "timeout", time.Now().UTC().Unix())
 	})
@@ -113,6 +114,7 @@ func main() {
 		client.Expire(sid, uid, transfer)
 		log.Printf("expire: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d]", sid, uid, tu, td, uu, ud)
 		client.Health(Manager.Health())
+		client.Size(Manager.Size())
 		key := pushService.GeneratorKey(uid, sid, port)
 		_ = pushSrv.Push(key, "expire", time.Now().UTC().Unix())
 	})
@@ -204,10 +206,8 @@ func main() {
 				Manager.Delete(proxyinfo)
 				client.Notify("close", CloseRetMsg)
 				client.Health(Manager.Health())
-				client.Size(Manager.Size())
 			}
 		})
-		//
 		client.Login(flags.InstanceID, flags.BeginPort, flags.EndPort, flags.InstanceID+1000, flags.State, flags.Area)
 	})
 	//
