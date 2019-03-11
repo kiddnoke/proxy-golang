@@ -165,6 +165,10 @@ func (w *WrapperClient) Logout() {
 func (w *WrapperClient) Health(health int) {
 	w.Notify("health", health)
 }
+func (w *WrapperClient) Size(Size int) {
+	w.Notify("Size", Size)
+}
+
 func (w *WrapperClient) HeartBeat() (duration time.Duration) {
 	c := make(chan time.Duration)
 	preTimeStamp := time.Now()

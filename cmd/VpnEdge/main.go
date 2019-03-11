@@ -151,8 +151,9 @@ func main() {
 		_ = pushSrv.Push(key, "balance", time.Now().UTC().Unix())
 	})
 	// health Handle
-	Manager.On("health", func(n int) {
-		client.Health(n)
+	Manager.On("health", func() {
+		client.Health(Manager.Health())
+		client.Size(Manager.Size())
 	})
 	// transfer Handle
 	Manager.On("transfer", func(sid int64, transfer []int64) {
@@ -182,6 +183,7 @@ func main() {
 			OpenRetMsg["uid"] = proxyinfo.Uid
 			client.Notify("open", OpenRetMsg)
 			client.Health(Manager.Health())
+			client.Size(Manager.Size())
 		})
 		//
 		client.OnClosed(func(msg []byte) {
@@ -202,6 +204,7 @@ func main() {
 				Manager.Delete(proxyinfo)
 				client.Notify("close", CloseRetMsg)
 				client.Health(Manager.Health())
+				client.Size(Manager.Size())
 			}
 		})
 		//

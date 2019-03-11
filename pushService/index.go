@@ -30,7 +30,7 @@ type Pusher interface {
 }
 
 type PushService struct {
-	*gosocketio.Server
+	gosocketio.Server
 	UserSids sync.Map
 }
 
@@ -39,7 +39,7 @@ var Id int
 func NewPushService() (push *PushService, err error) {
 	Id = 0
 	p := &PushService{}
-	p.Server = gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
+	p.Server = *gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
 	err = p.Server.On(gosocketio.OnConnection, func(c *gosocketio.Channel) {
 		EventId := c.RequestHeader().Get("EventId")
 		Uid := c.RequestHeader().Get("Uid")
@@ -48,7 +48,7 @@ func NewPushService() (push *PushService, err error) {
 			EventId, Uid, Port)
 		key := GeneratorKey(EventId, Uid, Port)
 		sid := c.Id()
-		if _, loaded := p.UserSids.LoadOrStore(key, sid); loaded {
+		if _, had := p.UserSids.LoadOrStore(key, sid); had {
 			log.Printf("load")
 		} else {
 			log.Printf("stroed")
