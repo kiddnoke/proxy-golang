@@ -45,6 +45,9 @@ func (t *Traffic) AddTraffic(tu, td, uu, ud int) {
 	t.td += int64(td)
 	t.uu += int64(uu)
 	t.ud += int64(ud)
+	t.Active()
+}
+func (t *Traffic) Active() {
 	t.lastactivestamp = time.Now().UTC().Unix()
 }
 func (t *Traffic) GetLastTimeStamp() time.Time {
