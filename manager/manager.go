@@ -26,8 +26,7 @@ func New() (m *Manager) {
 func generatorKey(args ...interface{}) (keystr string) {
 	keystr = ""
 	for _, value := range args[:len(args)-1] {
-		keystr += fmt.Sprintf("%v", value)
-		keystr += "-"
+		keystr += fmt.Sprintf("%v-", value)
 	}
 	keystr += fmt.Sprintf("%v", args[len(args)-1])
 	return keystr
