@@ -89,9 +89,8 @@ End:
 }
 func (self *PushService) Push(key, method string, body interface{}) (err error) {
 	if sid, ok := self.UserSids.Load(key); ok {
-		Id++
 		if cn, err := self.GetChannel(sid.(string)); err == nil {
-			_ = cn.Emit(method, Message{Id: Id, Body: body})
+			_ = cn.Emit(method, Message{Id: 0, Body: body})
 		}
 	} else {
 		err = errors.New("Key does not Existed")
