@@ -208,7 +208,7 @@ func main() {
 				client.Health(Manager.Health())
 			}
 		})
-		client.Login(flags.InstanceID, flags.BeginPort, flags.EndPort, flags.InstanceID+1000, flags.State, flags.Area)
+		client.Login(flags.InstanceID, flags.BeginPort, flags.EndPort, flags.InstanceID+10000, flags.State, flags.Area)
 	})
 	//
 	client.OnDisconnect(func(c wswrapper.Channel) {

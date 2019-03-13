@@ -41,11 +41,11 @@ func NewPushService() (push *PushService, err error) {
 	p.Server = *gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
 	err = p.Server.On(gosocketio.OnConnection, func(c *gosocketio.Channel) {
 		EventId := c.RequestHeader().Get("EventId")
-		Uid := c.RequestHeader().Get("Uid")
+		SnId := c.RequestHeader().Get("SnId")
 		Port := c.RequestHeader().Get("Port")
-		log.Printf("Connected Client:EventId[%s] Uid[%s] Port[%s]",
-			EventId, Uid, Port)
-		key := GeneratorKey(EventId, Uid, Port)
+		log.Printf("Connected Client:EventId[%s] SnId[%s] Port[%s]",
+			EventId, SnId, Port)
+		key := GeneratorKey(EventId, SnId, Port)
 		sid := c.Id()
 		if _, had := p.UserSids.LoadOrStore(key, sid); had {
 			log.Printf("load")
@@ -58,11 +58,11 @@ func NewPushService() (push *PushService, err error) {
 	}
 	err = p.Server.On(gosocketio.OnDisconnection, func(c *gosocketio.Channel) {
 		EventId := c.RequestHeader().Get("EventId")
-		Uid := c.RequestHeader().Get("Uid")
+		SnId := c.RequestHeader().Get("SnId")
 		Port := c.RequestHeader().Get("Port")
-		log.Printf("OnDisconnection Client:EventId[%s] Uid[%s] Port[%s]",
-			EventId, Uid, Port)
-		key := GeneratorKey(EventId, Uid, Port)
+		log.Printf("OnDisconnection Client:EventId[%s] SnId[%s] Port[%s]",
+			EventId, SnId, Port)
+		key := GeneratorKey(EventId, SnId, Port)
 		p.UserSids.Delete(key)
 	})
 	if err != nil {
@@ -70,11 +70,11 @@ func NewPushService() (push *PushService, err error) {
 	}
 	err = p.Server.On(gosocketio.OnError, func(c *gosocketio.Channel) {
 		EventId := c.RequestHeader().Get("EventId")
-		Uid := c.RequestHeader().Get("Uid")
+		SnId := c.RequestHeader().Get("SnId")
 		Port := c.RequestHeader().Get("Port")
-		log.Printf("OnError Client:EventId[%s] Uid[%s] Port[%s]",
-			EventId, Uid, Port)
-		key := GeneratorKey(EventId, Uid, Port)
+		log.Printf("OnError Client:EventId[%s] SnId[%s] Port[%s]",
+			EventId, SnId, Port)
+		key := GeneratorKey(EventId, SnId, Port)
 		p.UserSids.Delete(key)
 	})
 	if err != nil {

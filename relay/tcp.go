@@ -42,7 +42,7 @@ func NewTcpRelayByProxyInfo(c *proxyinfo) (tp *TcpRelay, err error) {
 func tcpKeepAlive(c net.Conn) {
 	if tcp, ok := c.(*net.TCPConn); ok {
 		tcp.SetKeepAlive(true)
-		tcp.SetKeepAlivePeriod(3 * time.Minute)
+		tcp.SetKeepAlivePeriod(time.Minute)
 	}
 }
 func (t *TcpRelay) Loop() {

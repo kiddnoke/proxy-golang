@@ -34,7 +34,7 @@ func TestDelay(t *testing.T) {
 	tsp := transport.GetDefaultWebsocketTransport()
 	tsp.RequestHeader = http.Header{}
 	tsp.RequestHeader.Add("EventId", "1")
-	tsp.RequestHeader.Add("Uid", "1")
+	tsp.RequestHeader.Add("SnId", "1")
 	tsp.RequestHeader.Add("Port", "1")
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -76,7 +76,7 @@ func TestPush(t *testing.T) {
 	tsp := transport.GetDefaultWebsocketTransport()
 	tsp.RequestHeader = http.Header{}
 	tsp.RequestHeader.Add("EventId", "2")
-	tsp.RequestHeader.Add("Uid", "2")
+	tsp.RequestHeader.Add("SnId", "2")
 	tsp.RequestHeader.Add("Port", "2")
 	var wg sync.WaitGroup
 	wg.Add(3)
