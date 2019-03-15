@@ -84,6 +84,7 @@ func TestSetIntervalRange(t *testing.T) {
 func TestSetIntervalRandom(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(2)
+
 	var lock sync.Mutex
 	var flag int
 	flag = 0
