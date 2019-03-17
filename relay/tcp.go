@@ -11,7 +11,7 @@ import (
 )
 
 const AcceptTimeout = 1000
-const MaxAcceptConnection = 400
+const MaxAcceptConnection = 300
 
 type listener struct {
 	*net.TCPListener
@@ -141,7 +141,6 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) {
 	buf := leakyBuf.Get()
 	defer leakyBuf.Put(buf)
 	for {
-		left.SetReadDeadline(time.Now().Add(time.Second * 10))
 		n, err := left.Read(buf)
 		if addTraffic != nil && n > 0 {
 			addTraffic(n)
