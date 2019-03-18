@@ -181,8 +181,10 @@ func main() {
 			}
 			OpenRetMsg := make(map[string]interface{})
 			OpenRetMsg["server_port"] = proxyinfo.ServerPort
+			OpenRetMsg["port"] = proxyinfo.ServerPort
 			OpenRetMsg["sid"] = proxyinfo.Sid
 			OpenRetMsg["uid"] = proxyinfo.Uid
+			OpenRetMsg["limit"] = proxyinfo.CurrLimitDown
 			client.Notify("open", OpenRetMsg)
 			client.Health(Manager.Health())
 			client.Size(Manager.Size())

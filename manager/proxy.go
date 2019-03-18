@@ -43,7 +43,7 @@ func (p *Proxy) Init() (err error) {
 	if e != nil {
 		return NewError("Proxy Init", e, relay.NewProxyRelay, p.ServerPort, p.Method, p.Password, p.CurrLimitDown)
 	}
-	log.Printf("Proxy.Init UsedTotalTraffic[%v] DefaultLimi[%v] CurrLimit[%v]", p.UsedTotalTraffic, p.CurrLimitDown, searchLimit)
+	log.Printf("Uid[%d] Sid[%d] Port[%d] Proxy.Init UsedTotalTraffic[%v] DefaultLimi[%v] CurrLimit[%v]", p.Uid, p.Sid, p.ServerPort, p.UsedTotalTraffic, p.CurrLimitDown, searchLimit)
 	p.CurrLimitDown = int(searchLimit)
 	p.CurrLimitUp = int(searchLimit)
 
