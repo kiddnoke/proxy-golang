@@ -165,9 +165,9 @@ func main() {
 	Manager.On("transferlist", func(transferlist []interface{}) {
 		client.TransferList(transferlist)
 	})
-	//
+	// OnConnect Handle
 	client.OnConnect(func(c wswrapper.Channel) {
-		//
+		// OnOpened Handle
 		client.OnOpened(func(msg []byte) {
 			log.Printf("OnOpend %s", msg)
 			var proxyinfo manager.Proxy
@@ -189,7 +189,7 @@ func main() {
 			client.Health(Manager.Health())
 			client.Size(Manager.Size())
 		})
-		//
+		// OnClosed Handle
 		client.OnClosed(func(msg []byte) {
 			var proxyinfo manager.Proxy
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
@@ -202,6 +202,7 @@ func main() {
 				tu, td, uu, ud := p.GetTraffic()
 				CloseRetMsg := make(map[string]interface{})
 				CloseRetMsg["server_port"] = proxyinfo.ServerPort
+				CloseRetMsg["port"] = proxyinfo.ServerPort
 				CloseRetMsg["transfer"] = []int64{tu, td, uu, ud}
 				CloseRetMsg["sid"] = proxyinfo.Sid
 				CloseRetMsg["uid"] = proxyinfo.Uid
@@ -212,7 +213,7 @@ func main() {
 		})
 		client.Login(flags.InstanceID, flags.BeginPort, flags.EndPort, flags.InstanceID+10000, flags.State, flags.Area)
 	})
-	//
+	// OnDisConnect Handle
 	client.OnDisconnect(func(c wswrapper.Channel) {
 		client.Connect(host, port)
 	})
