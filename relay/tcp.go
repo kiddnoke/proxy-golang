@@ -141,6 +141,7 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) {
 	buf := leakyBuf.Get()
 	defer leakyBuf.Put(buf)
 	for {
+		left.SetReadDeadline(time.Now().Add(time.Minute))
 		n, err := left.Read(buf)
 		if addTraffic != nil && n > 0 {
 			addTraffic(n)
