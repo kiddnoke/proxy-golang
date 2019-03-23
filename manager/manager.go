@@ -131,7 +131,7 @@ func (m *Manager) CheckLoop() {
 		var transferLists []interface{}
 		m.proxyTable.Range(func(key, proxy interface{}) bool {
 			p := proxy.(*Proxy)
-			if p.GetLastTimeStamp().Add(time.Minute * 2).Before(time.Now().UTC()) {
+			if p.GetLastTimeStamp().Add(time.Minute * 5).Before(time.Now().UTC()) {
 				return true
 			}
 			tu, td, uu, ud := p.GetTraffic()
