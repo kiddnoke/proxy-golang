@@ -32,6 +32,8 @@ type Proxy struct {
 	UsedTotalTraffic int64   `json:"used_total_traffic" unit:"kb"`
 	LimitArray       []int64 `json:"limit_array" unit:"kb"`
 	FlowArray        []int64 `json:"flow_array" unit:"kb"`
+	// NovaPro
+	AppId int64 `json:"app_id"`
 
 	relay.ProxyRelay
 }
@@ -43,7 +45,7 @@ func (p *Proxy) Init() (err error) {
 	if e != nil {
 		return NewError("Proxy Init", e, relay.NewProxyRelay, p.ServerPort, p.Method, p.Password, p.CurrLimitDown)
 	}
-	log.Printf("Uid[%d] Sid[%d] Port[%d] Proxy.Init UsedTotalTraffic[%v] DefaultLimi[%v] CurrLimit[%v]", p.Uid, p.Sid, p.ServerPort, p.UsedTotalTraffic, p.CurrLimitDown, searchLimit)
+	log.Printf("Proxy Init:Uid[%d] Sid[%d] Port[%d] AppId[%d] Proxy.Init UsedTotalTraffic[%v] DefaultLimi[%v] CurrLimit[%v]", p.Uid, p.Sid, p.ServerPort, p.AppId, p.UsedTotalTraffic, p.CurrLimitDown, searchLimit)
 	p.CurrLimitDown = int(searchLimit)
 	p.CurrLimitUp = int(searchLimit)
 
@@ -68,7 +70,7 @@ func (p *Proxy) Init() (err error) {
 	}
 	pr.Start()
 	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
-	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] ", p.Uid, p.Sid, p.ServerPort))
+	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d]", p.Uid, p.Sid, p.ServerPort, p.AppId))
 	p.ProxyRelay = *pr
 	return
 }
@@ -117,7 +119,7 @@ func (p *Proxy) IsStairCase() (limit int, flag bool) {
 	preLimit := int64(p.CurrLimitDown)
 	nextLimit, err := searchLimit(preLimit, p.LimitArray, p.FlowArray, totalFlow)
 	if preLimit != nextLimit && err == nil {
-		log.Printf("Proxy.IsStairCase totalFlow[%v] CurrLimit[%v] NextLimit[%v]", totalFlow, p.CurrLimitDown, nextLimit)
+		p.Printf("Proxy.IsStairCase totalFlow[%v] CurrLimit[%v] NextLimit[%v]", totalFlow, p.CurrLimitDown, nextLimit)
 		return int(nextLimit), true
 	} else {
 		return 0, false

@@ -34,7 +34,7 @@ func generatorKey(args ...interface{}) (keystr string) {
 func (m *Manager) Add(proxy *Proxy) (err error) {
 	var key string
 	proxy.ServerPort = getFreePort(BeginPort, EndPort)
-	key = generatorKey(proxy.Uid, proxy.Sid, proxy.ServerPort)
+	key = generatorKey(proxy.Uid, proxy.Sid, proxy.ServerPort, proxy.AppId)
 	if _, found := m.proxyTable.Load(key); found {
 		return KeyExist
 	} else {
@@ -48,7 +48,7 @@ func (m *Manager) Add(proxy *Proxy) (err error) {
 }
 func (m *Manager) Delete(keys Proxy) error {
 	var key string
-	key = generatorKey(keys.Uid, keys.Sid, keys.ServerPort)
+	key = generatorKey(keys.Uid, keys.Sid, keys.ServerPort, keys.AppId)
 	if p, found := m.proxyTable.Load(key); found {
 		p.(*Proxy).Close()
 		m.proxyTable.Delete(key)
@@ -60,7 +60,7 @@ func (m *Manager) Delete(keys Proxy) error {
 }
 func (m *Manager) Update(keys Proxy) error {
 	var key string
-	key = generatorKey(keys.Uid, keys.Sid, keys.ServerPort)
+	key = generatorKey(keys.Uid, keys.Sid, keys.ServerPort, keys.AppId)
 	if p, found := m.proxyTable.Load(key); found {
 		if keys.CurrLimitDown != 0 {
 			p.(*Proxy).CurrLimitDown = keys.CurrLimitDown
@@ -98,7 +98,7 @@ func (m *Manager) Health() (h int) {
 }
 func (m *Manager) Get(keys Proxy) (proxy *Proxy, err error) {
 	var key string
-	key = generatorKey(keys.Uid, keys.Sid, keys.ServerPort)
+	key = generatorKey(keys.Uid, keys.Sid, keys.ServerPort, keys.AppId)
 	if p, found := m.proxyTable.Load(key); found {
 		return p.(*Proxy), nil
 	} else {
