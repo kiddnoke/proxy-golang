@@ -111,16 +111,16 @@ func (m *Manager) CheckLoop() {
 		m.proxyTable.Range(func(key, proxy interface{}) bool {
 			p := proxy.(*Proxy)
 			if p.IsTimeout() {
-				<-m.Emit("timeout", p.Uid, p.Sid, p.ServerPort)
+				<-m.Emit("timeout", p.Uid, p.Sid, p.ServerPort, p.AppId)
 			}
 			if p.IsExpire() {
-				<-m.Emit("expire", p.Uid, p.Sid, p.ServerPort)
+				<-m.Emit("expire", p.Uid, p.Sid, p.ServerPort, p.AppId)
 			}
 			if p.IsNotify() {
-				<-m.Emit("balance", p.Uid, p.Sid, p.ServerPort)
+				<-m.Emit("balance", p.Uid, p.Sid, p.ServerPort, p.AppId)
 			}
 			if limit, flag := p.IsStairCase(); flag == true {
-				<-m.Emit("overflow", p.Uid, p.Sid, p.ServerPort, limit)
+				<-m.Emit("overflow", p.Uid, p.Sid, p.ServerPort, p.AppId, limit)
 			}
 			return true
 		})
@@ -139,6 +139,7 @@ func (m *Manager) CheckLoop() {
 				return true
 			}
 			item := make(map[string]interface{})
+			item["app_id"] = p.AppId
 			item["sid"] = p.Sid
 			item["transfer"] = []int64{tu, td, uu, ud}
 			transferLists = append(transferLists, item)

@@ -72,9 +72,9 @@ func main() {
 
 	_ = client.Connect(host, port)
 	// timeout Handle
-	Manager.On("timeout", func(uid, sid int64, port int) {
+	Manager.On("timeout", func(uid, sid int64, port int, appid int64) {
 		var proxyinfo manager.Proxy
-		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
+		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port, AppId: appid}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
@@ -88,17 +88,17 @@ func main() {
 			// 回收
 			Manager.Delete(proxyinfo)
 		})
-		client.Timeout(sid, uid, transfer, timestamp.Unix())
+		client.Timeout(appid, sid, uid, transfer, timestamp.Unix())
 		log.Printf("timeout: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d]", sid, uid, tu, td, uu, ud, timestamp.Unix())
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
-		key := pushService.GeneratorKey(uid, sid, port)
+		key := pushService.GeneratorKey(uid, sid, port, appid)
 		_ = pushSrv.Push(key, "timeout", time.Now().UTC().Unix())
 	})
 	//expire Handle
-	Manager.On("expire", func(uid, sid int64, port int) {
+	Manager.On("expire", func(uid, sid int64, port int, appid int64) {
 		var proxyinfo manager.Proxy
-		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
+		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port, AppId: appid}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
@@ -111,16 +111,16 @@ func main() {
 			Manager.Delete(proxyinfo)
 		})
 
-		client.Expire(sid, uid, transfer)
-		log.Printf("expire: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d]", sid, uid, tu, td, uu, ud)
+		client.Expire(appid, sid, uid, transfer)
+		log.Printf("expire: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d]", appid, sid, uid, tu, td, uu, ud)
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
-		key := pushService.GeneratorKey(uid, sid, port)
+		key := pushService.GeneratorKey(uid, sid, port, appid)
 		_ = pushSrv.Push(key, "expire", time.Now().UTC().Unix())
 	})
 	// overflow Handle
-	Manager.On("overflow", func(uid, sid int64, port int, limit int) {
-		proxyinfo := manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
+	Manager.On("overflow", func(uid, sid int64, port int, appid int64, limit int) {
+		proxyinfo := manager.Proxy{Sid: sid, Uid: uid, ServerPort: port, AppId: appid}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
@@ -130,26 +130,26 @@ func main() {
 		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, limit)
 		pr.CurrLimitDown = limit
 		pr.CurrLimitUp = limit
-		client.Overflow(sid, uid, limit)
+		client.Overflow(appid, sid, uid, limit)
 		client.Health(Manager.Health())
 		pr.SetLimit(limit * 1024)
-		key := pushService.GeneratorKey(uid, sid, port)
+		key := pushService.GeneratorKey(uid, sid, port, appid)
 		_ = pushSrv.Push(key, "overflow", limit)
 
 	})
 	// balance Handle
-	Manager.On("balance", func(uid, sid int64, port int) {
+	Manager.On("balance", func(uid, sid int64, port int, appid int64) {
 		var proxyinfo manager.Proxy
-		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port}
+		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port, AppId: appid}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
 			return
 		}
 		log.Printf("balance: sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", sid, uid, pr.BalanceNotifyDuration)
-		client.Balance(sid, uid, pr.BalanceNotifyDuration)
+		client.Balance(appid, sid, uid, pr.BalanceNotifyDuration)
 		pr.BalanceNotifyDuration = 0
-		key := pushService.GeneratorKey(uid, sid, port)
+		key := pushService.GeneratorKey(uid, sid, port, appid)
 		_ = pushSrv.Push(key, "balance", time.Now().UTC().Unix())
 	})
 	// health Handle
@@ -158,8 +158,8 @@ func main() {
 		client.Size(Manager.Size())
 	})
 	// transfer Handle
-	Manager.On("transfer", func(sid int64, transfer []int64) {
-		client.Transfer(sid, transfer)
+	Manager.On("transfer", func(appid, sid int64, transfer []int64) {
+		client.Transfer(appid, sid, transfer)
 	})
 	// trnasferlist Handle
 	Manager.On("transferlist", func(transferlist []interface{}) {
@@ -185,6 +185,7 @@ func main() {
 			OpenRetMsg["sid"] = proxyinfo.Sid
 			OpenRetMsg["uid"] = proxyinfo.Uid
 			OpenRetMsg["limit"] = proxyinfo.CurrLimitDown
+			OpenRetMsg["app_id"] = proxyinfo.AppId
 			client.Notify("open", OpenRetMsg)
 			client.Health(Manager.Health())
 			client.Size(Manager.Size())
@@ -206,6 +207,7 @@ func main() {
 				CloseRetMsg["transfer"] = []int64{tu, td, uu, ud}
 				CloseRetMsg["sid"] = proxyinfo.Sid
 				CloseRetMsg["uid"] = proxyinfo.Uid
+				CloseRetMsg["app_id"] = proxyinfo.AppId
 				Manager.Delete(proxyinfo)
 				client.Notify("close", CloseRetMsg)
 				client.Health(Manager.Health())
