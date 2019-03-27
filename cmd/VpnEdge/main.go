@@ -89,7 +89,7 @@ func main() {
 			Manager.Delete(proxyinfo)
 		})
 		client.Timeout(appid, sid, uid, transfer, timestamp.Unix())
-		log.Printf("timeout: sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d]", sid, uid, tu, td, uu, ud, timestamp.Unix())
+		log.Printf("timeout: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix())
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
 		key := pushService.GeneratorKey(uid, sid, port, appid)
@@ -127,7 +127,7 @@ func main() {
 			return
 		}
 
-		log.Printf("overflow: sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", sid, uid, pr.CurrLimitDown, limit)
+		log.Printf("overflow: appid[%d] sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", appid, sid, uid, pr.CurrLimitDown, limit)
 		pr.CurrLimitDown = limit
 		pr.CurrLimitUp = limit
 		client.Overflow(appid, sid, uid, limit)
@@ -146,7 +146,7 @@ func main() {
 			log.Println(err)
 			return
 		}
-		log.Printf("balance: sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", sid, uid, pr.BalanceNotifyDuration)
+		log.Printf("balance: appid[%d] sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", appid, sid, uid, pr.BalanceNotifyDuration)
 		client.Balance(appid, sid, uid, pr.BalanceNotifyDuration)
 		pr.BalanceNotifyDuration = 0
 		key := pushService.GeneratorKey(uid, sid, port, appid)
