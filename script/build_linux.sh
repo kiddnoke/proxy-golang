@@ -19,4 +19,4 @@ TARGET=${TARGET_DIR}/vpnedge_${OS}
 SOURCE=${PROJECT_FOLDER}/cmd/VpnEdge
 
 cd ${SOURCE}
-go build -ldflags "-X \"main.BuildVersion=${COMMIT_HASH}\" -X \"main.BuildDate=${BUILD_DATE}\" -X \"main.BuildBranch=${BRANCH_NAME}\"" -i -o ${TARGET}
+go build -ldflags "-s -w -X \"main.BuildVersion=${COMMIT_HASH}\" -X \"main.BuildDate=${BUILD_DATE}\" -X \"main.BuildBranch=${BRANCH_NAME}\"" -i -o ${TARGET}
