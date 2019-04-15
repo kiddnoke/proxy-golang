@@ -2,6 +2,7 @@ package relay
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"sync"
 	"time"
@@ -106,7 +107,7 @@ func (t *TcpRelay) Loop() {
 				PipeThenClose(rc, c, func(n int) {
 					flow += n
 					if err := t.Limiter.WaitN(n); err != nil {
-						t.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, c.RemoteAddr(), err)
+						t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, c.RemoteAddr(), err)
 					}
 					go t.AddTraffic(0, n, 0, 0)
 				})
@@ -114,7 +115,7 @@ func (t *TcpRelay) Loop() {
 			PipeThenClose(c, rc, func(n int) {
 				flow += n
 				if err := t.Limiter.WaitN(n); err != nil {
-					t.Printf("[%v] -> [%v] speedlimiter err:%v", c.RemoteAddr(), tgt, err)
+					t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", c.RemoteAddr(), tgt, err)
 				}
 				go t.AddTraffic(n, 0, 0, 0)
 			})
@@ -155,4 +156,40 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) {
 			break
 		}
 	}
+}
+
+func PipeWithError(left, right net.Conn, addTraffic func(n, m int)) (err error) {
+	errc := make(chan error, 1)
+	pipe := func(front, back net.Conn, callback func(n int)) {
+		buf := leakyBuf.Get()
+		defer leakyBuf.Put(buf)
+		for {
+			front.SetReadDeadline(time.Now().Add(time.Minute))
+			n, err := front.Read(buf)
+			if addTraffic != nil && n > 0 {
+				callback(n)
+			}
+			if n > 0 {
+				if _, err := back.Write(buf[0:n]); err != nil {
+					errc <- err
+					break
+				}
+			}
+			if err != nil {
+				errc <- err
+				break
+			}
+		}
+	}
+	go pipe(left, right, func(n int) {
+		addTraffic(n, 0)
+	})
+	go pipe(right, left, func(n int) {
+		addTraffic(0, n)
+	})
+	err = <-errc
+	if err != nil && err == io.EOF {
+		err = nil
+	}
+	return err
 }
