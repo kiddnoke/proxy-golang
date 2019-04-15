@@ -192,6 +192,7 @@ func main() {
 		})
 		// OnClosed Handle
 		client.OnClosed(func(msg []byte) {
+			log.Printf("OnClose %s", msg)
 			var proxyinfo manager.Proxy
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
 				log.Printf(err.Error())
