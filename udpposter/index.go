@@ -31,10 +31,11 @@ func Post(record pb.Record) (err error) {
 func PostDict(item map[string]interface{}) (err error) {
 	return Post(pb.ConvertMapToRecordByReflect(item))
 }
-func PostParams(user_id, sn_id int64,
+func PostParams(app_id, user_id, sn_id int64,
 	device_id, app_version, os, user_type, carrier_operator string,
 	ip, websit string, time_stamp, rate, connect_time, traffic int64) (err error) {
 	return Post(pb.Record{
+		AppId:           app_id,
 		UserId:          user_id,
 		SnId:            sn_id,
 		DeviceId:        device_id,

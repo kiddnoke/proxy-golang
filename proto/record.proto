@@ -16,4 +16,5 @@ message Record {
     int64 traffic = 11 ;
     string carrierOperator = 12 ;
     string userType  = 13 ;
+    int64 app_id = 14 ;
 }

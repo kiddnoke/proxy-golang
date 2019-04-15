@@ -55,18 +55,10 @@ func (p *Proxy) Init() (err error) {
 	}
 
 	pr.ConnectInfoCallback = func(time_stamp int64, rate int64, localAddress, RemoteAddress string, traffic int64, duration time.Duration) {
-		user_id := p.Uid
-		sn_id := p.SnId
-		device_id := p.DeviceId
-		app_version := p.AppVersion
-		os := p.Os
-		user_type := p.UserType
-		carrier_operator := p.CarrierOperators
-		connect_time := int64(duration.Seconds() * 100)
-		_ = udpposter.PostParams(user_id, sn_id,
-			device_id, app_version, os, user_type, carrier_operator,
+		_ = udpposter.PostParams(p.AppId, p.Uid, p.SnId,
+			p.DeviceId, p.AppVersion, p.Os, p.UserType, p.CarrierOperators,
 			localAddress, RemoteAddress, time_stamp,
-			rate, connect_time, traffic)
+			rate, int64(duration.Seconds()*100), traffic)
 	}
 	pr.Start()
 	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
