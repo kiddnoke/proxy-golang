@@ -62,7 +62,7 @@ func (p *Proxy) Init() (err error) {
 	}
 	pr.Start()
 	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
-	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d]", p.Uid, p.Sid, p.ServerPort, p.AppId))
+	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d] ", p.Uid, p.Sid, p.ServerPort, p.AppId))
 	p.ProxyRelay = *pr
 	return
 }
