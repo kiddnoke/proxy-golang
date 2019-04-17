@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"proxy-golang/relay"
-
 	"proxy-golang/udpposter"
 )
 
@@ -33,7 +32,8 @@ type Proxy struct {
 	LimitArray       []int64 `json:"limit_array" unit:"kb"`
 	FlowArray        []int64 `json:"flow_array" unit:"kb"`
 	// NovaPro
-	AppId int64 `json:"app_id"`
+	AppId       int64  `json:"app_id"`
+	NetworkType string `json:"network_type"`
 
 	relay.ProxyRelay
 }
@@ -56,7 +56,7 @@ func (p *Proxy) Init() (err error) {
 
 	pr.ConnectInfoCallback = func(time_stamp int64, rate int64, localAddress, RemoteAddress string, traffic int64, duration time.Duration) {
 		_ = udpposter.PostParams(p.AppId, p.Uid, p.SnId,
-			p.DeviceId, p.AppVersion, p.Os, p.UserType, p.CarrierOperators,
+			p.DeviceId, p.AppVersion, p.Os, p.UserType, p.CarrierOperators, p.NetworkType,
 			localAddress, RemoteAddress, time_stamp,
 			rate, int64(duration.Seconds()*100), traffic)
 	}

@@ -17,4 +17,5 @@ message Record {
     string carrierOperator = 12 ;
     string userType  = 13 ;
     int64 app_id = 14 ;
+    string networkType = 15 ;
 }
