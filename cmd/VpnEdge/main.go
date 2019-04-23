@@ -55,7 +55,7 @@ func main() {
 	go HttpSrv(flags.InstanceID + 10000)
 
 	if generate {
-		Generate()
+		GeneratePm2ConfigFile()
 		return
 	}
 

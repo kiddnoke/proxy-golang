@@ -22,7 +22,7 @@ func init() {
 	log.Printf("BuildDate [%s]", BuildDate)
 	log.Printf("BuildBranch [%s]", BuildBranch)
 }
-func Generate() (err error) {
+func GeneratePm2ConfigFile() (err error) {
 	log.Printf("生成pm2版本文件")
 	var writeString = fmt.Sprintf("{\"version\":\"%s\"}", BuildBranch+"-"+BuildVersion+"-"+BuildDate)
 	filename := "./package.json"
