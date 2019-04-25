@@ -58,7 +58,7 @@ func (p *Proxy) Init() (err error) {
 		_ = udpposter.PostParams(p.AppId, p.Uid, p.SnId,
 			p.DeviceId, p.AppVersion, p.Os, p.UserType, p.CarrierOperators, p.NetworkType,
 			localAddress, RemoteAddress, time_stamp,
-			rate, int64(duration.Seconds()*100), traffic)
+			rate*100, int64(duration.Seconds()*100), traffic*100)
 	}
 	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d] ", p.Uid, p.Sid, p.ServerPort, p.AppId))

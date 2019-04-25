@@ -98,9 +98,8 @@ func (t *TcpRelay) Loop() {
 							c.RemoteAddr(), tgt, rate, flow/1024, duration.Seconds())
 						ip := fmt.Sprintf("%v", c.RemoteAddr())
 						website := fmt.Sprintf("%v", tgt)
-						rate := int64(rate * 100)
 						if t.ConnectInfoCallback != nil {
-							t.ConnectInfoCallback(time_stamp, int64(rate*100), ip, website, int64(flow/1024)*100, duration)
+							t.ConnectInfoCallback(time_stamp, int64(rate), ip, website, int64(flow/1024), duration)
 						}
 					}
 				}()
