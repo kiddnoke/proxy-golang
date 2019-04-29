@@ -43,7 +43,7 @@ func NewTcpRelayByProxyInfo(c *proxyinfo) (tp *TcpRelay, err error) {
 func tcpKeepAlive(c net.Conn) {
 	if tcp, ok := c.(*net.TCPConn); ok {
 		tcp.SetKeepAlive(true)
-		tcp.SetKeepAlivePeriod(time.Minute)
+		tcp.SetKeepAlivePeriod(time.Second * 30)
 	}
 }
 func (t *TcpRelay) Loop() {
@@ -96,6 +96,7 @@ func (t *TcpRelay) Loop() {
 			errorChannel := make(chan error, 1)
 
 			go func() {
+				tcpKeepAlive(c)
 				t.proxyinfo.Printf("handlerId[%d] TransferStart [%s] => [%s]", handlerId, c.RemoteAddr(), tgt.String())
 				errC2Rc := PipeThenClose(c, rc, func(up int) {
 					flow += up
@@ -106,7 +107,6 @@ func (t *TcpRelay) Loop() {
 				})
 				if errC2Rc == nil {
 					t.proxyinfo.Printf("handlerId[%d] TransferEnd [%s] => [%s]", handlerId, c.RemoteAddr(), tgt.String())
-
 				} else {
 					t.proxyinfo.Printf("handlerId[%d] TransferEnd [%s] => [%s] with error:%s", handlerId, c.RemoteAddr(), tgt.String(), errC2Rc.Error())
 				}
