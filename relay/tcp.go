@@ -58,6 +58,7 @@ func (t *TcpRelay) Loop() {
 			continue
 		}
 		if ConnCount > MaxAcceptConnection {
+			t.proxyinfo.Println("MaxAcceptConnection")
 			c.Close()
 			continue
 		}
@@ -72,11 +73,13 @@ func (t *TcpRelay) Loop() {
 			tgt, err := socks.ReadAddr(c)
 
 			if err != nil {
+				t.proxyinfo.Printf("socks.ReadAddr [%s],local[%s],tgt[%s]", err.Error(), c.RemoteAddr(), tgt.String())
 				return
 			}
 
 			rc, err := net.Dial("tcp", tgt.String())
 			if err != nil {
+				t.proxyinfo.Printf("net.Dial Error [%s],rc[%s],tgt[%s]", err.Error(), rc.RemoteAddr(), tgt.String())
 				return
 			}
 			defer func() {
@@ -103,6 +106,7 @@ func (t *TcpRelay) Loop() {
 						}
 					}
 				}()
+				t.proxyinfo.Printf("TargetAddress[%s] => Proxy => ClientAddress[%s]", tgt.String(), c.RemoteAddr())
 				PipeThenClose(rc, c, func(n int) {
 					flow += n
 					if err := t.Limiter.WaitN(n); err != nil {
@@ -111,6 +115,7 @@ func (t *TcpRelay) Loop() {
 					go t.AddTraffic(0, n, 0, 0)
 				})
 			}()
+			t.proxyinfo.Printf("ClientAddress[%s] => Proxy => TargetAddress[%s]", c.RemoteAddr(), tgt.String())
 			PipeThenClose(c, rc, func(n int) {
 				flow += n
 				if err := t.Limiter.WaitN(n); err != nil {
