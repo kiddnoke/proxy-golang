@@ -89,32 +89,60 @@ func (t *TcpRelay) Loop() {
 				rc.Close()
 			}()
 			t.conns.Store(rc.RemoteAddr().String(), rc)
-			tcpKeepAlive(rc)
 			t.Active()
 
 			var flow int
 			currstamp := time.Now()
+			errorChannel := make(chan error, 1)
+
+			go func() {
+				t.proxyinfo.Printf("handlerId[%d] TransferStart [%s] => [%s]", handlerId, c.RemoteAddr(), tgt.String())
+				errC2Rc := PipeThenClose(c, rc, func(up int) {
+					flow += up
+					if err := t.Limiter.WaitN(up); err != nil {
+						t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, c.RemoteAddr(), err)
+					}
+					t.AddTraffic(up, 0, 0, 0)
+				})
+				if errC2Rc == nil {
+					t.proxyinfo.Printf("handlerId[%d] TransferEnd [%s] => [%s]", handlerId, c.RemoteAddr(), tgt.String())
+
+				} else {
+					t.proxyinfo.Printf("handlerId[%d] TransferEnd [%s] => [%s] with error:%s", handlerId, c.RemoteAddr(), tgt.String(), errC2Rc.Error())
+				}
+				errorChannel <- errC2Rc
+			}()
+
+			go func() {
+				t.proxyinfo.Printf("handlerId[%d] TransferStart [%s] => [%s]", handlerId, tgt.String(), c.RemoteAddr())
+				errRc2C := PipeThenClose(rc, c, func(down int) {
+					flow += down
+					if err := t.Limiter.WaitN(down); err != nil {
+						t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, c.RemoteAddr(), err)
+					}
+					t.AddTraffic(0, down, 0, 0)
+				})
+				if errRc2C == nil {
+					t.proxyinfo.Printf("handlerId[%d] TransferEnd [%s] => [%s]", handlerId, c.RemoteAddr(), tgt.String())
+
+				} else {
+					t.proxyinfo.Printf("handlerId[%d] TransferEnd [%s] => [%s] with error:%s", handlerId, c.RemoteAddr(), tgt.String(), errRc2C.Error())
+				}
+				errorChannel <- errRc2C
+			}()
+
+			err = <-errorChannel
 			defer func() {
 				duration := time.Since(currstamp)
 				time_stamp := time.Now().UnixNano() / 1000000
 				rate := float64(flow) / duration.Seconds() / 1024
-				t.proxyinfo.Printf("handlerId[%d] [%s] <=> TransferStatisc <=> [%s]\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]",
-					handlerId, c.RemoteAddr(), tgt, rate, flow/1024, duration.Seconds())
+				t.proxyinfo.Printf("handlerId[%d] TransferStatisc [%s] <=> [%s]\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]", handlerId, c.RemoteAddr(), tgt, rate, flow/1024, duration.Seconds())
 				ip := fmt.Sprintf("%v", c.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
 				if t.ConnectInfoCallback != nil && rate > 1.0 {
 					t.ConnectInfoCallback(time_stamp, int64(rate), ip, website, int64(flow/1024), duration)
 				}
 			}()
-			t.proxyinfo.Printf("handlerId[%d] [%s] => TransferStart => [%s]", handlerId, c.RemoteAddr(), tgt.String())
-			handlerid, handlererror := PipeWithError(handlerId, c, rc, func(up, down int) {
-				flow += up + down
-				if err := t.Limiter.WaitN(up + down); err != nil {
-					t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, c.RemoteAddr(), err)
-				}
-				t.AddTraffic(up, down, 0, 0)
-			})
-			t.proxyinfo.Printf("handlerId[%d] [%s] <= TransferFinish <= [%s] with Error[%s]", handlerid, c.RemoteAddr(), tgt.String(), handlererror.Error())
 		}()
 	}
 }
@@ -134,11 +162,10 @@ func (t *TcpRelay) Close() {
 		t.l.Close()
 	}
 }
-func PipeThenClose(left, right net.Conn, addTraffic func(n int)) {
+func PipeThenClose(left, right net.Conn, addTraffic func(n int)) (err error) {
 	buf := leakyBuf.Get()
 	defer leakyBuf.Put(buf)
 	for {
-		left.SetReadDeadline(time.Now().Add(time.Minute * 30))
 		n, err := left.Read(buf)
 		if addTraffic != nil && n > 0 {
 			addTraffic(n)
@@ -152,6 +179,7 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) {
 			break
 		}
 	}
+	return
 }
 
 func PipeWithError(tpcid int, left, right net.Conn, addTraffic func(n, m int)) (tcpId int, err error) {
@@ -184,15 +212,6 @@ func PipeWithError(tpcid int, left, right net.Conn, addTraffic func(n, m int)) (
 		addTraffic(0, n)
 	})
 	err = <-errc
-	//if err != nil {
-	//	if err == io.EOF {
-	//		err = nil
-	//		goto End
-	//	}
-	//	if opError, ok := err.(*net.OpError) ;ok && opError.Timeout() {
-	//		err = nil
-	//		goto End
-	//	}
-	//}
+
 	return
 }
