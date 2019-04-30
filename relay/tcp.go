@@ -107,7 +107,7 @@ func (t *TcpRelay) Loop() {
 						t.ConnectInfoCallback(time_stamp, int64(rate), ip, website, int64(flow/1024), duration)
 					}
 				}()
-				//
+				// remoteconn ==>> shadowconn start
 				t.proxyinfo.Printf("handlerId[%d] TransferStart [%s] => [%s]", handlerId, tgt.String(), shadowconn.RemoteAddr())
 				PipeThenClose(remoteconn, shadowconn, func(n int) {
 					flow += n
@@ -117,9 +117,9 @@ func (t *TcpRelay) Loop() {
 					go t.AddTraffic(0, n, 0, 0)
 				})
 				t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s]", handlerId, tgt.String(), shadowconn.RemoteAddr())
-				//
+				// remoteconn ==>> shadowconn finish
 			}()
-			//
+			//shadowconn ==>> remoteconn start
 			t.proxyinfo.Printf("handlerId[%d] TransferStart [%s] => [%s]", handlerId, shadowconn.RemoteAddr(), tgt.String())
 			PipeThenClose(shadowconn, remoteconn, func(n int) {
 				flow += n
@@ -129,7 +129,7 @@ func (t *TcpRelay) Loop() {
 				go t.AddTraffic(n, 0, 0, 0)
 			})
 			t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s]", handlerId, shadowconn.RemoteAddr(), tgt.String())
-			//
+			//shadowconn ==>> remoteconn finish
 		}(c)
 	}
 }
