@@ -106,9 +106,9 @@ func (t *TcpRelay) Loop() {
 					t.AddTraffic(up, 0, 0, 0)
 				})
 				if errC2Rc == nil {
-					t.proxyinfo.Printf("handlerId[%d] TransferEnd [%s] => [%s]", handlerId, c.RemoteAddr(), tgt.String())
+					t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s]", handlerId, c.RemoteAddr(), tgt.String())
 				} else {
-					t.proxyinfo.Printf("handlerId[%d] TransferEnd [%s] => [%s] with error:%s", handlerId, c.RemoteAddr(), tgt.String(), errC2Rc.Error())
+					t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s] with error:%s", handlerId, c.RemoteAddr(), tgt.String(), errC2Rc.Error())
 				}
 				errorChannel <- errC2Rc
 			}()
@@ -123,10 +123,10 @@ func (t *TcpRelay) Loop() {
 					t.AddTraffic(0, down, 0, 0)
 				})
 				if errRc2C == nil {
-					t.proxyinfo.Printf("handlerId[%d] TransferEnd [%s] => [%s]", handlerId, c.RemoteAddr(), tgt.String())
+					t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s]", handlerId, c.RemoteAddr(), tgt.String())
 
 				} else {
-					t.proxyinfo.Printf("handlerId[%d] TransferEnd [%s] => [%s] with error:%s", handlerId, c.RemoteAddr(), tgt.String(), errRc2C.Error())
+					t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s] with error:%s", handlerId, c.RemoteAddr(), tgt.String(), errRc2C.Error())
 				}
 				errorChannel <- errRc2C
 			}()
