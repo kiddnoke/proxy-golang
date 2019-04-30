@@ -34,11 +34,12 @@ type TcpRelay struct {
 	*proxyinfo
 	conns               sync.Map
 	ConnectInfoCallback func(time_stamp int64, rate int64, localAddress, RemoteAddress string, traffic int64, duration time.Duration)
+	handlerId           int
 }
 
 func NewTcpRelayByProxyInfo(c *proxyinfo) (tp *TcpRelay, err error) {
 	l, err := Listen("tcp", c.ServerPort, c.Cipher)
-	return &TcpRelay{l: l, proxyinfo: c}, err
+	return &TcpRelay{l: l, proxyinfo: c, handlerId: 0}, err
 }
 func tcpKeepAlive(c net.Conn) {
 	if tcp, ok := c.(*net.TCPConn); ok {
@@ -62,32 +63,34 @@ func (t *TcpRelay) Loop() {
 			c.Close()
 			continue
 		}
-		go func() {
+		go func(shadowconn net.Conn) {
+			t.handlerId++
+			handlerId := t.handlerId
 			defer func() {
-				t.conns.Delete(c.RemoteAddr().String())
-				c.Close()
+				t.conns.Delete(shadowconn.RemoteAddr().String())
+				shadowconn.Close()
 				ConnCount--
 			}()
-			t.conns.Store(c.RemoteAddr().String(), c)
+			t.conns.Store(shadowconn.RemoteAddr().String(), shadowconn)
 			ConnCount++
-			tgt, err := socks.ReadAddr(c)
+			tgt, err := socks.ReadAddr(shadowconn)
 
 			if err != nil {
-				t.proxyinfo.Printf("socks.ReadAddr [%s],local[%s],tgt[%s]", err.Error(), c.RemoteAddr(), tgt.String())
+				t.proxyinfo.Printf("socks.ReadAddr Error [%s],handlerId[%d], local[%s]", err.Error(), handlerId, shadowconn.RemoteAddr())
 				return
 			}
 
-			rc, err := net.Dial("tcp", tgt.String())
+			remoteconn, err := net.Dial("tcp", tgt.String())
 			if err != nil {
-				t.proxyinfo.Printf("net.Dial Error [%s],rc[%s],tgt[%s]", err.Error(), rc.RemoteAddr(), tgt.String())
+				t.proxyinfo.Printf("net.Dial Error [%s], handlerId[%d], tgt[%s]", err.Error(), handlerId, tgt.String())
 				return
 			}
 			defer func() {
-				t.conns.Delete(rc.RemoteAddr().String())
-				rc.Close()
+				t.conns.Delete(remoteconn.RemoteAddr().String())
+				remoteconn.Close()
 			}()
-			t.conns.Store(rc.RemoteAddr().String(), rc)
-			tcpKeepAlive(rc)
+			t.conns.Store(remoteconn.RemoteAddr().String(), remoteconn)
+			tcpKeepAlive(remoteconn)
 			t.Active()
 
 			var flow int
@@ -96,34 +99,38 @@ func (t *TcpRelay) Loop() {
 				defer func() {
 					duration := time.Since(currstamp)
 					time_stamp := time.Now().UnixNano() / 1000000
-					if rate := float64(flow) / duration.Seconds() / 1024; rate > 1.0 {
-						t.proxyinfo.Printf("proxy %s <-> %s\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]",
-							c.RemoteAddr(), tgt, rate, flow/1024, duration.Seconds())
-						ip := fmt.Sprintf("%v", c.RemoteAddr())
-						website := fmt.Sprintf("%v", tgt)
-						if t.ConnectInfoCallback != nil {
-							t.ConnectInfoCallback(time_stamp, int64(rate), ip, website, int64(flow/1024), duration)
-						}
+					rate := float64(flow) / duration.Seconds() / 1024
+					t.proxyinfo.Printf("handlerId[%d] TransferStatisc [%s] <=> [%s]\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]", handlerId, shadowconn.RemoteAddr(), tgt, rate, flow/1024, duration.Seconds())
+					ip := fmt.Sprintf("%v", shadowconn.RemoteAddr())
+					website := fmt.Sprintf("%v", tgt)
+					if t.ConnectInfoCallback != nil && rate > 1.0 {
+						t.ConnectInfoCallback(time_stamp, int64(rate), ip, website, int64(flow/1024), duration)
 					}
 				}()
-				t.proxyinfo.Printf("TargetAddress[%s] => Proxy => ClientAddress[%s]", tgt.String(), c.RemoteAddr())
-				PipeThenClose(rc, c, func(n int) {
+				//
+				t.proxyinfo.Printf("handlerId[%d] TransferStart [%s] => [%s]", handlerId, tgt.String(), shadowconn.RemoteAddr())
+				PipeThenClose(remoteconn, shadowconn, func(n int) {
 					flow += n
 					if err := t.Limiter.WaitN(n); err != nil {
-						t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, c.RemoteAddr(), err)
+						t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
 					}
 					go t.AddTraffic(0, n, 0, 0)
 				})
+				t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s]", handlerId, tgt.String(), shadowconn.RemoteAddr())
+				//
 			}()
-			t.proxyinfo.Printf("ClientAddress[%s] => Proxy => TargetAddress[%s]", c.RemoteAddr(), tgt.String())
-			PipeThenClose(c, rc, func(n int) {
+			//
+			t.proxyinfo.Printf("handlerId[%d] TransferStart [%s] => [%s]", handlerId, shadowconn.RemoteAddr(), tgt.String())
+			PipeThenClose(shadowconn, remoteconn, func(n int) {
 				flow += n
 				if err := t.Limiter.WaitN(n); err != nil {
-					t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", c.RemoteAddr(), tgt, err)
+					t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", shadowconn.RemoteAddr(), tgt, err)
 				}
 				go t.AddTraffic(n, 0, 0, 0)
 			})
-		}()
+			t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s]", handlerId, shadowconn.RemoteAddr(), tgt.String())
+			//
+		}(c)
 	}
 }
 func (t *TcpRelay) Start() {
