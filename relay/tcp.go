@@ -123,10 +123,10 @@ func (t *TcpRelay) Loop() {
 					t.AddTraffic(0, down, 0, 0)
 				})
 				if errRc2C == nil {
-					t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s]", handlerId, c.RemoteAddr(), tgt.String())
+					t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s]", handlerId, tgt.String(), c.RemoteAddr())
 
 				} else {
-					t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s] with error:%s", handlerId, c.RemoteAddr(), tgt.String(), errRc2C.Error())
+					t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s] with error:%s", handlerId, tgt.String(), c.RemoteAddr(), errRc2C.Error())
 				}
 				errorChannel <- errRc2C
 			}()
