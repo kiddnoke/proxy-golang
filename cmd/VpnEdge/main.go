@@ -247,8 +247,8 @@ func HttpSrv(port int) {
 	srv := &http.Server{
 		Handler:      router,
 		Addr:         "0.0.0.0:" + strconv.Itoa(port),
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 120 * time.Second,
+		ReadTimeout:  120 * time.Second,
 	}
 
 	log.Fatal(srv.ListenAndServe())
