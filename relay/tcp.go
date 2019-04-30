@@ -96,17 +96,6 @@ func (t *TcpRelay) Loop() {
 			var flow int
 			currstamp := time.Now()
 			go func() {
-				defer func() {
-					duration := time.Since(currstamp)
-					time_stamp := time.Now().UnixNano() / 1000000
-					rate := float64(flow) / duration.Seconds() / 1024
-					t.proxyinfo.Printf("handlerId[%d] TransferStatisc [%s] <=> [%s]\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]", handlerId, shadowconn.RemoteAddr(), tgt, rate, flow/1024, duration.Seconds())
-					ip := fmt.Sprintf("%v", shadowconn.RemoteAddr())
-					website := fmt.Sprintf("%v", tgt)
-					if t.ConnectInfoCallback != nil && rate > 1.0 {
-						t.ConnectInfoCallback(time_stamp, int64(rate), ip, website, int64(flow/1024), duration)
-					}
-				}()
 				// remoteconn ==>> shadowconn start
 				t.proxyinfo.Printf("handlerId[%d] TransferStart [%s] => [%s]", handlerId, tgt.String(), shadowconn.RemoteAddr())
 				PipeThenClose(remoteconn, shadowconn, func(n int) {
@@ -130,6 +119,17 @@ func (t *TcpRelay) Loop() {
 			})
 			t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] => [%s]", handlerId, shadowconn.RemoteAddr(), tgt.String())
 			//shadowconn ==>> remoteconn finish
+			defer func() {
+				duration := time.Since(currstamp)
+				time_stamp := time.Now().UnixNano() / 1000000
+				rate := float64(flow) / duration.Seconds() / 1024
+				t.proxyinfo.Printf("handlerId[%d] TransferStatisc [%s] <=> [%s]\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]", handlerId, shadowconn.RemoteAddr(), tgt, rate, flow/1024, duration.Seconds())
+				ip := fmt.Sprintf("%v", shadowconn.RemoteAddr())
+				website := fmt.Sprintf("%v", tgt)
+				if rate > 1.0 && t.ConnectInfoCallback != nil {
+					t.ConnectInfoCallback(time_stamp, int64(rate), ip, website, int64(flow/1024), duration)
+				}
+			}()
 		}(c)
 	}
 }
