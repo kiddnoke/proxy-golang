@@ -2,6 +2,7 @@ package relay
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"sync"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"github.com/shadowsocks/go-shadowsocks2/socks"
 )
 
+const ReadDeadlineDuration = time.Second * 5
+const KeepAlivePeriod = time.Second * 3
 const AcceptTimeout = 1000
 const MaxAcceptConnection = 300
 
@@ -43,7 +46,7 @@ func NewTcpRelayByProxyInfo(c *proxyinfo) (tp *TcpRelay, err error) {
 func tcpKeepAlive(c net.Conn) {
 	if tcp, ok := c.(*net.TCPConn); ok {
 		tcp.SetKeepAlive(true)
-		tcp.SetKeepAlivePeriod(time.Second * 30)
+		tcp.SetKeepAlivePeriod(KeepAlivePeriod)
 	}
 }
 func (t *TcpRelay) Loop() {
@@ -62,6 +65,7 @@ func (t *TcpRelay) Loop() {
 			c.Close()
 			continue
 		}
+
 		go func(shadowconn net.Conn) {
 			t.handlerId++
 			handlerId := t.handlerId
@@ -93,21 +97,22 @@ func (t *TcpRelay) Loop() {
 
 			var flow int
 			currstamp := time.Now()
-			t.proxyinfo.Printf("handlerId[%d] TransferStart [%s] <=> [%s] ", handlerId, shadowconn.RemoteAddr(), tgt)
-			_, pipiErr := PipeWithError(handlerId, shadowconn, rc, func(up, down int) {
-				flow += up + down
+			_, PipeError := PipeWithError(handlerId, shadowconn, rc, func(up, down int) {
+				flow += down
 				if err := t.Limiter.WaitN(up + down); err != nil {
-					t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, c.RemoteAddr(), err)
+					t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
 				}
 				t.AddTraffic(up, down, 0, 0)
 			})
-			t.proxyinfo.Printf("handlerId[%d] TransferFinish [%s] <=> [%s] ,Error[%s]", handlerId, shadowconn.RemoteAddr(), tgt, pipiErr.Error())
 
 			defer func() {
 				duration := time.Since(currstamp)
 				time_stamp := time.Now().UnixNano() / 1000000
 				rate := float64(flow) / duration.Seconds() / 1024
-				t.proxyinfo.Printf("handlerId[%d] TransferStatisc [%s] <=> [%s]\trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]", handlerId, shadowconn.RemoteAddr(), tgt, rate, flow/1024, duration.Seconds())
+				if PipeError[0] != io.EOF || PipeError[1] != io.EOF {
+					duration = duration - ReadDeadlineDuration
+				}
+				t.proxyinfo.Printf("handlerId[%d] TransferStatisc [%s] <=> domain[%s] remoteaddress[%v] \trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]\tError[0][%s],Error[1][%s]", handlerId, shadowconn.RemoteAddr(), tgt, rc.RemoteAddr(), rate, flow/1024, duration.Seconds(), PipeError[0].Error(), PipeError[1].Error())
 				ip := fmt.Sprintf("%v", shadowconn.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
 				if t.ConnectInfoCallback != nil && rate > 1.0 {
@@ -153,13 +158,15 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) (err error) {
 	return
 }
 
-func PipeWithError(tpcid int, left, right net.Conn, addTraffic func(n, m int)) (tcpId int, err error) {
+func PipeWithError(tpcid int, left, right net.Conn, addTraffic func(n, m int)) (tcpId int, Error [2]error) {
 	tcpId = tpcid
-	errc := make(chan error, 1)
-	pipe := func(front, back net.Conn, callback func(n int)) {
+	errc0 := make(chan error, 1)
+	errc1 := make(chan error, 1)
+	pipe := func(front, back net.Conn, errc chan error, callback func(n int)) {
 		buf := leakyBuf.Get()
 		defer leakyBuf.Put(buf)
 		for {
+			front.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
 			n, err := front.Read(buf)
 			if addTraffic != nil && n > 0 {
 				callback(n)
@@ -176,13 +183,13 @@ func PipeWithError(tpcid int, left, right net.Conn, addTraffic func(n, m int)) (
 			}
 		}
 	}
-	go pipe(left, right, func(n int) {
+	go pipe(left, right, errc0, func(n int) {
 		addTraffic(n, 0)
 	})
-	go pipe(right, left, func(n int) {
+	go pipe(right, left, errc1, func(n int) {
 		addTraffic(0, n)
 	})
-	err = <-errc
-
+	Error[0] = <-errc0
+	Error[1] = <-errc1
 	return
 }
