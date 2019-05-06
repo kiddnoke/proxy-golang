@@ -143,25 +143,6 @@ func (t *TcpRelay) Close() {
 		t.l.Close()
 	}
 }
-func PipeThenClose(left, right net.Conn, addTraffic func(n int)) (err error) {
-	buf := leakyBuf.Get()
-	defer leakyBuf.Put(buf)
-	for {
-		n, err := left.Read(buf)
-		if addTraffic != nil && n > 0 {
-			addTraffic(n)
-		}
-		if n > 0 {
-			if _, err := right.Write(buf[0:n]); err != nil {
-				break
-			}
-		}
-		if err != nil {
-			break
-		}
-	}
-	return
-}
 
 func PipeWithError(tpcid int, left, right net.Conn, addTraffic func(n, m int)) (tcpId int, Error [2]error) {
 	tcpId = tpcid
