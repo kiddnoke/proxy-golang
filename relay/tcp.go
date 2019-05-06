@@ -2,7 +2,6 @@ package relay
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"sync"
 	"time"
@@ -35,7 +34,7 @@ type TcpRelay struct {
 	l listener
 	*proxyinfo
 	conns               sync.Map
-	ConnectInfoCallback func(time_stamp int64, rate int64, localAddress, RemoteAddress string, traffic int64, duration time.Duration)
+	ConnectInfoCallback func(time_stamp int64, rate float64, localAddress, RemoteAddress string, traffic float64, duration time.Duration)
 	handlerId           int
 }
 
@@ -66,41 +65,41 @@ func (t *TcpRelay) Loop() {
 			continue
 		}
 
-		go func(shadowconn net.Conn) {
+		go func(shadowConn net.Conn) {
 			t.handlerId++
 			handlerId := t.handlerId
 			defer func() {
-				t.conns.Delete(shadowconn.RemoteAddr().String())
-				shadowconn.Close()
+				t.conns.Delete(shadowConn.RemoteAddr().String())
+				shadowConn.Close()
 				ConnCount--
 			}()
-			t.conns.Store(shadowconn.RemoteAddr().String(), shadowconn)
+			t.conns.Store(shadowConn.RemoteAddr().String(), shadowConn)
 			ConnCount++
-			tgt, err := socks.ReadAddr(shadowconn)
+			tgt, err := socks.ReadAddr(shadowConn)
 
 			if err != nil {
-				t.proxyinfo.Printf("socks.ReadAddr Error [%s],handlerId[%d], local[%s]", err.Error(), handlerId, shadowconn.RemoteAddr())
+				t.proxyinfo.Printf("socks.ReadAddr Error [%s],handlerId[%d], local[%s]", err.Error(), handlerId, shadowConn.RemoteAddr())
 				return
 			}
 
-			rc, err := net.Dial("tcp", tgt.String())
+			remoteConn, err := net.Dial("tcp", tgt.String())
 			if err != nil {
 				t.proxyinfo.Printf("net.Dial Error [%s], handlerId[%d], tgt[%s]", err.Error(), handlerId, tgt.String())
 				return
 			}
 			defer func() {
-				t.conns.Delete(rc.RemoteAddr().String())
-				rc.Close()
+				t.conns.Delete(remoteConn.RemoteAddr().String())
+				remoteConn.Close()
 			}()
-			t.conns.Store(rc.RemoteAddr().String(), rc)
+			t.conns.Store(remoteConn.RemoteAddr().String(), remoteConn)
 			t.Active()
 
 			var flow int
 			currstamp := time.Now()
-			_, PipeError := PipeWithError(handlerId, shadowconn, rc, func(up, down int) {
+			_, PipeError := PipeWithError(handlerId, shadowConn, remoteConn, func(up, down int) {
 				flow += down
 				if err := t.Limiter.WaitN(up + down); err != nil {
-					t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
+					t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, shadowConn.RemoteAddr(), err)
 				}
 				t.AddTraffic(up, down, 0, 0)
 			})
@@ -108,15 +107,21 @@ func (t *TcpRelay) Loop() {
 			defer func() {
 				duration := time.Since(currstamp)
 				time_stamp := time.Now().UnixNano() / 1000000
-				rate := float64(flow) / duration.Seconds() / 1024
-				if PipeError[0] != io.EOF || PipeError[1] != io.EOF {
+				if ne1, ok1 := PipeError[0].(net.Error); ok1 && ne1.Timeout() {
 					duration = duration - ReadDeadlineDuration
+					goto Statisc
 				}
-				t.proxyinfo.Printf("handlerId[%d] TransferStatisc [%s] <=> domain[%s] remoteaddress[%v] \trate[%f kb/s]\tflow[%d kb]\tDuration[%f sec]\tError[0][%s],Error[1][%s]", handlerId, shadowconn.RemoteAddr(), tgt, rc.RemoteAddr(), rate, flow/1024, duration.Seconds(), PipeError[0].Error(), PipeError[1].Error())
-				ip := fmt.Sprintf("%v", shadowconn.RemoteAddr())
+				if ne2, ok2 := PipeError[1].(net.Error); ok2 && ne2.Timeout() {
+					duration = duration - ReadDeadlineDuration
+					goto Statisc
+				}
+			Statisc:
+				rate := float64(flow) / 1024 / duration.Seconds()
+				t.proxyinfo.Printf("handlerId[%d] TransferStatisc domain[%s] remoteaddress[%v] rate[%f kb/s] flow[%d kb] Duration[%f sec] Error[shadowConn]:%s , Error[remoteConn]:%s", handlerId, tgt, remoteConn.RemoteAddr(), rate, flow/1024, duration.Seconds(), PipeError[0].Error(), PipeError[1].Error())
+				ip := fmt.Sprintf("%v", shadowConn.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
 				if t.ConnectInfoCallback != nil && rate > 1.0 {
-					t.ConnectInfoCallback(time_stamp, int64(rate), ip, website, int64(flow/1024), duration)
+					t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(flow/1024), duration)
 				}
 			}()
 		}(c)

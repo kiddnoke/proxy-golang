@@ -54,11 +54,11 @@ func (p *Proxy) Init() (err error) {
 		return NewError("Proxy Init", e, relay.NewProxyRelay, pi)
 	}
 
-	pr.ConnectInfoCallback = func(time_stamp int64, rate int64, localAddress, RemoteAddress string, traffic int64, duration time.Duration) {
+	pr.ConnectInfoCallback = func(time_stamp int64, rate float64, localAddress, RemoteAddress string, traffic float64, duration time.Duration) {
 		_ = udpposter.PostParams(p.AppId, p.Uid, p.SnId,
 			p.DeviceId, p.AppVersion, p.Os, p.UserType, p.CarrierOperators, p.NetworkType,
 			localAddress, RemoteAddress, time_stamp,
-			rate*100, int64(duration.Seconds()*100), traffic*100)
+			int64(rate*100), int64(duration.Seconds()*100), int64(traffic*100))
 	}
 	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d] ", p.Uid, p.Sid, p.ServerPort, p.AppId))
