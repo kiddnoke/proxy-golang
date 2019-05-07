@@ -97,7 +97,7 @@ func (t *TcpRelay) Loop() {
 			var flow int
 			currstamp := time.Now()
 			_, PipeError := PipeWithError(handlerId, shadowConn, remoteConn, func(up, down int) {
-				flow += up + down
+				flow += down
 				if err := t.Limiter.WaitN(up + down); err != nil {
 					t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, shadowConn.RemoteAddr(), err)
 				}
@@ -119,7 +119,7 @@ func (t *TcpRelay) Loop() {
 				rate := float64(flow) / 1024 / duration.Seconds()
 				ip := fmt.Sprintf("%v", shadowConn.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
-				if flow > 1024 || rate > 1.0 {
+				if flow > 1024 && rate > 1.0 {
 					t.proxyinfo.Printf("handlerId[%d] TransferStatisc domain[%s] remoteaddress[%v] rate[%f kb/s] flow[%d kb] Duration[%f sec] Error[shadowConn]:%s , Error[remoteConn]:%s", handlerId, tgt, remoteConn.RemoteAddr(), rate, flow/1024, duration.Seconds(), PipeError[0].Error(), PipeError[1].Error())
 					if t.ConnectInfoCallback != nil {
 						t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(flow/1024), duration)
