@@ -83,13 +83,14 @@ func main() {
 		transfer := []int64{tu, td, uu, ud}
 
 		timestamp := pr.GetLastTimeStamp()
+		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
 		pr.Timeout = 0
 		time.AfterFunc(time.Minute*2, func() {
 			// 回收
 			Manager.Delete(proxyinfo)
 		})
-		client.Timeout(appid, sid, uid, transfer, timestamp.Unix())
-		log.Printf("timeout: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix())
+		client.Timeout(appid, sid, uid, transfer, timestamp.Unix(), duration)
+		log.Printf("timeout: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration)
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
 		key := pushService.GeneratorKey(uid, sid, port, appid)
@@ -111,8 +112,9 @@ func main() {
 			Manager.Delete(proxyinfo)
 		})
 
-		client.Expire(appid, sid, uid, transfer)
-		log.Printf("expire: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d]", appid, sid, uid, tu, td, uu, ud)
+		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
+		client.Expire(appid, sid, uid, transfer, duration)
+		log.Printf("expire: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, duration)
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
 		key := pushService.GeneratorKey(uid, sid, port, appid)
@@ -209,6 +211,7 @@ func main() {
 				CloseRetMsg["sid"] = proxyinfo.Sid
 				CloseRetMsg["uid"] = proxyinfo.Uid
 				CloseRetMsg["app_id"] = proxyinfo.AppId
+				CloseRetMsg["duration"] = int64(p.GetLastTimeStamp().Sub(p.GetStartTimeStamp()).Seconds())
 				Manager.Delete(proxyinfo)
 				client.Notify("close", CloseRetMsg)
 				client.Health(Manager.Health())
