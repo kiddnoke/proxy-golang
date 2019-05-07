@@ -134,42 +134,6 @@ func (t *TcpRelay) Close() {
 	}
 }
 
-func PipeWithError(tpcid int, left, right net.Conn, addTraffic func(n, m int)) (tcpId int, Error [2]error) {
-	tcpId = tpcid
-	errc0 := make(chan error, 1)
-	errc1 := make(chan error, 1)
-	pipe := func(front, back net.Conn, errc chan error, callback func(n int)) {
-		buf := leakyBuf.Get()
-		defer leakyBuf.Put(buf)
-		for {
-			front.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
-			n, err := front.Read(buf)
-			if addTraffic != nil && n > 0 {
-				callback(n)
-			}
-			if n > 0 {
-				if _, err := back.Write(buf[0:n]); err != nil {
-					errc <- err
-					break
-				}
-			}
-			if err != nil {
-				errc <- err
-				break
-			}
-		}
-	}
-	go pipe(left, right, errc0, func(n int) {
-		addTraffic(n, 0)
-	})
-	go pipe(right, left, errc1, func(n int) {
-		addTraffic(0, n)
-	})
-	Error[0] = <-errc0
-	Error[1] = <-errc1
-	return
-}
-
 func PipeThenCloseWithError(left net.Conn, lefttimestamp time.Time, right net.Conn, righttimestamp time.Time, addTraffic func(n, m int)) (flow [2]int64, Error [2]error, duration [2]time.Duration) {
 	eleft := make(chan error, 1)
 	eright := make(chan error, 1)
