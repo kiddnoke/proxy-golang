@@ -53,6 +53,7 @@ func (t *TcpRelay) Loop() {
 	for t.running {
 		_ = t.l.SetDeadline(time.Now().Add(time.Millisecond * AcceptTimeout))
 		c, err := t.l.Accept()
+		localConnectionStartStatmp := time.Now()
 		if err != nil {
 			if opError, ok := err.(*net.OpError); ok && opError.Timeout() {
 				continue
@@ -65,7 +66,7 @@ func (t *TcpRelay) Loop() {
 			continue
 		}
 
-		go func(shadowConn net.Conn) {
+		go func(shadowConn net.Conn, localtimestamp time.Time) {
 			t.handlerId++
 			handlerId := t.handlerId
 			defer func() {
@@ -81,7 +82,7 @@ func (t *TcpRelay) Loop() {
 				t.proxyinfo.Printf("socks.ReadAddr Error [%s],handlerId[%d], local[%s]", err.Error(), handlerId, shadowConn.RemoteAddr())
 				return
 			}
-
+			remoteConnectionStartStamp := time.Now()
 			remoteConn, err := net.Dial("tcp", tgt.String())
 			if err != nil {
 				t.proxyinfo.Printf("net.Dial Error [%s], handlerId[%d], tgt[%s]", err.Error(), handlerId, tgt.String())
@@ -94,10 +95,7 @@ func (t *TcpRelay) Loop() {
 			t.conns.Store(remoteConn.RemoteAddr().String(), remoteConn)
 			t.Active()
 
-			var flow int
-			currstamp := time.Now()
-			_, PipeError := PipeWithError(handlerId, shadowConn, remoteConn, func(up, down int) {
-				flow += down
+			flow, PipeError, _duation := PipeThenCloseWithError(shadowConn, localConnectionStartStatmp, remoteConn, remoteConnectionStartStamp, func(up, down int) {
 				if err := t.Limiter.WaitN(up + down); err != nil {
 					t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, shadowConn.RemoteAddr(), err)
 				}
@@ -105,28 +103,18 @@ func (t *TcpRelay) Loop() {
 			})
 
 			defer func() {
-				duration := time.Since(currstamp)
 				time_stamp := time.Now().UnixNano() / 1000000
-				if ne1, ok1 := PipeError[0].(net.Error); ok1 && ne1.Timeout() {
-					duration = duration - ReadDeadlineDuration
-					goto Statisc
-				}
-				if ne2, ok2 := PipeError[1].(net.Error); ok2 && ne2.Timeout() {
-					duration = duration - ReadDeadlineDuration
-					goto Statisc
-				}
-			Statisc:
-				rate := float64(flow) / 1024 / duration.Seconds()
+				rate := float64(flow[1]) / 1024 / _duation[1].Seconds()
 				ip := fmt.Sprintf("%v", shadowConn.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
-				if flow > 1024 && rate > 1.0 {
-					t.proxyinfo.Printf("handlerId[%d] TransferStatisc domain[%s] remoteaddress[%v] rate[%f kb/s] flow[%d kb] Duration[%f sec] Error[shadowConn]:%s , Error[remoteConn]:%s", handlerId, tgt, remoteConn.RemoteAddr(), rate, flow/1024, duration.Seconds(), PipeError[0].Error(), PipeError[1].Error())
+				if flow[1] > 1024 && rate > 1.0 {
+					t.proxyinfo.Printf("handler[%d] flow[%d kb] duration[%f] rate[%f k/s]  domain[%s] remoteaddr[%v] shadowErr[%v] remoteErr[%v]", handlerId, flow[1]/1024, _duation[1].Seconds(), rate, tgt, remoteConn.RemoteAddr(), PipeError[0].Error(), PipeError[1].Error())
 					if t.ConnectInfoCallback != nil {
-						t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(flow/1024), duration)
+						t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(flow[1]/1024), _duation[1])
 					}
 				}
 			}()
-		}(c)
+		}(c, localConnectionStartStatmp)
 	}
 }
 func (t *TcpRelay) Start() {
@@ -179,5 +167,57 @@ func PipeWithError(tpcid int, left, right net.Conn, addTraffic func(n, m int)) (
 	})
 	Error[0] = <-errc0
 	Error[1] = <-errc1
+	return
+}
+
+func PipeThenCloseWithError(left net.Conn, lefttimestamp time.Time, right net.Conn, righttimestamp time.Time, addTraffic func(n, m int)) (flow [2]int64, Error [2]error, duration [2]time.Duration) {
+	eleft := make(chan error, 1)
+	eright := make(chan error, 1)
+	getduration := func(timstamp time.Time) time.Duration {
+		d := time.Now().Sub(timstamp)
+		return d
+	}
+
+	pipe := func(left net.Conn, right net.Conn,
+		ls, rs time.Time,
+		errleft, erright chan error,
+		dl, dr *time.Duration,
+		flow *int64) {
+		buf := leakyBuf.Get()
+		defer leakyBuf.Put(buf)
+		for {
+			left.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
+			n, err := left.Read(buf)
+			if addTraffic != nil && n > 0 {
+				addTraffic(n, 0)
+			}
+			if err != nil {
+				errleft <- err
+				if ne, ok := err.(net.Error); ok && ne.Timeout() {
+					*dl = getduration(lefttimestamp) - ReadDeadlineDuration
+				} else {
+					*dl = getduration(lefttimestamp)
+				}
+				break
+			}
+			if n > 0 {
+				*flow += int64(n)
+				if _, err := right.Write(buf[0:n]); err != nil {
+					erright <- err
+					if ne, ok := err.(net.Error); ok && ne.Timeout() {
+						*dr = getduration(righttimestamp) - ReadDeadlineDuration
+					} else {
+						*dr = getduration(righttimestamp)
+					}
+					break
+				}
+			}
+		}
+
+	}
+	go pipe(left, right, lefttimestamp, righttimestamp, eleft, eright, &duration[0], &duration[1], &flow[0])
+	go pipe(right, left, righttimestamp, lefttimestamp, eright, eleft, &duration[1], &duration[0], &flow[1])
+	Error[0] = <-eleft
+	Error[1] = <-eright
 	return
 }
