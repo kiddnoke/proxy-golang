@@ -134,6 +134,41 @@ func (t *TcpRelay) Close() {
 	}
 }
 
+func PipeWithError(tpcid int, left, right net.Conn, addTraffic func(n, m int)) (tcpId int, Error [2]error) {
+	tcpId = tpcid
+	errc0 := make(chan error, 1)
+	errc1 := make(chan error, 1)
+	pipe := func(front, back net.Conn, errc chan error, callback func(n int)) {
+		buf := leakyBuf.Get()
+		defer leakyBuf.Put(buf)
+		for {
+			front.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
+			n, err := front.Read(buf)
+			if addTraffic != nil && n > 0 {
+				callback(n)
+			}
+			if n > 0 {
+				if _, err := back.Write(buf[0:n]); err != nil {
+					errc <- err
+					break
+				}
+			}
+			if err != nil {
+				errc <- err
+				break
+			}
+		}
+	}
+	go pipe(left, right, errc0, func(n int) {
+		addTraffic(n, 0)
+	})
+	go pipe(right, left, errc1, func(n int) {
+		addTraffic(0, n)
+	})
+	Error[0] = <-errc0
+	Error[1] = <-errc1
+	return
+}
 func PipeThenCloseWithError(left net.Conn, lefttimestamp time.Time, right net.Conn, righttimestamp time.Time, addTraffic func(n, m int)) (flow [2]int64, Error [2]error, duration [2]time.Duration) {
 	eleft := make(chan error, 1)
 	eright := make(chan error, 1)
@@ -142,14 +177,14 @@ func PipeThenCloseWithError(left net.Conn, lefttimestamp time.Time, right net.Co
 		return d
 	}
 
-	pipe := func(left net.Conn, right net.Conn, ls, rs time.Time, errleft, erright chan error, dl, dr *time.Duration, flow *int64) {
+	pipe := func(left net.Conn, right net.Conn, ls, rs time.Time, errleft, erright chan error, dl, dr *time.Duration, flow *int64, callback func(n int)) {
 		buf := leakyBuf.Get()
 		defer leakyBuf.Put(buf)
 		for {
 			left.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
 			n, err := left.Read(buf)
-			if addTraffic != nil && n > 0 {
-				addTraffic(n, 0)
+			if callback != nil && n > 0 {
+				callback(n)
 			}
 			if err != nil {
 				errleft <- err
@@ -175,8 +210,12 @@ func PipeThenCloseWithError(left net.Conn, lefttimestamp time.Time, right net.Co
 		}
 
 	}
-	go pipe(left, right, lefttimestamp, righttimestamp, eleft, eright, &duration[0], &duration[1], &flow[0])
-	go pipe(right, left, righttimestamp, lefttimestamp, eright, eleft, &duration[1], &duration[0], &flow[1])
+	go pipe(left, right, lefttimestamp, righttimestamp, eleft, eright, &duration[0], &duration[1], &flow[0], func(n int) {
+		addTraffic(n, 0)
+	})
+	go pipe(right, left, righttimestamp, lefttimestamp, eright, eleft, &duration[1], &duration[0], &flow[1], func(n int) {
+		addTraffic(0, n)
+	})
 	Error[0] = <-eleft
 	Error[1] = <-eright
 	return
