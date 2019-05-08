@@ -107,9 +107,9 @@ func (t *TcpRelay) Loop() {
 				rate := float64(flow[1]) / 1024 / _duation[1].Seconds()
 				ip := fmt.Sprintf("%v", shadowConn.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
-				if flow[1] > 1024 && rate > 1.0 {
+				if flow[1] > 1024*5 && rate > 1.0 {
 					t.proxyinfo.Printf("handler[%d] flow[%d kb] duration[%f] rate[%f k/s]  domain[%s] remoteaddr[%v] shadowErr[%v] remoteErr[%v]", handlerId, flow[1]/1024, _duation[1].Seconds(), rate, tgt, remoteConn.RemoteAddr(), PipeError[0].Error(), PipeError[1].Error())
-					if t.ConnectInfoCallback != nil {
+					if t.ConnectInfoCallback != nil && flow[1] > 1024*10 {
 						t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(flow[1]/1024), _duation[1])
 					}
 				}
@@ -142,11 +142,7 @@ func PipeThenCloseWithError(left net.Conn, lefttimestamp time.Time, right net.Co
 		return d
 	}
 
-	pipe := func(left net.Conn, right net.Conn,
-		ls, rs time.Time,
-		errleft, erright chan error,
-		dl, dr *time.Duration,
-		flow *int64) {
+	pipe := func(left net.Conn, right net.Conn, ls, rs time.Time, errleft, erright chan error, dl, dr *time.Duration, flow *int64) {
 		buf := leakyBuf.Get()
 		defer leakyBuf.Put(buf)
 		for {
