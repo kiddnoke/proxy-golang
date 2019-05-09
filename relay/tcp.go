@@ -11,6 +11,8 @@ import (
 )
 
 const ReadDeadlineDuration = time.Second * 5
+const WriteDeadlineDuration = ReadDeadlineDuration
+const DialTiemoutDuration = time.Second * 20
 const KeepAlivePeriod = time.Second * 3
 const AcceptTimeout = 1000
 const MaxAcceptConnection = 300
@@ -81,7 +83,7 @@ func (t *TcpRelay) Loop() {
 				return
 			}
 			currstamp := time.Now()
-			remoteconn, err := net.Dial("tcp", tgt.String())
+			remoteconn, err := net.DialTimeout("tcp", tgt.String(), DialTiemoutDuration)
 			if err != nil {
 				t.proxyinfo.Printf("net.Dial Error [%s], handlerId[%d], tgt[%s]", err.Error(), handlerId, tgt.String())
 				return
@@ -160,6 +162,7 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) (netErr error) 
 			addTraffic(n)
 		}
 		if n > 0 {
+			right.SetWriteDeadline(time.Now().Add(WriteDeadlineDuration))
 			if _, err := right.Write(buf[0:n]); err != nil {
 				netErr = err
 				break
