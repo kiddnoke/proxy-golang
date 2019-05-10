@@ -50,12 +50,19 @@ func IsFreePort(port int) (err error) {
 	ul, u_err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("0.0.0.0"), Port: port})
 
 	if t_err != nil || u_err != nil {
-		return errors.New(t_err.Error() + u_err.Error())
+		if t_err != nil && u_err == nil {
+			err = t_err
+		} else if u_err != nil && t_err == nil {
+			err = u_err
+		} else {
+			err = errors.New(t_err.Error() + u_err.Error())
+		}
+
 	} else {
 		tl.Close()
 		ul.Close()
-		return nil
 	}
+	return
 }
 func searchLimit(CurrLimit int64, limitArray []int64, flowArray []int64, TotalFlow int64) (limit int64, err error) {
 	limit = 0
@@ -87,5 +94,20 @@ func searchLimit(CurrLimit int64, limitArray []int64, flowArray []int64, TotalFl
 	} else if limit == 0 && CurrLimit == 0 {
 		return 0, nil
 	}
+	return
+}
+
+const ManagerBeginPort = 10000
+
+func InstanceIdGen(curr int) (next int) {
+	curr = curr + ManagerBeginPort
+	for {
+		if err := IsFreePort(curr); err != nil {
+			curr += 1
+			continue
+		}
+		break
+	}
+	next = curr - ManagerBeginPort
 	return
 }

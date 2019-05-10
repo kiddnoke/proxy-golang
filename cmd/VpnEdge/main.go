@@ -16,6 +16,8 @@ import (
 	"proxy-golang/pushService"
 )
 
+const ssBeginPort = 20000
+
 var Manager *manager.Manager
 var pushSrv *pushService.PushService
 
@@ -41,23 +43,29 @@ func main() {
 	}
 	flag.BoolVar(&generate, "pm2", false, "生成pm2可识别的版本文件")
 	flag.StringVar(&LinkMode, "link-mode", "1", "通信模式")
-	flag.IntVar(&flags.InstanceID, "Id", 1, "实例id")
-	flag.IntVar(&flags.BeginPort, "beginport", 20000, "beginport 起始端口")
-	flag.IntVar(&flags.EndPort, "endport", 30000, "endport 结束端口")
+	flag.IntVar(&flags.InstanceID, "Id", 0, "实例id")
+	flag.IntVar(&flags.BeginPort, "beginport", 0, "beginport 起始端口")
+	flag.IntVar(&flags.EndPort, "endport", 0, "endport 结束端口")
 	flag.StringVar(&flags.CenterUrl, "url", "localhost:7001", "中心的url地址")
 	flag.StringVar(&flags.State, "state", "NULL", "本实例所要注册的国家")
 	flag.StringVar(&flags.Area, "area", "0", "本实例所要注册的地区")
 	flag.Parse()
 
-	manager.BeginPort = flags.BeginPort
-	manager.EndPort = flags.EndPort
-
-	go HttpSrv(flags.InstanceID + 10000)
-
 	if generate {
 		GeneratePm2ConfigFile()
 		return
 	}
+	flags.InstanceID = manager.InstanceIdGen(flags.InstanceID)
+
+	if flags.BeginPort == 0 && flags.EndPort == 0 {
+		flags.BeginPort = ssBeginPort + flags.InstanceID*1000
+		flags.EndPort = flags.BeginPort + 999
+	}
+
+	manager.BeginPort = flags.BeginPort
+	manager.EndPort = flags.EndPort
+
+	go HttpSrv(flags.InstanceID)
 
 	client := wswrapper.New()
 
@@ -228,7 +236,7 @@ func main() {
 }
 
 func HttpSrv(port int) {
-
+	port = port + manager.ManagerBeginPort
 	// Create a new router
 	router := http.NewServeMux()
 

@@ -10,8 +10,9 @@ import (
 	"github.com/shadowsocks/go-shadowsocks2/socks"
 )
 
-const ReadDeadlineDuration = time.Second * 15
-const WriteDeadlineDuration = ReadDeadlineDuration
+var ReadDeadlineDuration = time.Second * 15
+var WriteDeadlineDuration = ReadDeadlineDuration
+
 const DialTimeoutDuration = time.Second * 20
 const KeepAlivePeriod = time.Second * 3
 const AcceptTimeout = 1000
