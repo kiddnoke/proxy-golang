@@ -10,9 +10,9 @@ import (
 	"github.com/shadowsocks/go-shadowsocks2/socks"
 )
 
-const ReadDeadlineDuration = time.Second * 5
+const ReadDeadlineDuration = time.Second * 15
 const WriteDeadlineDuration = ReadDeadlineDuration
-const DialTiemoutDuration = time.Second * 20
+const DialTimeoutDuration = time.Second * 20
 const KeepAlivePeriod = time.Second * 3
 const AcceptTimeout = 1000
 const MaxAcceptConnection = 300
@@ -83,7 +83,7 @@ func (t *TcpRelay) Loop() {
 				return
 			}
 			currstamp := time.Now()
-			remoteconn, err := net.DialTimeout("tcp", tgt.String(), DialTiemoutDuration)
+			remoteconn, err := net.DialTimeout("tcp", tgt.String(), DialTimeoutDuration)
 			if err != nil {
 				t.proxyinfo.Printf("net.Dial Error [%s], handlerId[%d], tgt[%s]", err.Error(), handlerId, tgt.String())
 				return
@@ -124,10 +124,10 @@ func (t *TcpRelay) Loop() {
 				rate := float64(flow) / duration.Seconds() / 1024
 				ip := fmt.Sprintf("%v", shadowconn.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
-				if flow > 10*1024 && rate > 1.0 {
+				if flow > 5*1024 {
 					s2rErr := <-s2rErrC
 					t.Printf("handler[%d] flow[%f k] duration[%f sec] rate[%f kb/s] domain[%v] remoteaddr[%v] s2rErr[%v] r2sErr[%v]", handlerId, float64(flow)/1024.0, duration.Seconds(), rate, tgt, remoteconn.RemoteAddr(), s2rErr.Error(), r2sErr.Error())
-					if t.ConnectInfoCallback != nil {
+					if t.ConnectInfoCallback != nil && flow > 10*1024 {
 						t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(flow)/1024.0, duration)
 					}
 				}
@@ -162,7 +162,6 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) (netErr error) 
 			addTraffic(n)
 		}
 		if n > 0 {
-			right.SetWriteDeadline(time.Now().Add(WriteDeadlineDuration))
 			if _, err := right.Write(buf[0:n]); err != nil {
 				netErr = err
 				break
