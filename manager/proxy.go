@@ -3,6 +3,7 @@ package manager
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"proxy-golang/relay"
@@ -35,6 +36,10 @@ type Proxy struct {
 	AppId       int64  `json:"app_id"`
 	NetworkType string `json:"network_type"`
 
+	//
+	Ip    string `json:"ip"`
+	State string `json:"state"`
+	//
 	relay.ProxyRelay
 }
 
@@ -58,7 +63,7 @@ func (p *Proxy) Init() (err error) {
 		_ = udpposter.PostParams(p.AppId, p.Uid, p.SnId,
 			p.DeviceId, p.AppVersion, p.Os, p.UserType, p.CarrierOperators, p.NetworkType,
 			localAddress, RemoteAddress, time_stamp,
-			int64(rate*100), int64(duration.Seconds()*100), int64(traffic*100))
+			int64(rate*100), int64(duration.Seconds()*100), int64(traffic*100), p.Ip+":"+strconv.Itoa(p.ServerPort), p.State, p.UserType)
 	}
 	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d] ", p.Uid, p.Sid, p.ServerPort, p.AppId))

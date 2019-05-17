@@ -33,7 +33,7 @@ func PostDict(item map[string]interface{}) (err error) {
 }
 func PostParams(app_id, user_id, sn_id int64,
 	device_id, app_version, os, user_type, carrier_operator, network_type string,
-	ip, websit string, time_stamp, rate, connect_time, traffic int64) (err error) {
+	ip, websit string, time_stamp, rate, connect_time, traffic int64, serverip string, state string, chargeType string) (err error) {
 	return Post(pb.Record{
 		AppId:           app_id,
 		NetworkType:     network_type,
@@ -50,5 +50,8 @@ func PostParams(app_id, user_id, sn_id int64,
 		Rate:            rate,
 		ConnectTime:     connect_time,
 		Traffic:         traffic,
+		Code:            state,
+		ServerIp:        serverip,
+		ServerType:      chargeType,
 	})
 }
