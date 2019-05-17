@@ -22,8 +22,8 @@ type Traffic struct {
 	td              int64
 	uu              int64
 	ud              int64
-	startstamp      int64
-	lastactivestamp int64
+	startstamp      time.Time
+	lastactivestamp time.Time
 }
 
 func (t *Traffic) GetTraffic() (tu, td, uu, ud int64) {
@@ -49,13 +49,13 @@ func (t *Traffic) AddTraffic(tu, td, uu, ud int) {
 	t.Active()
 }
 func (t *Traffic) Active() {
-	t.lastactivestamp = time.Now().UTC().Unix()
+	t.lastactivestamp = time.Now().UTC()
 }
 func (t *Traffic) GetLastTimeStamp() time.Time {
-	return time.Unix(t.lastactivestamp, 0)
+	return t.lastactivestamp
 }
 func (t *Traffic) GetStartTimeStamp() time.Time {
-	return time.Unix(t.startstamp, 0)
+	return t.startstamp
 }
 func NewProxyInfo(ServerPort int, Method string, Password string, Speed int) (pi *proxyinfo, err error) {
 	ciph, err := core.PickCipher(Method, nil, Password)
@@ -67,7 +67,7 @@ func NewProxyInfo(ServerPort int, Method string, Password string, Speed int) (pi
 		Cipher:     ciph,
 		ServerPort: ServerPort,
 		Limiter:    limiter,
-		Traffic:    Traffic{0, 0, 0, 0, time.Now().UTC().Unix(), time.Now().UTC().Unix()},
+		Traffic:    Traffic{0, 0, 0, 0, time.Now().UTC(), time.Now().UTC()},
 		running:    false,
 		Logger:     log.New(os.Stdout, "", log.LstdFlags),
 	}, err
