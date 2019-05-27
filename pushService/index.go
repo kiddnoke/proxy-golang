@@ -3,7 +3,6 @@ package pushService
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/graarh/golang-socketio"
@@ -72,8 +71,7 @@ func NewPushService() (push *PushService, err error) {
 		EventId := c.RequestHeader().Get("EventId")
 		SnId := c.RequestHeader().Get("SnId")
 		Port := c.RequestHeader().Get("Port")
-		log.Printf("OnError Client:EventId[%s] SnId[%s] Port[%s]",
-			EventId, SnId, Port)
+		//log.Printf("OnError Client:EventId[%s] SnId[%s] Port[%s]",EventId, SnId, Port)
 		key := GeneratorKey(EventId, SnId, Port)
 		p.UserSids.Delete(key)
 	})
