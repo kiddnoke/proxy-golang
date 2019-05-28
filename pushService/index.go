@@ -23,6 +23,7 @@ type Message struct {
 	Body interface{} `json:"body"`
 }
 
+//
 type Pusher interface {
 	Push(key, method string, body interface{}) (err error)
 }
@@ -42,14 +43,13 @@ func NewPushService() (push *PushService, err error) {
 		EventId := c.RequestHeader().Get("EventId")
 		SnId := c.RequestHeader().Get("SnId")
 		Port := c.RequestHeader().Get("Port")
-		log.Printf("Connected Client:EventId[%s] SnId[%s] Port[%s]",
-			EventId, SnId, Port)
+		//log.Printf("Connected Client:EventId[%s] SnId[%s] Port[%s]", EventId, SnId, Port)
 		key := GeneratorKey(EventId, SnId, Port)
 		sid := c.Id()
 		if _, had := p.UserSids.LoadOrStore(key, sid); had {
-			log.Printf("load")
+			//log.Printf("load")
 		} else {
-			log.Printf("stroed")
+			//log.Printf("stroed")
 		}
 	})
 	if err != nil {
@@ -59,8 +59,7 @@ func NewPushService() (push *PushService, err error) {
 		EventId := c.RequestHeader().Get("EventId")
 		SnId := c.RequestHeader().Get("SnId")
 		Port := c.RequestHeader().Get("Port")
-		log.Printf("OnDisconnection Client:EventId[%s] SnId[%s] Port[%s]",
-			EventId, SnId, Port)
+		//log.Printf("OnDisconnection Client:EventId[%s] SnId[%s] Port[%s]", EventId, SnId, Port)
 		key := GeneratorKey(EventId, SnId, Port)
 		p.UserSids.Delete(key)
 	})
