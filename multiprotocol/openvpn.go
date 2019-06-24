@@ -4,70 +4,66 @@ import (
 	"time"
 )
 
-func NewOpen() (r Relayer, err error) {
-	return
-}
-
 type OpenVpn struct {
-	running bool
+	Config
 }
 
-func (OpenVpn) Start() {
+func (o *OpenVpn) Start() {
 	panic("implement me")
 }
 
-func (OpenVpn) Stop() {
+func (o *OpenVpn) Stop() {
 	panic("implement me")
 }
 
-func (OpenVpn) Close() {
+func (o *OpenVpn) Close() {
 	panic("implement me")
 }
 
-func (OpenVpn) IsTimeout() bool {
+func (o *OpenVpn) IsTimeout() bool {
 	panic("implement me")
 }
 
-func (OpenVpn) IsExpire() bool {
+func (o *OpenVpn) IsExpire() bool {
 	panic("implement me")
 }
 
-func (OpenVpn) IsOverflow() bool {
+func (o *OpenVpn) IsOverflow() bool {
 	panic("implement me")
 }
 
-func (OpenVpn) IsNotify() bool {
+func (o *OpenVpn) IsNotify() bool {
 	panic("implement me")
 }
 
-func (OpenVpn) IsStairCase() (limit int, flag bool) {
+func (o *OpenVpn) IsStairCase() (limit int, flag bool) {
 	panic("implement me")
 }
 
-func (OpenVpn) GetTraffic() (tu, td, uu, ud int64) {
+func (o *OpenVpn) GetTraffic() (tu, td, uu, ud int64) {
 	panic("implement me")
 }
 
-func (OpenVpn) AddTraffic(tu, td, uu, ud int) {
+func (o *OpenVpn) GetStartTimeStamp() time.Time {
 	panic("implement me")
 }
 
-func (OpenVpn) Clear() {
+func (o *OpenVpn) GetLastTimeStamp() time.Time {
 	panic("implement me")
 }
 
-func (OpenVpn) GetStartTimeStamp() time.Time {
+func (o *OpenVpn) Clear() {
 	panic("implement me")
 }
 
-func (OpenVpn) GetLastTimeStamp() time.Time {
+func (o *OpenVpn) SetLimit(bytesPerSec int) {
 	panic("implement me")
 }
 
-func (OpenVpn) WaitN(n int) (err error) {
+func (o *OpenVpn) Burst() int {
 	panic("implement me")
 }
 
-func (OpenVpn) SetLimit(bytesPerSec int) {
-	panic("implement me")
+func (o *OpenVpn) GetConfig() *Config {
+	return &o.Config
 }

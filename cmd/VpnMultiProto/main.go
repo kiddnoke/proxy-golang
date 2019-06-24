@@ -12,17 +12,17 @@ import (
 	"time"
 
 	"proxy-golang/comm/websocket"
-	"proxy-golang/manager"
+	"proxy-golang/multiprotocol"
 	"proxy-golang/pushService"
 )
 
 const ssBeginPort = 20000
 
-var Manager *manager.Manager
+var Manager *multiprotocol.Manager
 var pushSrv *pushService.PushService
 
 func init() {
-	Manager = manager.New()
+	Manager = multiprotocol.New()
 	Manager.CheckLoop()
 	pushSrv, _ = pushService.NewPushService()
 }
@@ -55,15 +55,15 @@ func main() {
 		GeneratePm2ConfigFile()
 		return
 	}
-	flags.InstanceID = manager.InstanceIdGen(flags.InstanceID)
+	flags.InstanceID = multiprotocol.InstanceIdGen(flags.InstanceID)
 
 	if flags.BeginPort == 0 && flags.EndPort == 0 {
 		flags.BeginPort = ssBeginPort + flags.InstanceID*1000
 		flags.EndPort = flags.BeginPort + 999
 	}
 
-	manager.BeginPort = flags.BeginPort
-	manager.EndPort = flags.EndPort
+	multiprotocol.BeginPort = flags.BeginPort
+	multiprotocol.EndPort = flags.EndPort
 
 	go HttpSrv(flags.InstanceID)
 
@@ -80,19 +80,20 @@ func main() {
 
 	_ = client.Connect(host, port)
 	// timeout Handle
-	Manager.On("timeout", func(uid, sid int64, port int, appid int64) {
-		var proxyinfo manager.Proxy
-		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port, AppId: appid}
+	Manager.On("timeout", func(uid, sid int64, port int, appid int64, protocol string) {
+		var proxyinfo multiprotocol.Config
+		proxyinfo = multiprotocol.Config{Sid: sid, Uid: uid, ServerPort: port, AppId: appid, Protocol: protocol}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
+			return
 		}
 		tu, td, uu, ud := pr.GetTraffic()
 		transfer := []int64{tu, td, uu, ud}
 
 		timestamp := pr.GetLastTimeStamp()
 		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
-		pr.Timeout = 0
+		pr.GetConfig().Timeout = 0
 		time.AfterFunc(time.Minute*2, func() {
 			// 回收
 			Manager.Delete(proxyinfo)
@@ -105,16 +106,17 @@ func main() {
 		_ = pushSrv.Push(key, "timeout", time.Now().UTC().Unix())
 	})
 	//expire Handle
-	Manager.On("expire", func(uid, sid int64, port int, appid int64) {
-		var proxyinfo manager.Proxy
-		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port, AppId: appid}
+	Manager.On("expire", func(uid, sid int64, port int, appid int64, protocol string) {
+		var proxyinfo multiprotocol.Config
+		proxyinfo = multiprotocol.Config{Sid: sid, Uid: uid, ServerPort: port, AppId: appid, Protocol: protocol}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
+			return
 		}
 		tu, td, uu, ud := pr.GetTraffic()
 		transfer := []int64{tu, td, uu, ud}
-		pr.Expire = 0
+		pr.GetConfig().Expire = 0
 		time.AfterFunc(time.Minute, func() {
 			// 回收
 			Manager.Delete(proxyinfo)
@@ -129,17 +131,17 @@ func main() {
 		_ = pushSrv.Push(key, "expire", time.Now().UTC().Unix())
 	})
 	// overflow Handle
-	Manager.On("overflow", func(uid, sid int64, port int, appid int64, limit int) {
-		proxyinfo := manager.Proxy{Sid: sid, Uid: uid, ServerPort: port, AppId: appid}
+	Manager.On("overflow", func(uid, sid int64, port int, appid int64, limit int, protocol string) {
+		var proxyinfo multiprotocol.Config
+		proxyinfo = multiprotocol.Config{Sid: sid, Uid: uid, ServerPort: port, AppId: appid, Protocol: protocol}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
-		log.Printf("overflow: appid[%d] sid[%d] uid[%d] ,Frome CurrLimit[%d]->NextLimit[%d]", appid, sid, uid, pr.CurrLimitDown, limit)
-		pr.CurrLimitDown = limit
-		pr.CurrLimitUp = limit
+		pr.GetConfig().CurrLimitDown = limit
+		pr.GetConfig().CurrLimitUp = limit
 		client.Overflow(appid, sid, uid, limit)
 		client.Health(Manager.Health())
 		pr.SetLimit(limit * 1024)
@@ -148,17 +150,17 @@ func main() {
 
 	})
 	// balance Handle
-	Manager.On("balance", func(uid, sid int64, port int, appid int64) {
-		var proxyinfo manager.Proxy
-		proxyinfo = manager.Proxy{Sid: sid, Uid: uid, ServerPort: port, AppId: appid}
+	Manager.On("balance", func(uid, sid int64, port int, appid int64, protocol string) {
+		var proxyinfo multiprotocol.Config
+		proxyinfo = multiprotocol.Config{Sid: sid, Uid: uid, ServerPort: port, AppId: appid, Protocol: protocol}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		log.Printf("balance: appid[%d] sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", appid, sid, uid, pr.BalanceNotifyDuration)
-		client.Balance(appid, sid, uid, pr.BalanceNotifyDuration)
-		pr.BalanceNotifyDuration = 0
+		log.Printf("balance: appid[%d] sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", appid, sid, uid, pr.GetConfig().BalanceNotifyDuration)
+		client.Balance(appid, sid, uid, pr.GetConfig().BalanceNotifyDuration)
+		pr.GetConfig().BalanceNotifyDuration = 0
 		key := pushService.GeneratorKey(uid, sid, port, appid)
 		_ = pushSrv.Push(key, "balance", time.Now().UTC().Unix())
 	})
@@ -180,7 +182,7 @@ func main() {
 		// OnOpened Handle
 		client.OnOpened(func(msg []byte) {
 			log.Printf("OnOpend %s", msg)
-			var proxyinfo manager.Proxy
+			var proxyinfo multiprotocol.Config
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
 				log.Printf(err.Error())
 			}
@@ -196,6 +198,13 @@ func main() {
 			OpenRetMsg["uid"] = proxyinfo.Uid
 			OpenRetMsg["limit"] = proxyinfo.CurrLimitDown
 			OpenRetMsg["app_id"] = proxyinfo.AppId
+			OpenRetMsg["protocol"] = proxyinfo.Protocol
+			OpenRetMsg["method"] = proxyinfo.Method
+			OpenRetMsg["password"] = proxyinfo.Password
+			if proxyinfo.Protocol == "open" {
+				OpenRetMsg["server_cert"] = proxyinfo.ServerCert
+				OpenRetMsg["remote_access"] = proxyinfo.RemoteAccess
+			}
 			client.Notify("open", OpenRetMsg)
 			client.Health(Manager.Health())
 			client.Size(Manager.Size())
@@ -203,7 +212,7 @@ func main() {
 		// OnClosed Handle
 		client.OnClosed(func(msg []byte) {
 			log.Printf("OnClose %s", msg)
-			var proxyinfo manager.Proxy
+			var proxyinfo multiprotocol.Config
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
 				log.Printf(err.Error())
 			}
@@ -236,7 +245,7 @@ func main() {
 }
 
 func HttpSrv(port int) {
-	port = port + manager.ManagerBeginPort
+	port = port + multiprotocol.ManagerBeginPort
 	// Create a new router
 	router := http.NewServeMux()
 

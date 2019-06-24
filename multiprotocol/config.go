@@ -25,11 +25,11 @@ type Config struct {
 	// NovaPro
 	AppId       int64  `json:"app_id"`
 	NetworkType string `json:"network_type"`
-	// OpenVpn
-	Protocol     string `json:"protocol"`
-	RemoteAccess string `json:"remote_access"`
 	//
 	Ip    string `json:"ip"`
 	State string `json:"state"`
-	//
+	// OpenVpn
+	Protocol     string `json:"protocol"`
+	RemoteAccess string `json:"remote_access"`
+	ServerCert   string `json:"server_cert"`
 }

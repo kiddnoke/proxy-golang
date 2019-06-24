@@ -1,15 +1,15 @@
 package multiprotocol
 
-import "time"
+import (
+	"time"
+)
 
 type Limiter interface {
-	WaitN(n int) (err error)
 	SetLimit(bytesPerSec int)
 	Burst() int
 }
 type TrafficStatistic interface {
 	GetTraffic() (tu, td, uu, ud int64)
-	AddTraffic(tu, td, uu, ud int)
 	GetStartTimeStamp() time.Time
 	GetLastTimeStamp() time.Time
 	Clear()
@@ -19,17 +19,23 @@ type Switcher interface {
 	Stop()
 	Close()
 }
-type Panduanqi interface {
+type Isser interface {
 	IsTimeout() bool
 	IsExpire() bool
 	IsOverflow() bool
 	IsNotify() bool
 	IsStairCase() (limit int, flag bool)
 }
-
+type Getter interface {
+	GetConfig() *Config
+}
+type Logger interface {
+	Printf(format string, v ...interface{})
+}
 type Relayer interface {
 	Switcher
-	Panduanqi
+	Isser
 	TrafficStatistic
 	Limiter
+	Getter
 }

@@ -27,6 +27,10 @@ func generatorKey(args ...interface{}) (keystr string) {
 	return keystr
 }
 
+func genPassword(n int) string {
+	return randStringBytesMaskImprSrcSB(n)
+}
+
 type Manager struct {
 	manager
 	proxyTable sync.Map
@@ -36,14 +40,19 @@ type Manager struct {
 func (m *Manager) Add(proxy *Config) (err error) {
 	var key string
 	if proxy.Protocol == "open" {
+		panic("还未实现openvpn")
 		return nil
 	} else {
+		proxy.Protocol = "ss"
 		proxy.ServerPort = getFreePort(BeginPort, EndPort)
-		key = generatorKey(proxy.Uid, proxy.Sid, proxy.ServerPort, proxy.AppId)
+		if proxy.Password == "" {
+			proxy.Password = genPassword(12)
+		}
+		key = generatorKey(proxy.Uid, proxy.Sid, proxy.ServerPort, proxy.AppId, proxy.Protocol)
 		if _, found := m.proxyTable.Load(key); found {
 			return KeyExist
 		} else {
-			proxy, err := NewSS(*proxy)
+			proxy, err := NewSS(proxy)
 			if err != nil {
 				return err
 			}
@@ -56,7 +65,7 @@ func (m *Manager) Add(proxy *Config) (err error) {
 
 func (m *Manager) Delete(config Config) error {
 	var key string
-	key = generatorKey(config.Uid, config.Sid, config.ServerPort, config.AppId)
+	key = generatorKey(config.Uid, config.Sid, config.ServerPort, config.AppId, config.Protocol)
 	if p, found := m.proxyTable.Load(key); found {
 		p.(Relayer).Close()
 		m.proxyTable.Delete(key)
@@ -69,7 +78,7 @@ func (m *Manager) Delete(config Config) error {
 
 func (m *Manager) Update(config Config) error {
 	var key string
-	key = generatorKey(config.Uid, config.Sid, config.ServerPort, config.AppId)
+	key = generatorKey(config.Uid, config.Sid, config.ServerPort, config.AppId, config.Protocol)
 	if p, found := m.proxyTable.Load(key); found {
 		cp := p.(Config)
 		if config.CurrLimitDown != 0 {
@@ -89,7 +98,7 @@ func (m *Manager) Update(config Config) error {
 
 func (m *Manager) Get(keys Config) (Re Relayer, err error) {
 	var key string
-	key = generatorKey(keys.Uid, keys.Sid, keys.ServerPort, keys.AppId)
+	key = generatorKey(keys.Uid, keys.Sid, keys.ServerPort, keys.AppId, keys.Protocol)
 	if p, found := m.proxyTable.Load(key); found {
 		return p.(Relayer), nil
 	} else {
@@ -102,29 +111,29 @@ func (m *Manager) CheckLoop() {
 	setInterval(time.Second*30, func(when time.Time) {
 		m.proxyTable.Range(func(key, proxy interface{}) bool {
 			p := proxy.(Relayer)
-			c := proxy.(Config)
+			c := p.GetConfig()
 			if p.IsTimeout() {
-				<-m.Emit("timeout", c.Uid, c.Sid, c.ServerPort, c.AppId)
+				<-m.Emit("timeout", c.Uid, c.Sid, c.ServerPort, c.AppId, c.Protocol)
 			}
 			if p.IsExpire() {
-				<-m.Emit("expire", c.Uid, c.Sid, c.ServerPort, c.AppId)
+				<-m.Emit("expire", c.Uid, c.Sid, c.ServerPort, c.AppId, c.Protocol)
 			}
 			if p.IsNotify() {
-				<-m.Emit("balance", c.Uid, c.Sid, c.ServerPort, c.AppId)
+				<-m.Emit("balance", c.Uid, c.Sid, c.ServerPort, c.AppId, c.Protocol)
 			}
 			if limit, flag := p.IsStairCase(); flag == true {
-				<-m.Emit("overflow", c.Uid, c.Sid, c.ServerPort, c.AppId, limit)
+				<-m.Emit("overflow", c.Uid, c.Sid, c.ServerPort, c.AppId, limit, c.Protocol)
 			}
 			return true
 		})
 	})
 	// 1 min timer
 	setInterval(time.Minute, func(when time.Time) {
-		<-m.Emit("health")
+		m.Emit("health")
 		var transferLists []interface{}
 		m.proxyTable.Range(func(key, proxy interface{}) bool {
 			p := proxy.(Relayer)
-			c := proxy.(Config)
+			c := p.GetConfig()
 			if p.GetLastTimeStamp().Add(time.Minute * 5).Before(time.Now().UTC()) {
 				return true
 			}

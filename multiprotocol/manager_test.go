@@ -3,8 +3,12 @@ package multiprotocol
 import (
 	"encoding/json"
 	"log"
+	"net/http"
+	"net/http/pprof"
+	"strconv"
 	"sync"
 	"testing"
+	"time"
 )
 
 /*
@@ -17,10 +21,38 @@ var Json []string = []string{
 }
 var m *Manager
 
+func HttpSrv(port int) {
+	// Create a new router
+	router := http.NewServeMux()
+
+	// Register pprof handlers
+	router.HandleFunc("/debug/pprof/", pprof.Index)
+	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+
+	router.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	router.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	router.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	router.Handle("/debug/pprof/block", pprof.Handler("block"))
+	router.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
+	router.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
+
+	srv := &http.Server{
+		Handler:      router,
+		Addr:         "0.0.0.0:" + strconv.Itoa(port),
+		WriteTimeout: 120 * time.Second,
+		ReadTimeout:  120 * time.Second,
+	}
+
+	log.Fatal(srv.ListenAndServe())
+}
+
 func init() {
 	m = New()
 	BeginPort = 2000
 	EndPort = 3000
+	go HttpSrv(2999)
 }
 
 func TestManager_Add(t *testing.T) {

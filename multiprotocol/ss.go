@@ -14,9 +14,8 @@ type SS struct {
 	relay.ProxyRelay
 }
 
-func NewSS(p Config) (r *SS, err error) {
+func NewSS(p *Config) (r *SS, err error) {
 	r = new(SS)
-	r.Config = p
 	searchLimit, err := searchLimit(int64(p.CurrLimitDown), p.LimitArray, p.FlowArray, p.UsedTotalTraffic)
 
 	pi, e := relay.NewProxyInfo(p.ServerPort, p.Method, p.Password, int(searchLimit))
@@ -39,10 +38,12 @@ func NewSS(p Config) (r *SS, err error) {
 			int64(rate*100), int64(duration.Seconds()*100), int64(traffic*100), p.Ip+":"+strconv.Itoa(p.ServerPort), p.State, p.UserType)
 	}
 	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
-	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d] ", p.Uid, p.Sid, p.ServerPort, p.AppId))
+	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d] Protocol[%s]", p.Uid, p.Sid, p.ServerPort, p.AppId, p.Protocol))
+	r.Config = *p
 	r.ProxyRelay = *pr
 	return
 }
+
 func (s *SS) Start() {
 	s.ProxyRelay.Start()
 }
@@ -65,6 +66,7 @@ func (s *SS) IsTimeout() bool {
 		return false
 	}
 }
+
 func (s *SS) IsExpire() bool {
 	if s.Expire == 0 {
 		return false
@@ -75,6 +77,7 @@ func (s *SS) IsExpire() bool {
 		return false
 	}
 }
+
 func (s *SS) IsOverflow() bool {
 	tu, td, uu, ud := s.GetTraffic()
 	if tu+td+uu+ud > int64(s.UsedTotalTraffic*1024) {
@@ -83,6 +86,7 @@ func (s *SS) IsOverflow() bool {
 		return false
 	}
 }
+
 func (s *SS) IsNotify() bool {
 	if s.BalanceNotifyDuration == 0 {
 		return false
@@ -94,6 +98,7 @@ func (s *SS) IsNotify() bool {
 		}
 	}
 }
+
 func (s *SS) IsStairCase() (limit int, flag bool) {
 	tu, td, uu, ud := s.GetTraffic()
 	totalFlow := s.UsedTotalTraffic + (tu+td+uu+ud)/1024
@@ -106,12 +111,9 @@ func (s *SS) IsStairCase() (limit int, flag bool) {
 		return 0, false
 	}
 }
+
 func (s *SS) GetTraffic() (tu, td, uu, ud int64) {
 	return s.ProxyRelay.GetTraffic()
-}
-
-func (s *SS) AddTraffic(tu, td, uu, ud int) {
-	panic("implement me")
 }
 
 func (s *SS) Clear() {
@@ -126,13 +128,14 @@ func (s *SS) GetLastTimeStamp() time.Time {
 	return s.ProxyRelay.GetLastTimeStamp()
 }
 
-func (s *SS) WaitN(n int) (err error) {
-	return s.ProxyRelay.WaitN(n)
-}
-
 func (s *SS) SetLimit(bytesPerSec int) {
 	s.ProxyRelay.SetLimit(bytesPerSec)
 }
+
 func (s *SS) Burst() int {
 	return s.ProxyRelay.Burst()
+}
+
+func (s *SS) GetConfig() *Config {
+	return &s.Config
 }
