@@ -23,8 +23,8 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 	c.CurrLimitUp = int(searchLimit)
 	c.CurrLimitUp = int(searchLimit)
 
-	r.HubName = fmt.Sprintf("%d", c.Sid)
-	r.UserName = fmt.Sprintf("%d", c.Uid)
+	r.HubName = fmt.Sprintf("%d", c.Uid)
+	r.UserName = fmt.Sprintf("%d", c.Sid)
 	r.Password = c.Password
 	r.Traffic = common.MakeTraffic()
 	c.ServerPort = 1194
