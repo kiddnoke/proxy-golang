@@ -39,9 +39,21 @@ type Manager struct {
 
 func (m *Manager) Add(proxy *Config) (err error) {
 	var key string
+	var relay Relayer
 	if proxy.Protocol == "open" {
-		panic("还未实现openvpn")
-		return nil
+		key = generatorKey(proxy.Uid, proxy.Sid, 1194, proxy.AppId, proxy.Protocol)
+		if _, found := m.proxyTable.Load(key); found {
+			return KeyExist
+		} else {
+			proxy.Password = genPassword(5)
+			relay, err = NewOpenVpn(proxy)
+			if err != nil {
+				return err
+			}
+			relay.Start()
+			m.proxyTable.Store(key, relay)
+			return nil
+		}
 	} else {
 		proxy.Protocol = "ss"
 		proxy.ServerPort = getFreePort(BeginPort, EndPort)
@@ -52,12 +64,12 @@ func (m *Manager) Add(proxy *Config) (err error) {
 		if _, found := m.proxyTable.Load(key); found {
 			return KeyExist
 		} else {
-			proxy, err := NewSS(proxy)
+			relay, err = NewSS(proxy)
 			if err != nil {
 				return err
 			}
-			m.proxyTable.Store(key, proxy)
-			proxy.Start()
+			m.proxyTable.Store(key, relay)
+			relay.Start()
 			return nil
 		}
 	}

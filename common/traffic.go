@@ -1,21 +1,6 @@
-package relay
+package common
 
-import (
-	"log"
-	"os"
-	"time"
-
-	"github.com/shadowsocks/go-shadowsocks2/core"
-)
-
-type proxyinfo struct {
-	ServerPort int `json:"server_port"`
-	core.Cipher
-	*Limiter
-	Traffic
-	*log.Logger
-	running bool
-}
+import "time"
 
 type Traffic struct {
 	tu              int64
@@ -26,6 +11,13 @@ type Traffic struct {
 	lastactivestamp time.Time
 }
 
+func MakeTraffic() Traffic {
+	return Traffic{
+		0, 0, 0, 0,
+		time.Now().UTC(),
+		time.Now().UTC(),
+	}
+}
 func (t *Traffic) GetTraffic() (tu, td, uu, ud int64) {
 	return t.tu, t.td, t.uu, t.ud
 }
@@ -48,6 +40,17 @@ func (t *Traffic) AddTraffic(tu, td, uu, ud int) {
 	t.ud += int64(ud)
 	t.Active()
 }
+
+func (t *Traffic) SetTraffic(tu, td, uu, ud int64) {
+	if tu+td+uu+ud == 0 {
+		return
+	}
+	t.tu = tu
+	t.td = td
+	t.uu = uu
+	t.ud = ud
+	t.Active()
+}
 func (t *Traffic) Active() {
 	t.lastactivestamp = time.Now().UTC()
 }
@@ -56,19 +59,4 @@ func (t *Traffic) GetLastTimeStamp() time.Time {
 }
 func (t *Traffic) GetStartTimeStamp() time.Time {
 	return t.startstamp
-}
-func NewProxyInfo(ServerPort int, Method string, Password string, Speed int) (pi *proxyinfo, err error) {
-	ciph, err := core.PickCipher(Method, nil, Password)
-	if err != nil {
-		log.Fatal(err)
-	}
-	limiter := NewSpeedLimiter(Speed * 1024)
-	return &proxyinfo{
-		Cipher:     ciph,
-		ServerPort: ServerPort,
-		Limiter:    limiter,
-		Traffic:    Traffic{0, 0, 0, 0, time.Now().UTC(), time.Now().UTC()},
-		running:    false,
-		Logger:     log.New(os.Stdout, "", log.LstdFlags),
-	}, err
 }

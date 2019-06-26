@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"proxy-golang/softether"
 	"strconv"
 	"sync"
 	"time"
@@ -25,6 +26,10 @@ func init() {
 	Manager = multiprotocol.New()
 	Manager.CheckLoop()
 	pushSrv, _ = pushService.NewPushService()
+	softether.SoftHost = "47.111.114.109"
+	softether.SoftPort = 443
+	softether.SoftPassword = "1"
+	softether.Init()
 }
 
 func main() {
@@ -181,7 +186,6 @@ func main() {
 	client.OnConnect(func(c wswrapper.Channel) {
 		// OnOpened Handle
 		client.OnOpened(func(msg []byte) {
-			log.Printf("OnOpend %s", msg)
 			var proxyinfo multiprotocol.Config
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
 				log.Printf(err.Error())
@@ -204,7 +208,9 @@ func main() {
 			if proxyinfo.Protocol == "open" {
 				OpenRetMsg["server_cert"] = proxyinfo.ServerCert
 				OpenRetMsg["remote_access"] = proxyinfo.RemoteAccess
+				OpenRetMsg["ip"] = softether.IPv4Address
 			}
+			log.Printf("OnOpend %v", OpenRetMsg)
 			client.Notify("open", OpenRetMsg)
 			client.Health(Manager.Health())
 			client.Size(Manager.Size())
