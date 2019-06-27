@@ -49,6 +49,7 @@ func Init() {
 		DDnsHostName = hostname
 		Ipv4Address = ipv4
 	}
+	Cron()
 	log.Println("Softether Init Success")
 }
 func createDefaultHub() {
