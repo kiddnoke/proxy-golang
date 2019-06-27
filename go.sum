@@ -10,6 +10,8 @@ github.com/graarh/golang-socketio v0.0.0-20170510162725-2c44953b9b5f h1:utzdm9zU
 github.com/graarh/golang-socketio v0.0.0-20170510162725-2c44953b9b5f/go.mod h1:8gudiNCFh3ZfvInknmoXzPeV17FSH+X2J5k2cUPIwnA=
 github.com/kiddnoke/SoftetherGo v0.0.0-20190627062633-867eb374f072 h1:g3xJ0fs6gsEydzpFGMpH6LtlIE/V56zrxr7fnNUh4Sk=
 github.com/kiddnoke/SoftetherGo v0.0.0-20190627062633-867eb374f072/go.mod h1:ua2hHO56si82XY5yGzzjnzxwatU0Naqu3Xl6XdV5s34=
+github.com/kiddnoke/SoftetherGo v0.0.0-20190627161416-a9b042015679 h1:G5rVgGzEkMcA+aekKPs/Z9XnBhieRGxb5YG0D0NOcZc=
+github.com/kiddnoke/SoftetherGo v0.0.0-20190627161416-a9b042015679/go.mod h1:ua2hHO56si82XY5yGzzjnzxwatU0Naqu3Xl6XdV5s34=
 github.com/shadowsocks/go-shadowsocks2 v0.0.11 h1:dXloqEhYnZV40jblWTK8kWeC0Eb+dgql4S0tj99e8j0=
 github.com/shadowsocks/go-shadowsocks2 v0.0.11/go.mod h1:R+KWaoIwRRhnpw6XV+dZil0XHi64Hc1D7hXUyXTjUzQ=
 golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25 h1:jsG6UpNLt9iAsb0S2AGW28DveNzzgmbXR+ENoPjUeIU=

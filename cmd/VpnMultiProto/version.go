@@ -5,13 +5,14 @@ import (
 	"io/ioutil"
 	"log"
 	"proxy-golang/common"
+	"strconv"
 )
 
 var (
 	BuildDate    string
 	BuildVersion string
 	BuildBranch  string
-	LoggerLevel  int
+	LoggerLevel  string
 )
 
 func init() {
@@ -19,12 +20,13 @@ func init() {
 		BuildVersion = "Debug"
 		BuildDate = "Debug"
 		BuildBranch = "Debug"
-		LoggerLevel = common.LOG_DEBUG
+		LoggerLevel = strconv.Itoa(common.LOG_DEBUG)
 	}
 	log.Printf("BuildVersion [%s]", BuildVersion)
 	log.Printf("BuildDate [%s]", BuildDate)
 	log.Printf("BuildBranch [%s]", BuildBranch)
-	common.SetDefaultLevel(LoggerLevel)
+	i, _ := strconv.Atoi(LoggerLevel)
+	common.SetDefaultLevel(i)
 	commomLogLevel, _ := common.GetDefaultLevel()
 	log.Printf("LoggerLevel %s", commomLogLevel)
 }
