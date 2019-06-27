@@ -20,6 +20,7 @@ type OpenVpn struct {
 
 func NewOpenVpn(c *Config) (*OpenVpn, error) {
 	r := new(OpenVpn)
+	c.ServerPort = 1194
 	_, level := common.GetDefaultLevel()
 	prefix := fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d] Protocol[%s]", c.Uid, c.Sid, c.ServerPort, c.AppId, c.Protocol)
 	r.Logger = *common.NewLogger(level, prefix)
@@ -31,7 +32,7 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 	r.UserName = fmt.Sprintf("%d", c.Sid)
 	r.Password = c.Password
 	r.Traffic = common.MakeTraffic()
-	c.ServerPort = 1194
+
 	c.Method = r.UserName + "@" + r.HubName
 
 	_, err = softether.API.CreateHub(r.HubName, true, softetherApi.HUB_TYPE_STANDALONE)
@@ -176,10 +177,12 @@ func (o *OpenVpn) GetLastTimeStamp() time.Time {
 }
 
 func (o *OpenVpn) Clear() {
+	o.Debug("Clear")
 	o.Traffic.GetTrafficWithClear()
 }
 
 func (o *OpenVpn) SetLimit(bytesPerSec int) {
+	o.Debug("SetLimit")
 	if bytesPerSec == 0 {
 		return
 	}
@@ -188,20 +191,9 @@ func (o *OpenVpn) SetLimit(bytesPerSec int) {
 }
 
 func (o *OpenVpn) Burst() int {
-	if out, err := softether.API.GetUser(o.HubName, o.UserName); err == nil {
-		maxupload, ok := out["policy:MaxUpload"]
-		if ok {
-			MaxUpload := maxupload.(int)
-			MaxUpload = MaxUpload / (1024 * 8)
-			return MaxUpload
-		} else {
-			o.Error("do not get MaxUpload ")
-			return 0
-		}
-	} else {
-		o.Error("%v", err.Error())
-		return 0
-	}
+	brust := o.Config.CurrLimitUp
+	o.Debug("Burst is %d", brust)
+	return brust
 }
 
 func (o *OpenVpn) GetConfig() *Config {
@@ -209,6 +201,7 @@ func (o *OpenVpn) GetConfig() *Config {
 }
 
 func (o *OpenVpn) syncUserTraffic() {
+	o.Debug("syncUserTraffic")
 	out, err := softether.API.GetUser(o.HubName, o.UserName)
 	if err != nil {
 		o.Error("%s", err.Error())
@@ -223,5 +216,16 @@ func (o *OpenVpn) syncUserTraffic() {
 	if new_tu != tu || new_td != td || new_uu != uu || new_ud != ud {
 		o.Debug("traffic update: tu[%d], td[%d], uu[%d], ud[%d]", new_tu, new_td, new_uu, new_ud)
 		o.Traffic.SetTraffic(new_tu, new_td, new_uu, new_ud)
+	}
+	//
+	maxupload, ok := out["policy:MaxUpload"]
+	if ok {
+		MaxUpload := maxupload.(int)
+		MaxUpload = MaxUpload / (1024 * 8)
+		o.GetConfig().CurrLimitUp = MaxUpload
+		o.GetConfig().CurrLimitDown = MaxUpload
+	} else {
+		o.Debug("do not get MaxUpload ")
+		o.GetConfig().CurrLimitDown = 0
 	}
 }

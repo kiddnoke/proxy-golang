@@ -71,7 +71,7 @@ func (l *Logger) output(level int, s string) error {
 	if l.level <= level {
 		t := levelstr[level] + " "
 		t += s
-		return l.ll.Output(2, t)
+		return l.ll.Output(3, t)
 	}
 	return nil
 }
