@@ -210,7 +210,7 @@ func main() {
 			if proxyinfo.Protocol == "open" {
 				OpenRetMsg["server_cert"] = proxyinfo.ServerCert
 				OpenRetMsg["remote_access"] = proxyinfo.RemoteAccess
-				OpenRetMsg["ip"] = softether.IPv4Address
+				OpenRetMsg["ip"] = proxyinfo.Ipv4Address
 			}
 			log.Printf("OnOpend %v", OpenRetMsg)
 			client.Notify("open", OpenRetMsg)

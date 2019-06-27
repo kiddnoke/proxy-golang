@@ -32,4 +32,5 @@ type Config struct {
 	Protocol     string `json:"protocol"`
 	RemoteAccess string `json:"remote_access"`
 	ServerCert   string `json:"server_cert"`
+	Ipv4Address  string `json:"ipv4_address"`
 }

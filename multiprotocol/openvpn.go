@@ -31,29 +31,42 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 	c.Method = r.UserName + "@" + r.HubName
 
 	_, err = softether.API.CreateHub(r.HubName, true, softetherApi.HUB_TYPE_STANDALONE)
-	if err != nil && err.Error() != "HUB already exists" {
+	if err != nil {
+		if e, ok := err.(softetherApi.ApiError); ok && e.Code() != softetherApi.ERR_HUB_ALREADY_EXISTS {
+			goto CreateUser
+		}
 		return nil, err
 	}
+
 	_, err = softether.API.EnableSecureNat(r.HubName)
 	if err != nil {
 		return nil, err
 	}
+CreateUser:
 	_, err = softether.API.CreateUser(r.HubName, r.UserName, r.Password)
+	if err != nil {
+		if e, ok := err.(softetherApi.ApiError); ok && e.Code() != softetherApi.ERR_USER_ALREADY_EXISTS {
+			goto SetPassword
+		}
+		return nil, err
+	}
+SetPassword:
+	_, err = softether.API.SetUserPolicy(r.HubName, r.UserName, int(searchLimit)*8, int(searchLimit)*8)
 	if err != nil {
 		return nil, err
 	}
-	//_, err = softether.API.SetUserPolicy(r.HubName, r.UserName, int(searchLimit)*8, int(searchLimit)*8)
-	//if err != nil {
-	//	return nil, err
-	//}
+
 	c.ServerCert = softether.ServerCert
 	c.RemoteAccess = softether.RemoteAccess
+	c.Ipv4Address = softether.Ipv4Address
 	r.Config = *c
 	return r, nil
 }
 
 func (o *OpenVpn) Start() {
-	o.setTimeInternal()
+	o.timer = *setInterval(time.Second*30, func(when time.Time) {
+		o.syncUserTraffic()
+	})
 }
 
 func (o *OpenVpn) Stop() {
@@ -64,7 +77,17 @@ func (o *OpenVpn) Close() {
 	o.Stop()
 	hubname := o.HubName
 	username := o.UserName
-	softether.API.DeleteUser(hubname, username)
+	out, err := softether.API.ListUser(hubname)
+	if err != nil {
+		softether.API.DeleteUser(hubname, username)
+		return
+	}
+	names, ok := out["Name"].([]string)
+	if ok && len(names) > 1 {
+		softether.API.DeleteUser(hubname, username)
+	} else {
+		softether.API.DeleteHub(hubname)
+	}
 }
 
 func (o *OpenVpn) IsTimeout() bool {
@@ -174,12 +197,6 @@ func (o *OpenVpn) syncUserTraffic() {
 
 	tu, td, uu, ud := o.Traffic.GetTraffic()
 	if new_tu != tu || new_td != td || new_uu != uu || new_ud != ud {
-		o.Traffic.Active()
+		o.Traffic.SetTraffic(new_tu, new_td, new_uu, new_ud)
 	}
-	o.Traffic.SetTraffic(new_tu, new_td, new_uu, new_ud)
-}
-func (o *OpenVpn) setTimeInternal() {
-	o.timer = *setInterval(time.Second*30, func(when time.Time) {
-		o.syncUserTraffic()
-	})
 }

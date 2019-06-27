@@ -11,7 +11,7 @@ var SoftPassword string
 var ServerCert string
 var RemoteAccess string
 var DDnsHostName string
-var IPv4Address string
+var Ipv4Address string
 
 var OpenVpnServicePort int
 
@@ -39,11 +39,12 @@ func Init() {
 	} else {
 		ServerCert = cert
 	}
+	//
 	if hostname, ipv4, err := API.GetDDnsHostName(); err != nil {
 		panic(err)
 	} else {
 		DDnsHostName = hostname
-		IPv4Address = ipv4
+		Ipv4Address = ipv4
 	}
 }
 func createDefaultHub() {
