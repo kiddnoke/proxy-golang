@@ -26,10 +26,8 @@ func init() {
 	Manager = multiprotocol.New()
 	Manager.CheckLoop()
 	pushSrv, _ = pushService.NewPushService()
-	softether.SoftHost = "47.111.114.109"
+	softether.SoftHost = "localhost"
 	softether.SoftPort = 443
-	softether.SoftPassword = "1"
-	softether.Init()
 }
 
 func main() {
@@ -60,6 +58,10 @@ func main() {
 		GeneratePm2ConfigFile()
 		return
 	}
+	//
+	softether.SoftPassword = flags.CenterUrl
+	go softether.Init()
+
 	flags.InstanceID = multiprotocol.InstanceIdGen(flags.InstanceID)
 
 	if flags.BeginPort == 0 && flags.EndPort == 0 {

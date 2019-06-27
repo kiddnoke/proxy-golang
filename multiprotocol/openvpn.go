@@ -31,7 +31,7 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 	c.Method = r.UserName + "@" + r.HubName
 
 	_, err = softether.API.CreateHub(r.HubName, true, softetherApi.HUB_TYPE_STANDALONE)
-	if err != nil {
+	if err != nil && err.Error() != "HUB already exists" {
 		return nil, err
 	}
 	_, err = softether.API.EnableSecureNat(r.HubName)
@@ -42,10 +42,10 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = softether.API.SetUserPolicy(r.HubName, r.UserName, int(searchLimit)*8, int(searchLimit)*8)
-	if err != nil {
-		return nil, err
-	}
+	//_, err = softether.API.SetUserPolicy(r.HubName, r.UserName, int(searchLimit)*8, int(searchLimit)*8)
+	//if err != nil {
+	//	return nil, err
+	//}
 	c.ServerCert = softether.ServerCert
 	c.RemoteAccess = softether.RemoteAccess
 	r.Config = *c
@@ -63,7 +63,8 @@ func (o *OpenVpn) Stop() {
 func (o *OpenVpn) Close() {
 	o.Stop()
 	hubname := o.HubName
-	softether.API.DeleteHub(hubname)
+	username := o.UserName
+	softether.API.DeleteUser(hubname, username)
 }
 
 func (o *OpenVpn) IsTimeout() bool {
@@ -167,8 +168,8 @@ func (o *OpenVpn) syncUserTraffic() {
 		return
 	}
 	new_tu := out["Send.UnicastBytes"].(int64)
-	new_td := out["Send.UnicastBytes"].(int64)
-	new_uu := out["Recv.BroadcastBytes"].(int64)
+	new_td := out["Recv.UnicastBytes"].(int64)
+	new_uu := out["Send.BroadcastBytes"].(int64)
 	new_ud := out["Recv.BroadcastBytes"].(int64)
 
 	tu, td, uu, ud := o.Traffic.GetTraffic()
