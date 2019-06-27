@@ -32,7 +32,7 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 
 	_, err = softether.API.CreateHub(r.HubName, true, softetherApi.HUB_TYPE_STANDALONE)
 	if err != nil {
-		if e, ok := err.(softetherApi.ApiError); ok && e.Code() != softetherApi.ERR_HUB_ALREADY_EXISTS {
+		if e, ok := err.(*softetherApi.ApiError); ok && e.Code() == softetherApi.ERR_HUB_ALREADY_EXISTS {
 			goto CreateUser
 		}
 		return nil, err
@@ -45,17 +45,19 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 CreateUser:
 	_, err = softether.API.CreateUser(r.HubName, r.UserName, r.Password)
 	if err != nil {
-		if e, ok := err.(softetherApi.ApiError); ok && e.Code() != softetherApi.ERR_USER_ALREADY_EXISTS {
+		if e, ok := err.(*softetherApi.ApiError); ok && e.Code() == softetherApi.ERR_USER_ALREADY_EXISTS {
 			goto SetPassword
 		}
 		return nil, err
+	} else {
+		goto End
 	}
 SetPassword:
 	_, err = softether.API.SetUserPolicy(r.HubName, r.UserName, int(searchLimit)*8, int(searchLimit)*8)
 	if err != nil {
 		return nil, err
 	}
-
+End:
 	c.ServerCert = softether.ServerCert
 	c.RemoteAccess = softether.RemoteAccess
 	c.Ipv4Address = softether.Ipv4Address
