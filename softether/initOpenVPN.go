@@ -1,6 +1,9 @@
 package softether
 
-import "github.com/kiddnoke/SoftetherGo"
+import (
+	"github.com/kiddnoke/SoftetherGo"
+	"log"
+)
 
 var API *softetherApi.API
 
@@ -46,6 +49,7 @@ func Init() {
 		DDnsHostName = hostname
 		Ipv4Address = ipv4
 	}
+	log.Println("Softether Init Success")
 }
 func createDefaultHub() {
 
