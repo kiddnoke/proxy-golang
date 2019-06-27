@@ -1,6 +1,9 @@
 package softether
 
-import "time"
+import (
+	"log"
+	"time"
+)
 
 const duration = time.Hour * 6
 
@@ -17,7 +20,6 @@ func Cron() {
 	return
 }
 func callback(timestamp time.Time) {
-	// TODO
 	// 只要检查 hub 的最后通信时间，
 	// 如果hub的最后通信时间非常久远，就可以把hub删除了。
 	hubs, err := API.ListHub()
@@ -31,7 +33,9 @@ func callback(timestamp time.Time) {
 		now := time.Now()
 		if now.Sub(lastcommtime) >= time.Hour*18 {
 			clear_hubname := i_hubName[index].(string)
-			API.DeleteHub(clear_hubname)
+			if _, err := API.DeleteHub(clear_hubname); err == nil {
+				log.Printf("CronTask Delete Hub[%s]", clear_hubname)
+			}
 		}
 	}
 }
