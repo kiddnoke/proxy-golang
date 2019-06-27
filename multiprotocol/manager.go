@@ -40,8 +40,9 @@ type Manager struct {
 func (m *Manager) Add(proxy *Config) (err error) {
 	var key string
 	var relay Relayer
+	key = generatorKey(proxy.Sid)
 	if proxy.Protocol == "open" {
-		key = generatorKey(proxy.Uid, proxy.Sid, 1194, proxy.AppId, proxy.Protocol)
+
 		if _, found := m.proxyTable.Load(key); found {
 			return KeyExist
 		} else {
@@ -60,7 +61,6 @@ func (m *Manager) Add(proxy *Config) (err error) {
 		if proxy.Password == "" {
 			proxy.Password = genPassword(12)
 		}
-		key = generatorKey(proxy.Uid, proxy.Sid, proxy.ServerPort, proxy.AppId, proxy.Protocol)
 		if _, found := m.proxyTable.Load(key); found {
 			return KeyExist
 		} else {
@@ -77,7 +77,7 @@ func (m *Manager) Add(proxy *Config) (err error) {
 
 func (m *Manager) Delete(config Config) error {
 	var key string
-	key = generatorKey(config.Uid, config.Sid, config.ServerPort, config.AppId, config.Protocol)
+	key = generatorKey(config.Sid)
 	if p, found := m.proxyTable.Load(key); found {
 		p.(Relayer).Close()
 		m.proxyTable.Delete(key)
@@ -90,7 +90,7 @@ func (m *Manager) Delete(config Config) error {
 
 func (m *Manager) Update(config Config) error {
 	var key string
-	key = generatorKey(config.Uid, config.Sid, config.ServerPort, config.AppId, config.Protocol)
+	key = generatorKey(config.Sid)
 	if p, found := m.proxyTable.Load(key); found {
 		cp := p.(Config)
 		if config.CurrLimitDown != 0 {
@@ -110,7 +110,7 @@ func (m *Manager) Update(config Config) error {
 
 func (m *Manager) Get(keys Config) (Re Relayer, err error) {
 	var key string
-	key = generatorKey(keys.Uid, keys.Sid, keys.ServerPort, keys.AppId, keys.Protocol)
+	key = generatorKey(keys.Sid)
 	if p, found := m.proxyTable.Load(key); found {
 		return p.(Relayer), nil
 	} else {

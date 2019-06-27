@@ -212,7 +212,6 @@ func main() {
 				OpenRetMsg["remote_access"] = proxyinfo.RemoteAccess
 				OpenRetMsg["ip"] = proxyinfo.Ipv4Address
 			}
-			log.Printf("OnOpend %v", OpenRetMsg)
 			client.Notify("open", OpenRetMsg)
 			client.Health(Manager.Health())
 			client.Size(Manager.Size())
