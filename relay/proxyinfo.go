@@ -3,7 +3,6 @@ package relay
 import (
 	"github.com/shadowsocks/go-shadowsocks2/core"
 	"log"
-	"os"
 	"proxy-golang/common"
 )
 
@@ -12,7 +11,7 @@ type proxyinfo struct {
 	core.Cipher
 	*common.Limiter
 	common.Traffic
-	*log.Logger
+	common.Logger
 	running bool
 }
 
@@ -22,12 +21,13 @@ func NewProxyInfo(ServerPort int, Method string, Password string, Speed int) (pi
 		log.Fatal(err)
 	}
 	limiter := common.NewSpeedLimiter(Speed * 1024)
+	_, level := common.GetDefaultLevel()
 	return &proxyinfo{
 		Cipher:     ciph,
 		ServerPort: ServerPort,
 		Limiter:    limiter,
 		Traffic:    common.MakeTraffic(),
 		running:    false,
-		Logger:     log.New(os.Stdout, "", log.LstdFlags),
+		Logger:     *common.NewLogger(level, ""),
 	}, err
 }

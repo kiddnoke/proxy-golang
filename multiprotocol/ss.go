@@ -2,7 +2,6 @@ package multiprotocol
 
 import (
 	"fmt"
-	"log"
 	"proxy-golang/relay"
 	"proxy-golang/udpposter"
 	"strconv"
@@ -22,12 +21,13 @@ func NewSS(p *Config) (r *SS, err error) {
 	if e != nil {
 		return nil, err
 	}
-	log.Printf("Proxy Init:Uid[%d] Sid[%d] Port[%d] AppId[%d] Proxy.Init UsedTotalTraffic[%v] DefaultLimi[%v] CurrLimit[%v]", p.Uid, p.Sid, p.ServerPort, p.AppId, p.UsedTotalTraffic, p.CurrLimitDown, searchLimit)
+	pi.Info("Proxy Init:Uid[%d] Sid[%d] Port[%d] AppId[%d] Proxy.Init UsedTotalTraffic[%v] DefaultLimi[%v] CurrLimit[%v]", p.Uid, p.Sid, p.ServerPort, p.AppId, p.UsedTotalTraffic, p.CurrLimitDown, searchLimit)
 	p.CurrLimitDown = int(searchLimit)
 	p.CurrLimitUp = int(searchLimit)
 
 	pr, e := relay.NewProxyRelay(pi)
 	if e != nil {
+		pi.Error("%s", err.Error())
 		return nil, err
 	}
 
@@ -37,7 +37,6 @@ func NewSS(p *Config) (r *SS, err error) {
 			localAddress, RemoteAddress, time_stamp,
 			int64(rate*100), int64(duration.Seconds()*100), int64(traffic*100), p.Ip+":"+strconv.Itoa(p.ServerPort), p.State, p.UserType)
 	}
-	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d] Protocol[%s]", p.Uid, p.Sid, p.ServerPort, p.AppId, p.Protocol))
 	r.Config = *p
 	r.ProxyRelay = *pr
@@ -105,7 +104,7 @@ func (s *SS) IsStairCase() (limit int, flag bool) {
 	preLimit := int64(s.CurrLimitDown)
 	nextLimit, err := searchLimit(preLimit, s.LimitArray, s.FlowArray, totalFlow)
 	if preLimit != nextLimit && err == nil {
-		s.Printf("Proxy.IsStairCase totalFlow[%v] CurrLimit[%v] NextLimit[%v]", totalFlow, s.CurrLimitDown, nextLimit)
+		s.Warn("Proxy.IsStairCase totalFlow[%v] CurrLimit[%v] NextLimit[%v]", totalFlow, s.CurrLimitDown, nextLimit)
 		return int(nextLimit), true
 	} else {
 		return 0, false

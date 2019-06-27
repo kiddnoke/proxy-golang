@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"proxy-golang/common"
 )
 
 var (
 	BuildDate    string
 	BuildVersion string
 	BuildBranch  string
+	LoggerLevel  int
 )
 
 func init() {
@@ -17,10 +19,14 @@ func init() {
 		BuildVersion = "Debug"
 		BuildDate = "Debug"
 		BuildBranch = "Debug"
+		LoggerLevel = common.LOG_DEBUG
 	}
 	log.Printf("BuildVersion [%s]", BuildVersion)
 	log.Printf("BuildDate [%s]", BuildDate)
 	log.Printf("BuildBranch [%s]", BuildBranch)
+	common.SetDefaultLevel(LoggerLevel)
+	commomLogLevel, _ := common.GetDefaultLevel()
+	log.Printf("LoggerLevel %s", commomLogLevel)
 }
 func GeneratePm2ConfigFile() (err error) {
 	log.Printf("生成pm2版本文件")

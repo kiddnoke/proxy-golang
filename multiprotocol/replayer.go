@@ -30,7 +30,11 @@ type Getter interface {
 	GetConfig() *Config
 }
 type Logger interface {
-	Printf(format string, v ...interface{})
+	Trace(format string, v ...interface{})
+	Debug(format string, v ...interface{})
+	Info(format string, v ...interface{})
+	Warn(format string, v ...interface{})
+	Error(format string, v ...interface{})
 }
 type Relayer interface {
 	Switcher
@@ -38,4 +42,5 @@ type Relayer interface {
 	TrafficStatistic
 	Limiter
 	Getter
+	Logger
 }
