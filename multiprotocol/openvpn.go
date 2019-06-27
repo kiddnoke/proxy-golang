@@ -3,6 +3,7 @@ package multiprotocol
 import (
 	"fmt"
 	"github.com/kiddnoke/SoftetherGo"
+	"log"
 	"proxy-golang/common"
 	"proxy-golang/softether"
 	"time"
@@ -84,10 +85,12 @@ func (o *OpenVpn) Close() {
 		softether.API.DeleteUser(hubname, username)
 		return
 	}
-	names, ok := out["Name"].([]string)
+	names, ok := out["Name"].([]interface{})
 	if ok && len(names) > 1 {
+		log.Printf("Delete User[%s]", username)
 		softether.API.DeleteUser(hubname, username)
 	} else {
+		log.Printf("Delete Hub[%s]", hubname)
 		softether.API.DeleteHub(hubname)
 	}
 }
@@ -164,6 +167,9 @@ func (o *OpenVpn) Clear() {
 }
 
 func (o *OpenVpn) SetLimit(bytesPerSec int) {
+	if bytesPerSec == 0 {
+		return
+	}
 	bytesPerSec = bytesPerSec * 8
 	softether.API.SetUserPolicy(o.HubName, o.UserName, bytesPerSec, bytesPerSec)
 }
