@@ -41,37 +41,23 @@ func (m *Manager) Add(proxy *Config) (err error) {
 	var key string
 	var relay Relayer
 	key = generatorKey(proxy.Sid)
-	if proxy.Protocol == "open" {
-
-		if _, found := m.proxyTable.Load(key); found {
-			return KeyExist
-		} else {
-			proxy.Password = genPassword(5)
-			relay, err = NewOpenVpn(proxy)
-			if err != nil {
-				return err
-			}
-			relay.Start()
-			m.proxyTable.Store(key, relay)
-			return nil
-		}
+	if _, found := m.proxyTable.Load(key); found {
+		return KeyExist
 	} else {
-		proxy.Protocol = "ss"
-		proxy.ServerPort = getFreePort(BeginPort, EndPort)
 		if proxy.Password == "" {
-			proxy.Password = genPassword(12)
+			proxy.Password = genPassword(5)
 		}
-		if _, found := m.proxyTable.Load(key); found {
-			return KeyExist
-		} else {
+		if proxy.Protocol == "open" {
+			relay, err = NewOpenVpn(proxy)
+		} else if proxy.Protocol == "ss" {
 			relay, err = NewSS(proxy)
-			if err != nil {
-				return err
-			}
-			m.proxyTable.Store(key, relay)
-			relay.Start()
-			return nil
 		}
+		if err != nil {
+			return err
+		}
+		relay.Start()
+		m.proxyTable.Store(key, relay)
+		return nil
 	}
 }
 

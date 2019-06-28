@@ -1,7 +1,7 @@
 package softether
 
 import (
-	"log"
+	"reflect"
 	"time"
 )
 
@@ -26,16 +26,30 @@ func callback(timestamp time.Time) {
 	if err != nil {
 		return
 	}
-	i_lastCommTime := hubs["LastCommTime"].([]interface{})
-	i_hubName := hubs["HubName"].([]interface{})
-	for index, value := range i_lastCommTime {
-		lastcommtime := time.Unix(value.(int64)/1e3, 0)
-		now := time.Now()
-		if now.Sub(lastcommtime) >= time.Hour*18 {
-			clear_hubname := i_hubName[index].(string)
-			if _, err := API.DeleteHub(clear_hubname); err == nil {
-				log.Printf("CronTask Delete Hub[%s]", clear_hubname)
+	var clear_hubname_list []string
+	if reflect.TypeOf(hubs["LastCommTime"]).Kind() == reflect.Slice {
+		i_lastCommTime := hubs["LastCommTime"].([]interface{})
+		i_hubName := hubs["HubName"].([]interface{})
+
+		for index, value := range i_lastCommTime {
+			lastcommtime := time.Unix(value.(int64)/1e3, value.(int64)%1e3*1e6)
+			now := time.Now()
+			if now.Sub(lastcommtime) >= duration*2 {
+				clear_hubname := i_hubName[index].(string)
+				clear_hubname_list = append(clear_hubname_list, clear_hubname)
 			}
 		}
+	} else if reflect.TypeOf(hubs["LastCommTime"]).Kind() == reflect.Int64 {
+		lastCommTime := hubs["LastCommTime"].(int64)
+		lastcommtime := time.Unix(lastCommTime/1e3, 0)
+		now := time.Now()
+		if now.Sub(lastcommtime) >= duration*2 {
+			clear_hubname_list = append(clear_hubname_list, hubs["HubName"].(string))
+		}
 	}
+
+	for _, hubname := range clear_hubname_list {
+		API.DeleteHub(hubname)
+	}
+
 }
