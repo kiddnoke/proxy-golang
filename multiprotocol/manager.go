@@ -49,7 +49,12 @@ func (m *Manager) Add(proxy *Config) (err error) {
 		}
 		if proxy.Protocol == "open" {
 			relay, err = NewOpenVpn(proxy)
-		} else if proxy.Protocol == "ss" {
+		} else {
+			proxy.Protocol = "ss"
+			proxy.ServerPort = getFreePort(BeginPort, EndPort)
+			if proxy.Password == "" {
+				proxy.Password = genPassword(12)
+			}
 			relay, err = NewSS(proxy)
 		}
 		if err != nil {
