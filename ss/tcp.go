@@ -1,4 +1,4 @@
-package relay
+package ss
 
 import (
 	"fmt"
@@ -34,12 +34,11 @@ func (l *listener) Accept() (net.Conn, error) {
 }
 
 type TcpRelay struct {
-	l                   listener
+	l listener
+	*proxyinfo
 	conns               sync.Map
 	ConnectInfoCallback func(time_stamp int64, rate float64, localAddress, RemoteAddress string, traffic float64, duration time.Duration)
-	TransfferCallback   func()
 	handlerId           int
-	running             bool
 }
 
 func NewTcpRelayByProxyInfo(c *proxyinfo) (tp *TcpRelay, err error) {
@@ -64,7 +63,7 @@ func (t *TcpRelay) Loop() {
 			continue
 		}
 		if ConnCount > MaxAcceptConnection {
-			t.proxyinfo.Println("MaxAcceptConnection")
+			t.Warn("MaxAcceptConnection")
 			c.Close()
 			continue
 		}
@@ -81,13 +80,13 @@ func (t *TcpRelay) Loop() {
 			tgt, err := socks.ReadAddr(shadowconn)
 
 			if err != nil {
-				t.proxyinfo.Printf("socks.ReadAddr Error [%s],handlerId[%d], local[%s]", err.Error(), handlerId, shadowconn.RemoteAddr())
+				t.Info("socks.ReadAddr Error [%s],handlerId[%d], local[%s]", err.Error(), handlerId, shadowconn.RemoteAddr())
 				return
 			}
 			currstamp := time.Now()
 			remoteconn, err := net.DialTimeout("tcp", tgt.String(), DialTimeoutDuration)
 			if err != nil {
-				t.proxyinfo.Printf("net.Dial Error [%s], handlerId[%d], tgt[%s]", err.Error(), handlerId, tgt.String())
+				t.Info("net.Dial Error [%s], handlerId[%d], tgt[%s]", err.Error(), handlerId, tgt.String())
 				return
 			}
 			defer func() {
@@ -103,7 +102,7 @@ func (t *TcpRelay) Loop() {
 			go func() {
 				err := PipeThenClose(shadowconn, remoteconn, func(n int) {
 					if err := t.Limiter.WaitN(n); err != nil {
-						t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", shadowconn.RemoteAddr(), tgt, err)
+						t.Error("[%v] -> [%v] speedlimiter err:%v", shadowconn.RemoteAddr(), tgt, err)
 					}
 					t.AddTraffic(n, 0, 0, 0)
 				})
@@ -112,7 +111,7 @@ func (t *TcpRelay) Loop() {
 			r2sErr := PipeThenClose(remoteconn, shadowconn, func(n int) {
 				flow += n
 				if err := t.Limiter.WaitN(n); err != nil {
-					t.proxyinfo.Printf("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
+					t.Error("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
 				}
 				t.AddTraffic(0, n, 0, 0)
 			})
@@ -128,7 +127,7 @@ func (t *TcpRelay) Loop() {
 				website := fmt.Sprintf("%v", tgt)
 				if flow > 5*1024 {
 					s2rErr := <-s2rErrC
-					t.Printf("handler[%d] flow[%f k] duration[%f sec] rate[%f kb/s] domain[%v] remoteaddr[%v] s2rErr[%v] r2sErr[%v]", handlerId, float64(flow)/1024.0, duration.Seconds(), rate, tgt, remoteconn.RemoteAddr(), s2rErr.Error(), r2sErr.Error())
+					t.Info("handler[%d] flow[%f k] duration[%f sec] rate[%f kb/s] domain[%v] remoteaddr[%v] s2rErr[%v] r2sErr[%v]", handlerId, float64(flow)/1024.0, duration.Seconds(), rate, tgt, remoteconn.RemoteAddr(), s2rErr.Error(), r2sErr.Error())
 					if t.ConnectInfoCallback != nil && flow > 10*1024 {
 						t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(flow)/1024.0, duration)
 					}

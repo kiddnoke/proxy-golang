@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"proxy-golang/relay"
+	"proxy-golang/ss"
 	"proxy-golang/udpposter"
 )
 
@@ -40,23 +40,23 @@ type Proxy struct {
 	Ip    string `json:"ip"`
 	State string `json:"state"`
 	//
-	relay.ProxyRelay
+	ss.ProxyRelay
 }
 
 func (p *Proxy) Init() (err error) {
 	searchLimit, err := searchLimit(int64(p.CurrLimitDown), p.LimitArray, p.FlowArray, p.UsedTotalTraffic)
 
-	pi, e := relay.NewProxyInfo(p.ServerPort, p.Method, p.Password, int(searchLimit))
+	pi, e := ss.NewProxyInfo(p.ServerPort, p.Method, p.Password, int(searchLimit))
 	if e != nil {
-		return NewError("Proxy Init", e, relay.NewProxyRelay, p.ServerPort, p.Method, p.Password, p.CurrLimitDown)
+		return NewError("Proxy Init", e, ss.NewProxyRelay, p.ServerPort, p.Method, p.Password, p.CurrLimitDown)
 	}
 	log.Printf("Proxy Init:Uid[%d] Sid[%d] Port[%d] AppId[%d] Proxy.Init UsedTotalTraffic[%v] DefaultLimi[%v] CurrLimit[%v]", p.Uid, p.Sid, p.ServerPort, p.AppId, p.UsedTotalTraffic, p.CurrLimitDown, searchLimit)
 	p.CurrLimitDown = int(searchLimit)
 	p.CurrLimitUp = int(searchLimit)
 
-	pr, e := relay.NewProxyRelay(pi)
+	pr, e := ss.NewProxyRelay(pi)
 	if e != nil {
-		return NewError("Proxy Init", e, relay.NewProxyRelay, pi)
+		return NewError("Proxy Init", e, ss.NewProxyRelay, pi)
 	}
 
 	pr.ConnectInfoCallback = func(time_stamp int64, rate float64, localAddress, RemoteAddress string, traffic float64, duration time.Duration) {

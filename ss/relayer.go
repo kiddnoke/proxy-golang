@@ -1,8 +1,9 @@
-package relay
+package ss
 
 import (
 	"errors"
 	"fmt"
+	"proxy-golang/common"
 )
 
 type ProxyRelayer interface {
@@ -16,6 +17,8 @@ type ProxyRelay struct {
 	*proxyinfo
 }
 
+var leakyBuf = common.BuffPoll
+
 func NewProxyRelay(p *proxyinfo) (r *ProxyRelay, err error) {
 	t, err_t := NewTcpRelayByProxyInfo(p)
 	u, err_u := NewUdpRelayByProxyInfo(p)
@@ -27,18 +30,18 @@ func NewProxyRelay(p *proxyinfo) (r *ProxyRelay, err error) {
 }
 func (r *ProxyRelay) Start() {
 	if r.running == false {
-		r.proxyinfo.Printf("ProxyRelay Start")
+		r.Warn("ProxyRelay Start")
 		r.TcpRelay.Start()
 		r.UdpRelay.Start()
 	}
 }
 func (r *ProxyRelay) Stop() {
-	r.Printf("ProxyRelay Stop")
+	r.Warn("ProxyRelay Stop")
 	r.TcpRelay.Stop()
 	r.UdpRelay.Stop()
 }
 func (r *ProxyRelay) Close() {
-	r.Printf("ProxyRelay Close")
+	r.Warn("ProxyRelay Close")
 	r.Stop()
 	r.TcpRelay.Close()
 	r.UdpRelay.Close()

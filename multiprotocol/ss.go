@@ -5,20 +5,20 @@ import (
 	"strconv"
 	"time"
 
-	"proxy-golang/relay"
+	"proxy-golang/ss"
 	"proxy-golang/udpposter"
 )
 
 type SS struct {
 	Config
-	relay.ProxyRelay
+	ss.ProxyRelay
 }
 
 func NewSS(p *Config) (r *SS, err error) {
 	r = new(SS)
 	searchLimit, err := searchLimit(int64(p.CurrLimitDown), p.LimitArray, p.FlowArray, p.UsedTotalTraffic)
 
-	pi, e := relay.NewProxyInfo(p.ServerPort, p.Method, p.Password, int(searchLimit))
+	pi, e := ss.NewProxyInfo(p.ServerPort, p.Method, p.Password, int(searchLimit))
 	if e != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func NewSS(p *Config) (r *SS, err error) {
 	p.CurrLimitDown = int(searchLimit)
 	p.CurrLimitUp = int(searchLimit)
 
-	pr, e := relay.NewProxyRelay(pi)
+	pr, e := ss.NewProxyRelay(pi)
 	if e != nil {
 		pi.Error("%s", err.Error())
 		return nil, err

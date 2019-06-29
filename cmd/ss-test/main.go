@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	. "proxy-golang/relay"
+	. "proxy-golang/ss"
 )
 
 func main() {

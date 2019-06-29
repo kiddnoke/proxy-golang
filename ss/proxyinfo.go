@@ -1,4 +1,4 @@
-package relay
+package ss
 
 import (
 	"github.com/shadowsocks/go-shadowsocks2/core"

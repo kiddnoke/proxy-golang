@@ -1,4 +1,4 @@
-package relay
+package ss
 
 import (
 	"net"
