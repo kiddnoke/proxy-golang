@@ -26,6 +26,11 @@ func callback(timestamp time.Time) {
 	if err != nil {
 		return
 	}
+	_, ok := hubs["lastCommTime"]
+	if ok == false {
+		return
+	}
+
 	var clear_hubname_list []string
 	if reflect.TypeOf(hubs["LastCommTime"]).Kind() == reflect.Slice {
 		i_lastCommTime := hubs["LastCommTime"].([]interface{})
