@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"proxy-golang/common"
 	"proxy-golang/softether"
+	"strings"
 	"time"
 
 	"github.com/kiddnoke/SoftetherGo"
@@ -21,7 +22,6 @@ type OpenVpn struct {
 
 func NewOpenVpn(c *Config) (*OpenVpn, error) {
 	r := new(OpenVpn)
-	c.ServerPort = 1194
 	_, level := common.GetDefaultLevel()
 	prefix := fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d] Protocol[%s]", c.Uid, c.Sid, c.ServerPort, c.AppId, c.Protocol)
 	r.Logger = *common.NewLogger(level, prefix)
@@ -52,6 +52,14 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 		return nil, err
 	}
 CreateUser:
+
+	outs, err := softether.API.CreateListener(c.ServerPort, true)
+	if err != nil {
+		r.Debug("CreateListener Error:%s", err.Error())
+	} else {
+		r.Debug("CreateListener out is %v", outs)
+	}
+
 	_, err = softether.API.CreateUser(r.HubName, r.UserName, r.Password)
 	if err != nil {
 		if e, ok := err.(*softetherApi.ApiError); ok && e.Code() == softetherApi.ERR_USER_ALREADY_EXISTS {
@@ -71,7 +79,7 @@ SetPassword:
 	}
 End:
 	c.ServerCert = softether.ServerCert
-	c.RemoteAccess = softether.RemoteAccess
+	c.RemoteAccess = strings.Replace(softether.RemoteAccess, "1194", fmt.Sprintf("%d", c.ServerPort), -1)
 	c.Ipv4Address = softether.Ipv4Address
 	r.Config = *c
 	return r, nil
@@ -108,6 +116,7 @@ func (o *OpenVpn) Close() {
 		o.Info("Delete Hub[%s]", hubname)
 		softether.API.DeleteHub(hubname)
 	}
+	softether.API.DeleteListener(o.ServerPort)
 }
 
 func (o *OpenVpn) IsTimeout() bool {
