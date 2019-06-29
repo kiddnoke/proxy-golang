@@ -2,9 +2,10 @@ package multiprotocol
 
 import (
 	"fmt"
-	"github.com/CHH/eventemitter"
 	"sync"
 	"time"
+
+	"github.com/CHH/eventemitter"
 )
 
 type manager interface {
@@ -44,17 +45,16 @@ func (m *Manager) Add(proxy *Config) (err error) {
 	if _, found := m.proxyTable.Load(key); found {
 		return KeyExist
 	} else {
+
 		if proxy.Password == "" {
 			proxy.Password = genPassword(5)
 		}
+
 		if proxy.Protocol == "open" {
 			relay, err = NewOpenVpn(proxy)
 		} else {
 			proxy.Protocol = "ss"
 			proxy.ServerPort = getFreePort(BeginPort, EndPort)
-			if proxy.Password == "" {
-				proxy.Password = genPassword(12)
-			}
 			relay, err = NewSS(proxy)
 		}
 		if err != nil {

@@ -1,8 +1,9 @@
 package softether
 
 import (
-	"github.com/kiddnoke/SoftetherGo"
 	"log"
+
+	"github.com/kiddnoke/SoftetherGo"
 )
 
 var API *softetherApi.API

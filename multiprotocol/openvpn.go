@@ -2,10 +2,11 @@ package multiprotocol
 
 import (
 	"fmt"
-	"github.com/kiddnoke/SoftetherGo"
 	"proxy-golang/common"
 	"proxy-golang/softether"
 	"time"
+
+	"github.com/kiddnoke/SoftetherGo"
 )
 
 type OpenVpn struct {

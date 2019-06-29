@@ -2,10 +2,11 @@ package multiprotocol
 
 import (
 	"fmt"
-	"proxy-golang/relay"
-	"proxy-golang/udpposter"
 	"strconv"
 	"time"
+
+	"proxy-golang/relay"
+	"proxy-golang/udpposter"
 )
 
 type SS struct {
