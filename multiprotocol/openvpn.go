@@ -2,12 +2,13 @@ package multiprotocol
 
 import (
 	"fmt"
-	"proxy-golang/common"
-	"proxy-golang/softether"
 	"strings"
 	"time"
 
 	"github.com/kiddnoke/SoftetherGo"
+
+	"proxy-golang/common"
+	"proxy-golang/softether"
 )
 
 type OpenVpn struct {
@@ -52,14 +53,6 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 		return nil, err
 	}
 CreateUser:
-
-	outs, err := softether.API.CreateListener(c.ServerPort, true)
-	if err != nil {
-		r.Debug("CreateListener Error:%s", err.Error())
-	} else {
-		r.Debug("CreateListener out is %v", outs)
-	}
-
 	_, err = softether.API.CreateUser(r.HubName, r.UserName, r.Password)
 	if err != nil {
 		if e, ok := err.(*softetherApi.ApiError); ok && e.Code() == softetherApi.ERR_USER_ALREADY_EXISTS {
@@ -116,7 +109,6 @@ func (o *OpenVpn) Close() {
 		o.Info("Delete Hub[%s]", hubname)
 		softether.API.DeleteHub(hubname)
 	}
-	softether.API.DeleteListener(o.ServerPort)
 }
 
 func (o *OpenVpn) IsTimeout() bool {

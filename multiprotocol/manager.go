@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/CHH/eventemitter"
+
+	"proxy-golang/softether"
 )
 
 type manager interface {
@@ -50,12 +52,12 @@ func (m *Manager) Add(proxy *Config) (err error) {
 			proxy.Password = genPassword(5)
 		}
 
-		proxy.ServerPort = getFreePort(BeginPort, EndPort)
-
 		if proxy.Protocol == "open" {
+			proxy.ServerPort = softether.OpenVpnServicePort
 			relay, err = NewOpenVpn(proxy)
 		} else {
 			proxy.Protocol = "ss"
+			proxy.ServerPort = getFreePort(BeginPort, EndPort)
 			relay, err = NewSS(proxy)
 		}
 		if err != nil {
