@@ -19,5 +19,5 @@ TARGET=${TARGET_DIR}/vpnedge_${OS}
 SOURCE=${PROJECT_FOLDER}/cmd/VpnMultiProto
 
 cd ${SOURCE}
-go build -ldflags "-s -w -X \"main.BuildVersion=${COMMIT_HASH}\" -X \"main.BuildDate=${BUILD_DATE}\" -X \"main.BuildBranch=${BRANCH_NAME}\" -X \"main.LoggerLevel=2\"" -i -o ${TARGET}
+go build -ldflags "-s -w  -X \"main.LoggerLevel=2\" -X \"main.BuildVersion=${COMMIT_HASH}\" -X \"main.BuildDate=${BUILD_DATE}\" -X \"main.BuildBranch=${BRANCH_NAME}\"" -i -o ${TARGET}
 $(${TARGET} -pm2 )

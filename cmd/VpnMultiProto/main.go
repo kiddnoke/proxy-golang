@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -192,29 +193,32 @@ func main() {
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
 				log.Printf(err.Error())
 			}
+
+			OpenRetMsg := make(map[string]interface{})
+			OpenRetMsg["sid"] = proxyinfo.Sid
+			OpenRetMsg["uid"] = proxyinfo.Uid
+			OpenRetMsg["app_id"] = proxyinfo.AppId
+			OpenRetMsg["protocol"] = proxyinfo.Protocol
 			err := Manager.Add(&proxyinfo)
 			if err != nil {
 				log.Printf(err.Error())
-				return
-			}
-			OpenRetMsg := make(map[string]interface{})
-			OpenRetMsg["server_port"] = proxyinfo.ServerPort
-			OpenRetMsg["port"] = proxyinfo.ServerPort
-			OpenRetMsg["sid"] = proxyinfo.Sid
-			OpenRetMsg["uid"] = proxyinfo.Uid
-			OpenRetMsg["limit"] = proxyinfo.CurrLimitDown
-			OpenRetMsg["app_id"] = proxyinfo.AppId
-			OpenRetMsg["protocol"] = proxyinfo.Protocol
-			OpenRetMsg["method"] = proxyinfo.Method
-			OpenRetMsg["password"] = proxyinfo.Password
-			if proxyinfo.Protocol == "open" {
-				OpenRetMsg["server_cert"] = proxyinfo.ServerCert
-				OpenRetMsg["remote_access"] = proxyinfo.RemoteAccess
-				OpenRetMsg["ip"] = proxyinfo.Ipv4Address
+				OpenRetMsg["error"] = fmt.Sprintf("%s", err.Error())
+			} else {
+				OpenRetMsg["server_port"] = proxyinfo.ServerPort
+				OpenRetMsg["port"] = proxyinfo.ServerPort
+				OpenRetMsg["limit"] = proxyinfo.CurrLimitDown
+				OpenRetMsg["method"] = proxyinfo.Method
+				OpenRetMsg["password"] = proxyinfo.Password
+				if proxyinfo.Protocol == "open" {
+					OpenRetMsg["server_cert"] = proxyinfo.ServerCert
+					OpenRetMsg["remote_access"] = proxyinfo.RemoteAccess
+					OpenRetMsg["ip"] = proxyinfo.Ipv4Address
+				}
 			}
 			client.Notify("open", OpenRetMsg)
 			client.Health(Manager.Health())
 			client.Size(Manager.Size())
+			return
 		})
 		// OnClosed Handle
 		client.OnClosed(func(msg []byte) {
@@ -223,22 +227,28 @@ func main() {
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
 				log.Printf(err.Error())
 			}
+
+			CloseRetMsg := make(map[string]interface{})
+			CloseRetMsg["sid"] = proxyinfo.Sid
+			CloseRetMsg["uid"] = proxyinfo.Uid
+			CloseRetMsg["app_id"] = proxyinfo.AppId
+			CloseRetMsg["protocol"] = proxyinfo.Protocol
+
 			if p, err := Manager.Get(proxyinfo); err != nil {
 				log.Printf(err.Error())
-				return
+				CloseRetMsg["error"] = fmt.Sprintf("%s", err.Error())
+				client.Notify("close", CloseRetMsg)
+				client.Health(Manager.Health())
 			} else {
 				tu, td, uu, ud := p.GetTraffic()
-				CloseRetMsg := make(map[string]interface{})
 				CloseRetMsg["server_port"] = proxyinfo.ServerPort
 				CloseRetMsg["port"] = proxyinfo.ServerPort
 				CloseRetMsg["transfer"] = []int64{tu, td, uu, ud}
-				CloseRetMsg["sid"] = proxyinfo.Sid
-				CloseRetMsg["uid"] = proxyinfo.Uid
-				CloseRetMsg["app_id"] = proxyinfo.AppId
 				CloseRetMsg["duration"] = int64(p.GetLastTimeStamp().Sub(p.GetStartTimeStamp()).Seconds())
 				Manager.Delete(proxyinfo)
 				client.Notify("close", CloseRetMsg)
 				client.Health(Manager.Health())
+				return
 			}
 		})
 		client.Login(flags.InstanceID, flags.BeginPort, flags.EndPort, flags.InstanceID+10000, flags.State, flags.Area)
