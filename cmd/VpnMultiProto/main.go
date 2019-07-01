@@ -190,9 +190,11 @@ func main() {
 		// OnOpened Handle
 		client.OnOpened(func(msg []byte) {
 			var proxyinfo multiprotocol.Config
+			log.Printf("OnOpen %s", msg)
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
 				log.Printf(err.Error())
 			}
+			log.Printf("OnOpen Struct :%v", proxyinfo)
 
 			OpenRetMsg := make(map[string]interface{})
 			OpenRetMsg["sid"] = proxyinfo.Sid
@@ -227,6 +229,7 @@ func main() {
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
 				log.Printf(err.Error())
 			}
+			log.Printf("OnClose Struct :%v", proxyinfo)
 
 			CloseRetMsg := make(map[string]interface{})
 			CloseRetMsg["sid"] = proxyinfo.Sid

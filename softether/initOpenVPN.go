@@ -17,7 +17,7 @@ var RemoteAccess string
 var DDnsHostName string
 var Ipv4Address string
 
-const OpenVpnServicePort = 21994
+const OpenVpnServicePort = 21194
 
 func Init() {
 	if checkSoftetherIsFirst() == true {
@@ -52,10 +52,7 @@ func Init() {
 	}
 
 	//
-	if _, err := API.CreateListener(OpenVpnServicePort, true); err != nil {
-		panic(err)
-	}
-
+	API.CreateListener(OpenVpnServicePort, true)
 	Cron()
 	log.Println("Softether Init Success")
 }
