@@ -22,12 +22,14 @@ func NewProxyInfo(ServerPort int, Method string, Password string, Speed int) (pi
 	}
 	limiter := common.NewSpeedLimiter(Speed * 1024)
 	_, level := common.GetDefaultLevel()
-	return &proxyinfo{
+	p := &proxyinfo{
 		Cipher:     ciph,
 		ServerPort: ServerPort,
 		Limiter:    limiter,
 		Traffic:    common.MakeTraffic(),
 		running:    false,
 		Logger:     *common.NewLogger(level, ""),
-	}, err
+	}
+	p.Sampling()
+	return p, err
 }

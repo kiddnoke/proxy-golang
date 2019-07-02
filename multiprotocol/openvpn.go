@@ -231,3 +231,6 @@ func (o *OpenVpn) syncUserTraffic() {
 		o.GetConfig().CurrLimitDown = 0
 	}
 }
+func (o *OpenVpn) GetMaxRate() (float64, float64) {
+	return 0, 0
+}

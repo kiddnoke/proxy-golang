@@ -106,7 +106,8 @@ func main() {
 			// 回收
 			Manager.Delete(proxyinfo)
 		})
-		client.Timeout(appid, sid, uid, transfer, timestamp.Unix(), duration)
+		rateup, ratedown := pr.GetMaxRate()
+		client.Timeout(appid, sid, uid, transfer, timestamp.Unix(), duration, [2]float64{rateup, ratedown})
 		log.Printf("timeout: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration)
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
@@ -131,7 +132,8 @@ func main() {
 		})
 
 		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
-		client.Expire(appid, sid, uid, transfer, duration)
+		rateup, ratedown := pr.GetMaxRate()
+		client.Expire(appid, sid, uid, transfer, duration, [2]float64{rateup, ratedown})
 		log.Printf("expire: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, duration)
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
@@ -248,6 +250,8 @@ func main() {
 				CloseRetMsg["port"] = proxyinfo.ServerPort
 				CloseRetMsg["transfer"] = []int64{tu, td, uu, ud}
 				CloseRetMsg["duration"] = int64(p.GetLastTimeStamp().Sub(p.GetStartTimeStamp()).Seconds())
+				up, down := p.GetMaxRate()
+				CloseRetMsg["maxrate"] = []float64{up, down}
 				Manager.Delete(proxyinfo)
 				client.Notify("close", CloseRetMsg)
 				client.Health(Manager.Health())

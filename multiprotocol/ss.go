@@ -139,3 +139,7 @@ func (s *SS) Burst() int {
 func (s *SS) GetConfig() *Config {
 	return &s.Config
 }
+
+func (s *SS) GetMaxRate() (float64, float64) {
+	return s.Traffic.GetMaxRate()
+}

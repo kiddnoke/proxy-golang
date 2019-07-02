@@ -37,7 +37,7 @@ type Community interface {
 	/*
 	 * { sid, uid, transfer, active }
 	 */
-	Timeout(appid, sid, uid int64, transfer []int64, activestamp int64, duration int64)
+	Timeout(appid, sid, uid int64, transfer []int64, activestamp int64, duration int64, rate [2]float64)
 	/*
 	 * { sid, uid, limitup, limitdown }
 	 */
@@ -45,7 +45,7 @@ type Community interface {
 	/*
 	 * { sid, uid, transfer }
 	 */
-	Expire(appid, sid, uid int64, transfer []int64, duration int64)
+	Expire(appid, sid, uid int64, transfer []int64, duration int64, rate [2]float64)
 	/*
 	 * { uid, sid, FreeUid, Time }
 	 */

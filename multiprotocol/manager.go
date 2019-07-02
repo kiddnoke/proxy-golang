@@ -2,6 +2,7 @@ package multiprotocol
 
 import (
 	"fmt"
+	"proxy-golang/ss"
 	"sync"
 	"time"
 
@@ -58,6 +59,9 @@ func (m *Manager) Add(proxy *Config) (err error) {
 		} else {
 			proxy.Protocol = "ss"
 			proxy.ServerPort = getFreePort(BeginPort, EndPort)
+			if proxy.Method == "" {
+				proxy.Method = ss.GenCipherMethod(2)
+			}
 			relay, err = NewSS(proxy)
 		}
 		if err != nil {

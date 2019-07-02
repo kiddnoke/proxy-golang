@@ -20,4 +20,6 @@ SOURCE=${PROJECT_FOLDER}/cmd/VpnMultiProto
 
 cd ${SOURCE}
 go build -ldflags "-s -w  -X \"main.LoggerLevel=2\" -X \"main.BuildVersion=${COMMIT_HASH}\" -X \"main.BuildDate=${BUILD_DATE}\" -X \"main.BuildBranch=${BRANCH_NAME}\"" -i -o ${TARGET}
+
+cd ${TARGET_DIR}
 $(${TARGET} -pm2 )

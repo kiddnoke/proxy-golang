@@ -188,7 +188,7 @@ func (w *WrapperClient) Transfer(appid, sid int64, transfer []int64) {
 func (w *WrapperClient) TransferList(transferList []interface{}) {
 	w.Notify("transferlist", transferList)
 }
-func (w *WrapperClient) Timeout(appid, sid, uid int64, transfer []int64, activestamp int64, duration int64) {
+func (w *WrapperClient) Timeout(appid, sid, uid int64, transfer []int64, activestamp int64, duration int64, rate [2]float64) {
 	request := make(map[string]interface{})
 	request["app_id"] = appid
 	request["sid"] = sid
@@ -196,6 +196,7 @@ func (w *WrapperClient) Timeout(appid, sid, uid int64, transfer []int64, actives
 	request["transfer"] = transfer
 	request["activestamp"] = activestamp
 	request["duration"] = duration
+	request["maxrate"] = []float64{rate[0], rate[1]}
 	w.Notify("timeout", request)
 }
 func (w *WrapperClient) Overflow(appid, sid, uid int64, limit int) {
@@ -207,13 +208,14 @@ func (w *WrapperClient) Overflow(appid, sid, uid int64, limit int) {
 	request["limitdown"] = limit
 	w.Notify("overflow", request)
 }
-func (w *WrapperClient) Expire(appid, sid, uid int64, transfer []int64, duration int64) {
+func (w *WrapperClient) Expire(appid, sid, uid int64, transfer []int64, duration int64, rate [2]float64) {
 	request := make(map[string]interface{})
 	request["app_id"] = appid
 	request["sid"] = sid
 	request["uid"] = uid
 	request["transfer"] = transfer
 	request["duration"] = duration
+	request["maxrate"] = []float64{rate[0], rate[1]}
 	w.Notify("expire", request)
 }
 func (w *WrapperClient) Balance(appid, sid, uid int64, duration int) {
