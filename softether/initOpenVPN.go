@@ -1,7 +1,11 @@
 package softether
 
 import (
+	"bufio"
+	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/kiddnoke/SoftetherGo"
 )
@@ -49,6 +53,7 @@ func Init() {
 	} else {
 		DDnsHostName = hostname
 		Ipv4Address = ipv4
+		RemoteAccess = MakeServerCipherFile(RemoteAccess, ipv4, strconv.Itoa(OpenVpnServicePort))
 	}
 
 	//
@@ -77,4 +82,22 @@ func softetherFirstInit(password string) error {
 	} else {
 		return nil
 	}
+}
+func MakeServerCipherFile(config string, ipv4 string, port string) string {
+	var context string
+	scanner := bufio.NewScanner(strings.NewReader(config))
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+		if string(line[0]) == "#" || string(line[0]) == ";" {
+			continue
+		}
+		if string(line[0:6]) == "remote" {
+			continue
+		}
+		context += fmt.Sprintf("%s\n", string(line))
+	}
+	return context
 }

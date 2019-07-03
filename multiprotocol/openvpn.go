@@ -2,7 +2,6 @@ package multiprotocol
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/kiddnoke/SoftetherGo"
@@ -72,7 +71,7 @@ SetPassword:
 	}
 End:
 	c.ServerCert = softether.ServerCert
-	c.RemoteAccess = strings.Replace(softether.RemoteAccess, "1194", fmt.Sprintf("%d", c.ServerPort), -1)
+	c.RemoteAccess = softether.RemoteAccess
 	c.Ipv4Address = softether.Ipv4Address
 	r.Config = *c
 	return r, nil
@@ -80,7 +79,7 @@ End:
 
 func (o *OpenVpn) Start() {
 	o.Info("Start")
-	o.timer = *setInterval(time.Second*30, func(when time.Time) {
+	o.timer = *setInterval(time.Second*10, func(when time.Time) {
 		o.syncUserTraffic()
 	})
 }
@@ -219,6 +218,7 @@ func (o *OpenVpn) syncUserTraffic() {
 		o.Debug("traffic update: tu[%d], td[%d], uu[%d], ud[%d]", new_tu, new_td, new_uu, new_ud)
 		o.Traffic.SetTraffic(new_tu, new_td, new_uu, new_ud)
 	}
+	o.Traffic.OnceSampling(time.Second * 10)
 	//
 	maxupload, ok := out["policy:MaxUpload"]
 	if ok {
@@ -232,5 +232,5 @@ func (o *OpenVpn) syncUserTraffic() {
 	}
 }
 func (o *OpenVpn) GetMaxRate() (float64, float64) {
-	return 0, 0
+	return o.Traffic.GetMaxRate()
 }

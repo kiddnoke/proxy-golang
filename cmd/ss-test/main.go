@@ -33,7 +33,6 @@ func main() {
 	pi, _ := NewProxyInfo(flags.ServerPort, flags.Method, flags.Password, flags.Speed)
 	pr, _ := NewProxyRelay(pi)
 
-	pr.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	pr.Start()
 	wg.Wait()
 }

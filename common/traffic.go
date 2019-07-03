@@ -80,33 +80,36 @@ func (t *Traffic) GetStartTimeStamp() time.Time {
 }
 func (t *Traffic) Sampling() {
 	timer := time.NewTicker(duration)
+	go func() {
+		for {
+			select {
+			case <-timer.C:
+				{
+					t.OnceSampling(duration)
+				}
+			}
+		}
+	}()
+	return
+}
+func (t *Traffic) OnceSampling(duration2 time.Duration) {
 	var ratter = func(n int64, duration time.Duration) float64 {
 		if n > 0 {
 			return float64(n) / duration.Seconds() / 1024
 		}
 		return 0
 	}
-	go func() {
-		for {
-			select {
-			case <-timer.C:
-				{
-					curr := t.tu + t.uu
-					if rate := ratter(curr-t.pre_u, duration); rate > t.maxUpRate {
-						t.maxUpRate = rate
-					}
-					t.pre_u = curr
+	curr := t.tu + t.uu
+	if rate := ratter(curr-t.pre_u, duration2); rate > t.maxUpRate {
+		t.maxUpRate = rate
+	}
+	t.pre_u = curr
 
-					curr = t.td + t.ud
-					if rate := ratter(curr-t.pre_d, duration); rate > t.maxDownRate {
-						t.maxDownRate = rate
-					}
-					t.pre_d = curr
-				}
-			}
-		}
-	}()
-	return
+	curr = t.td + t.ud
+	if rate := ratter(curr-t.pre_d, duration2); rate > t.maxDownRate {
+		t.maxDownRate = rate
+	}
+	t.pre_d = curr
 }
 func (t *Traffic) GetMaxRate() (float64, float64) {
 	return t.maxUpRate, t.maxDownRate
