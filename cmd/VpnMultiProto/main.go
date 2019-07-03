@@ -60,9 +60,7 @@ func main() {
 		return
 	}
 	//
-	softether.SoftHost = "10.0.2.71"
-	softether.SoftPort = 443
-	softether.SoftPassword = "10.0.2.70:7001"
+	softether.SoftPassword = flags.CenterUrl
 	go softether.Init()
 
 	flags.InstanceID = multiprotocol.InstanceIdGen(flags.InstanceID)
