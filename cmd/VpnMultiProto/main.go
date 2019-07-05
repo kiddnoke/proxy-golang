@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"proxy-golang/softether"
+	"proxy-golang/udpposter"
 	"strconv"
 	"sync"
 	"time"
@@ -96,6 +97,8 @@ func main() {
 			log.Println(err)
 			return
 		}
+		proxyinfo = *pr.GetConfig()
+
 		tu, td, uu, ud := pr.GetTraffic()
 		transfer := []int64{tu, td, uu, ud}
 
@@ -111,6 +114,7 @@ func main() {
 		log.Printf("timeout: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration)
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
+		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(ratedown*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
 		key := pushService.GeneratorKey(uid, sid, port, appid)
 		_ = pushSrv.Push(key, "timeout", time.Now().UTC().Unix())
 	})
@@ -123,6 +127,8 @@ func main() {
 			log.Println(err)
 			return
 		}
+		proxyinfo = *pr.GetConfig()
+
 		tu, td, uu, ud := pr.GetTraffic()
 		transfer := []int64{tu, td, uu, ud}
 		pr.GetConfig().Expire = 0
@@ -137,6 +143,7 @@ func main() {
 		log.Printf("expire: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, duration)
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
+		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(ratedown*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
 		key := pushService.GeneratorKey(uid, sid, port, appid)
 		_ = pushSrv.Push(key, "expire", time.Now().UTC().Unix())
 	})
@@ -245,6 +252,7 @@ func main() {
 				client.Notify("close", CloseRetMsg)
 				client.Health(Manager.Health())
 			} else {
+				proxyinfo = *p.GetConfig()
 				tu, td, uu, ud := p.GetTraffic()
 				CloseRetMsg["server_port"] = proxyinfo.ServerPort
 				CloseRetMsg["port"] = proxyinfo.ServerPort
@@ -255,6 +263,7 @@ func main() {
 				Manager.Delete(proxyinfo)
 				client.Notify("close", CloseRetMsg)
 				client.Health(Manager.Health())
+				udpposter.PostMaxRate(proxyinfo.AppId, proxyinfo.Uid, proxyinfo.Sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(down*100), int64(p.GetLastTimeStamp().Sub(p.GetStartTimeStamp()).Seconds())*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
 				return
 			}
 		})
