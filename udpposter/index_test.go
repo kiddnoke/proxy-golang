@@ -41,7 +41,7 @@ func TestPost(t *testing.T) {
 		}
 	}()
 	r1 := pb.Record{1, 1, "1", "1", "1", "1", 1, "www.baidu.com", 1, 1, 1, "zhongguoyidong", "vip", struct{}{}, nil, 1}
-	if err := Post(r1); err == nil {
+	if err := postRecordProtoBuf(r1); err == nil {
 		wg.Add(1)
 	}
 	wg.Wait()
