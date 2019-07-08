@@ -108,7 +108,7 @@ func (o *OpenVpn) Close() {
 		o.Info("Delete User[%s]", username)
 		softether.API.DeleteUser(hubname, username)
 	} else {
-		o.Info("Delete Hub[%s]", hubname)
+		o.Info("Delete Hub[%s] , UserName[%s]", hubname, username)
 		softether.API.DeleteUser(hubname, username)
 		softether.API.DeleteHub(hubname)
 	}
