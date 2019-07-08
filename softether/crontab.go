@@ -1,27 +1,32 @@
 package softether
 
 import (
+	"log"
 	"reflect"
 	"time"
 )
 
 const duration = time.Hour * 6
 
+func init() {
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
+}
 func Cron() {
 	timer := time.NewTicker(duration)
 	go func() {
 		for {
 			select {
 			case <-timer.C:
-				callback(time.Now())
+				checkOldHub(time.Now())
 			}
 		}
 	}()
 	return
 }
-func callback(timestamp time.Time) {
+func checkOldHub(timestamp time.Time) {
 	// 只要检查 hub 的最后通信时间，
 	// 如果hub的最后通信时间非常久远，就可以把hub删除了。
+	log.Println("Check Hub ")
 	hubs, err := API.ListHub()
 	if err != nil {
 		return
@@ -52,9 +57,10 @@ func callback(timestamp time.Time) {
 			clear_hubname_list = append(clear_hubname_list, hubs["HubName"].(string))
 		}
 	}
-
+	log.Println("Delete Hubs:", clear_hubname_list)
 	for _, hubname := range clear_hubname_list {
 		API.DeleteHub(hubname)
 	}
+	log.Println("Delete Hubs has been finish")
 
 }
