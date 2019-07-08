@@ -97,6 +97,7 @@ func (o *OpenVpn) Close() {
 
 	sess, err := softether.NewHubSessions(hubname)
 	if err != nil {
+		o.Error("%s", err.Error())
 		return
 	}
 	sess.DeleteSessionBySid(username)
