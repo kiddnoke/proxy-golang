@@ -94,12 +94,14 @@ func (o *OpenVpn) Close() {
 	o.Info("Close")
 	hubname := o.HubName
 	username := o.UserName
-	out, err := softether.API.ListUser(hubname)
+
+	sess, err := softether.NewHubSessions(hubname)
 	if err != nil {
-		o.Error("%s", err.Error())
-		softether.API.DeleteUser(hubname, username)
 		return
 	}
+	sess.DeleteSessionBySid(username)
+
+	out, err := softether.API.ListUser(hubname)
 	names, ok := out["Name"].([]interface{})
 	if ok && len(names) > 1 {
 		o.Info("Delete User[%s]", username)
