@@ -58,7 +58,7 @@ func Init() {
 
 	//
 	API.CreateListener(OpenVpnServicePort, true)
-	Cron()
+	//Cron()
 	log.Println("Softether Init Success")
 }
 func createDefaultHub() {
