@@ -10,6 +10,8 @@ import (
 	"proxy-golang/softether"
 )
 
+const defaulthub = "DEFAULT"
+
 type OpenVpn struct {
 	Config
 	HubName  string
@@ -29,7 +31,7 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 	c.CurrLimitUp = int(searchLimit)
 	c.CurrLimitUp = int(searchLimit)
 
-	r.HubName = fmt.Sprintf("%d", c.Uid)
+	r.HubName = defaulthub
 	r.UserName = fmt.Sprintf("%d", c.Sid)
 	r.Password = c.Password
 	r.Traffic = common.MakeTraffic()
@@ -52,23 +54,24 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 		return nil, err
 	}
 CreateUser:
-	_, err = softether.API.CreateUser(r.HubName, r.UserName, r.Password)
+	_, err = softether.API.CreateUser(r.HubName, r.UserName, fmt.Sprintf("%d", c.Uid), fmt.Sprintf("%d-%d", c.Sid, c.Uid), r.Password)
 	if err != nil {
 		if e, ok := err.(*softetherApi.ApiError); ok && e.Code() == softetherApi.ERR_USER_ALREADY_EXISTS {
 			r.Logger.Debug("User[%s] %s ,then goto SetPassword[%s]", r.HubName, err.Error(), r.UserName)
-			goto SetPassword
+			goto SetUser
 		}
 		r.Error("%s", err.Error())
 		return nil, err
 	} else {
 		goto End
 	}
-SetPassword:
+SetUser:
 	softether.API.SetUserPassword(r.HubName, r.UserName, r.Password)
 	_, err = softether.API.SetUserPolicy(r.HubName, r.UserName, int(searchLimit)*8, int(searchLimit)*8)
 	if err != nil {
 		return nil, err
 	}
+	softether.API.SetUserExpireTime(r.HubName, r.UserName, time.Now().Add(time.Second*time.Duration(c.Timeout)))
 End:
 	c.ServerCert = softether.ServerCert
 	c.RemoteAccess = softether.RemoteAccess
@@ -108,9 +111,9 @@ func (o *OpenVpn) Close() {
 		o.Info("Delete User[%s]", username)
 		softether.API.DeleteUser(hubname, username)
 	} else {
-		o.Info("Delete Hub[%s] , UserName[%s]", hubname, username)
 		softether.API.DeleteUser(hubname, username)
 		softether.API.DeleteHub(hubname)
+		o.Info("Delete Hub[%s] , UserName[%s]", hubname, username)
 	}
 }
 
@@ -221,6 +224,7 @@ func (o *OpenVpn) syncUserTraffic() {
 	if new_tu != tu || new_td != td || new_uu != uu || new_ud != ud {
 		o.Debug("traffic update: tu[%d], td[%d], uu[%d], ud[%d]", new_tu, new_td, new_uu, new_ud)
 		o.Traffic.SetTraffic(new_tu, new_td, new_uu, new_ud)
+		softether.API.SetUserExpireTime(o.HubName, o.UserName, time.Now().Add(time.Second*time.Duration(o.Timeout)))
 	}
 	o.Traffic.OnceSampling(time.Second * 10)
 	//
