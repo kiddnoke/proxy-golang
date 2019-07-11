@@ -12,7 +12,7 @@ const duration = time.Minute
 var selflogger *common.Logger
 
 func init() {
-	selflogger = common.NewLogger(common.LOG_DEFAULT, "CronTask")
+	selflogger = common.NewLogger(common.LOG_INFO, "CronTask")
 }
 func Cron() {
 	timer := time.NewTicker(duration)
