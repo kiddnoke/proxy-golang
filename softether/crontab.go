@@ -11,9 +11,13 @@ const duration = time.Minute
 
 var selflogger *common.Logger
 
-func init() {
-	selflogger = common.NewLogger(common.LOG_INFO, "CronTask")
+func CronInit() {
+	selflogger = common.NewLogger(common.LOG_DEFAULT, "CronTask")
+	//Cron()
+	clearExpireUser(time.Now())
+	clearExpireHub(time.Now())
 }
+
 func Cron() {
 	timer := time.NewTicker(duration)
 	go func() {
@@ -27,7 +31,7 @@ func Cron() {
 	}()
 	return
 }
-func clearExpireHub(timestamp time.Time) {
+func clearExpireHub(now time.Time) {
 	// 只要检查 hub 的最后通信时间，
 	// 如果hub的最后通信时间非常久远，就可以把hub删除了。
 	selflogger.Debug("Check Hub Begin")
@@ -49,8 +53,8 @@ func clearExpireHub(timestamp time.Time) {
 
 		for index, value := range i_lastCommTime {
 			lastcommtime := time.Unix(value.(int64)/1e3, value.(int64)%1e3*1e6)
-			now := time.Now()
 			if now.Sub(lastcommtime) >= time.Hour*24 {
+				selflogger.Warn("LastCommTime[%v] now[%v]", lastcommtime, now)
 				clear_hubname := i_hubName[index].(string)
 				clear_hubname_list = append(clear_hubname_list, clear_hubname)
 			}
@@ -58,8 +62,8 @@ func clearExpireHub(timestamp time.Time) {
 	} else if reflect.TypeOf(hubs["LastCommTime"]).Kind() == reflect.Int64 {
 		lastCommTime := hubs["LastCommTime"].(int64)
 		lastcommtime := time.Unix(lastCommTime/1e3, lastCommTime%1e3*1e6)
-		now := time.Now()
 		if now.Sub(lastcommtime) >= time.Hour*24 {
+			selflogger.Warn("LastCommTime[%v] now[%v]", lastcommtime, now)
 			clear_hubname_list = append(clear_hubname_list, hubs["HubName"].(string))
 		}
 	}
@@ -72,7 +76,7 @@ func clearExpireHub(timestamp time.Time) {
 		selflogger.Info("Delete Hubs has been finish", clear_hubname_list)
 	}
 }
-func clearExpireUser(timestamp time.Time) {
+func clearExpireUser(now time.Time) {
 	selflogger.Debug("ClearExpireUser Begin")
 	defer selflogger.Debug("ClearExpireUser End")
 	//遍历所有hub
@@ -108,7 +112,7 @@ func clearExpireUser(timestamp time.Time) {
 				_hubname := hubname
 				_username := user_out["Name"].([]interface{})[index].(string)
 				_expire := time.Unix(expire.(int64)/1e3, expire.(int64)%1e3*1e6)
-				now := time.Now()
+				selflogger.Debug("expire[%v] now[%v]", _expire, now)
 				if now.Sub(_expire) >= time.Second {
 					API.DeleteUser(_hubname, _username)
 					selflogger.Warn("DeleteUser [%s] in Hub[%s]", _username, _hubname)
@@ -119,7 +123,7 @@ func clearExpireUser(timestamp time.Time) {
 			_expire := time.Unix(i_expire.(int64)/1e3, i_expire.(int64)%1e3*1e6)
 			_hubname := hubname
 			_username := user_out["Name"].(string)
-			now := time.Now()
+			selflogger.Debug("expire[%v] now[%v]", _expire, now)
 			if now.Sub(_expire) > time.Second {
 				API.DeleteUser(_hubname, _username)
 				selflogger.Warn("DeleteUser [%s] in Hub[%s]", _username, _hubname)

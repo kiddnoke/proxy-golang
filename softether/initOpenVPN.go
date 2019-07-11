@@ -3,11 +3,10 @@ package softether
 import (
 	"bufio"
 	"fmt"
+	"github.com/kiddnoke/SoftetherGo"
 	"log"
 	"strconv"
 	"strings"
-
-	"github.com/kiddnoke/SoftetherGo"
 )
 
 var API *softetherApi.API
@@ -24,6 +23,7 @@ var Ipv4Address string
 const OpenVpnServicePort = 21194
 
 func Init() {
+
 	if checkSoftetherIsFirst() == true {
 		if err := softetherFirstInit(SoftPassword); err != nil {
 			panic(err)
@@ -58,8 +58,9 @@ func Init() {
 
 	//
 	API.CreateListener(OpenVpnServicePort, true)
-	Cron()
+
 	log.Println("Softether Init Success")
+	CronInit()
 }
 
 func checkSoftetherIsFirst() bool {
