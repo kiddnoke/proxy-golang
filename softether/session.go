@@ -2,7 +2,6 @@ package softether
 
 import (
 	"errors"
-	"log"
 	"strconv"
 	"strings"
 )
@@ -48,6 +47,7 @@ func (S *HubSessions) DeleteSessionBySid(username string) error {
 		if _, err := API.DeleteSession(S.hub, session.name); err != nil {
 			return err
 		}
+		delete(S.sessions, username)
 	} else {
 		return errors.New("username is not existed")
 	}
@@ -63,7 +63,7 @@ func (S *HubSessions) Sync() error {
 		for index, name := range names {
 			if name != Head {
 				sessionname := out["Name"].([]interface{})[index].(string)
-				log.Println(sessionname, name)
+				selflogger.Info("SessionName[%s] UserName[%s]", sessionname, names)
 				str := strings.Split(sessionname, "-")
 				seqid, _ := strconv.Atoi(str[3])
 				session := session{
