@@ -105,7 +105,7 @@ func main() {
 		timestamp := pr.GetLastTimeStamp()
 		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
 		pr.GetConfig().Timeout = 0
-		time.AfterFunc(time.Minute*2, func() {
+		time.AfterFunc(time.Second*30, func() {
 			// 回收
 			Manager.Delete(proxyinfo)
 		})
