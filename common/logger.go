@@ -15,6 +15,7 @@ const (
 	LOG_WARN
 	LOG_ERROR
 	LOG_PANIC
+	LOG_DEFAULT = 99
 )
 
 var levelstr = map[int]string{
@@ -33,7 +34,9 @@ type Logger struct {
 }
 
 func NewLogger(level int, prefix string) *Logger {
-
+	if level == LOG_DEFAULT {
+		_, level = GetDefaultLevel()
+	}
 	return &Logger{
 		level:  level,
 		prefix: prefix,

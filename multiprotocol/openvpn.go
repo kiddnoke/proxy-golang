@@ -63,6 +63,7 @@ CreateUser:
 		r.Error("%s", err.Error())
 		return nil, err
 	} else {
+		softether.API.SetUserExpireTime(r.HubName, r.UserName, time.Now().Add(time.Second*time.Duration(c.Timeout)))
 		goto End
 	}
 SetUser:

@@ -25,8 +25,8 @@ func init() {
 	log.Printf("BuildVersion [%s]", BuildVersion)
 	log.Printf("BuildDate [%s]", BuildDate)
 	log.Printf("BuildBranch [%s]", BuildBranch)
-	i, _ := strconv.Atoi(LoggerLevel)
-	common.SetDefaultLevel(i)
+	i_loggerlevel, _ := strconv.Atoi(LoggerLevel)
+	common.SetDefaultLevel(i_loggerlevel)
 	commomLogLevel, _ := common.GetDefaultLevel()
 	log.Printf("LoggerLevel %s", commomLogLevel)
 }
