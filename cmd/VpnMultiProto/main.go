@@ -132,7 +132,7 @@ func main() {
 		tu, td, uu, ud := pr.GetTraffic()
 		transfer := []int64{tu, td, uu, ud}
 		pr.GetConfig().Expire = 0
-		time.AfterFunc(time.Minute, func() {
+		time.AfterFunc(time.Second*30, func() {
 			// 回收
 			Manager.Delete(proxyinfo)
 		})
