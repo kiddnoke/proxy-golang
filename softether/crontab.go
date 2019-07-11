@@ -20,14 +20,14 @@ func Cron() {
 		for {
 			select {
 			case <-timer.C:
-				//checkOldHub(time.Now())
+				clearExpireHub(time.Now())
 				clearExpireUser(time.Now())
 			}
 		}
 	}()
 	return
 }
-func checkOldHub(timestamp time.Time) {
+func clearExpireHub(timestamp time.Time) {
 	// 只要检查 hub 的最后通信时间，
 	// 如果hub的最后通信时间非常久远，就可以把hub删除了。
 	selflogger.Debug("Check Hub ")
