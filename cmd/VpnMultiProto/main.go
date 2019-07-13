@@ -8,23 +8,26 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
-	"proxy-golang/softether"
-	"proxy-golang/udpposter"
 	"strconv"
 	"sync"
 	"time"
 
 	"proxy-golang/comm/websocket"
+	"proxy-golang/common"
 	"proxy-golang/multiprotocol"
 	"proxy-golang/pushService"
+	"proxy-golang/softether"
+	"proxy-golang/udpposter"
 )
 
 const ssBeginPort = 20000
 
 var Manager *multiprotocol.Manager
 var pushSrv *pushService.PushService
+var mainlog *common.Logger
 
 func init() {
+	mainlog = common.NewLogger(common.LOG_DEFAULT, "MainLogic")
 	Manager = multiprotocol.New()
 	Manager.CheckLoop()
 	pushSrv, _ = pushService.NewPushService()
@@ -111,7 +114,7 @@ func main() {
 		})
 		rateup, ratedown := pr.GetMaxRate()
 		client.Timeout(appid, sid, uid, transfer, timestamp.Unix(), duration, [2]float64{rateup, ratedown})
-		log.Printf("timeout: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration)
+		mainlog.Warn("timeout: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration)
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
 		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(ratedown*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
@@ -140,7 +143,7 @@ func main() {
 		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
 		rateup, ratedown := pr.GetMaxRate()
 		client.Expire(appid, sid, uid, transfer, duration, [2]float64{rateup, ratedown})
-		log.Printf("expire: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, duration)
+		mainlog.Warn("expire: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, duration)
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
 		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(ratedown*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
@@ -175,7 +178,7 @@ func main() {
 			log.Println(err)
 			return
 		}
-		log.Printf("balance: appid[%d] sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", appid, sid, uid, pr.GetConfig().BalanceNotifyDuration)
+		mainlog.Warn("balance: appid[%d] sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", appid, sid, uid, pr.GetConfig().BalanceNotifyDuration)
 		client.Balance(appid, sid, uid, pr.GetConfig().BalanceNotifyDuration)
 		pr.GetConfig().BalanceNotifyDuration = 0
 		key := pushService.GeneratorKey(uid, sid, port, appid)
@@ -199,11 +202,11 @@ func main() {
 		// OnOpened Handle
 		client.OnOpened(func(msg []byte) {
 			var proxyinfo multiprotocol.Config
-			log.Printf("OnOpen %s", msg)
+			mainlog.Info("OnOpen %s", msg)
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
-				log.Printf(err.Error())
+				mainlog.Error(err.Error())
 			}
-			log.Printf("OnOpen Struct :%v", proxyinfo)
+			mainlog.Debug("OnOpen Struct :%v", proxyinfo)
 
 			OpenRetMsg := make(map[string]interface{})
 			OpenRetMsg["sid"] = proxyinfo.Sid
@@ -212,7 +215,7 @@ func main() {
 			OpenRetMsg["protocol"] = proxyinfo.Protocol
 			err := Manager.Add(&proxyinfo)
 			if err != nil {
-				log.Printf(err.Error())
+				mainlog.Error(err.Error())
 				OpenRetMsg["error"] = fmt.Sprintf("%s", err.Error())
 			} else {
 				OpenRetMsg["server_port"] = proxyinfo.ServerPort
@@ -233,12 +236,12 @@ func main() {
 		})
 		// OnClosed Handle
 		client.OnClosed(func(msg []byte) {
-			log.Printf("OnClose %s", msg)
+			mainlog.Warn("OnClose %s", msg)
 			var proxyinfo multiprotocol.Config
 			if err := json.Unmarshal(msg, &proxyinfo); err != nil {
-				log.Printf(err.Error())
+				mainlog.Error(err.Error())
 			}
-			log.Printf("OnClose Struct :%v", proxyinfo)
+			mainlog.Debug("OnClose Struct :%v", proxyinfo)
 
 			CloseRetMsg := make(map[string]interface{})
 			CloseRetMsg["sid"] = proxyinfo.Sid
@@ -247,7 +250,7 @@ func main() {
 			CloseRetMsg["protocol"] = proxyinfo.Protocol
 
 			if p, err := Manager.Get(proxyinfo); err != nil {
-				log.Printf(err.Error())
+				mainlog.Error(err.Error())
 				CloseRetMsg["error"] = fmt.Sprintf("%s", err.Error())
 				client.Notify("close", CloseRetMsg)
 				client.Health(Manager.Health())
