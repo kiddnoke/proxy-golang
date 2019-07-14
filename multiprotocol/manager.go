@@ -139,7 +139,7 @@ func (m *Manager) CheckLoop() {
 	})
 	// 1 min timer
 	setInterval(time.Minute, func(when time.Time) {
-		m.Emit("health")
+		<-m.Emit("health")
 		var transferLists []interface{}
 		m.proxyTable.Range(func(key, proxy interface{}) bool {
 			p := proxy.(Relayer)

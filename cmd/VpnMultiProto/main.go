@@ -27,7 +27,7 @@ var pushSrv *pushService.PushService
 var mainlog *common.Logger
 
 func init() {
-	mainlog = common.NewLogger(common.LOG_DEFAULT, "MainLogic")
+	mainlog = common.NewLogger(common.LOG_INFO, "MainLogic")
 	Manager = multiprotocol.New()
 	Manager.CheckLoop()
 	pushSrv, _ = pushService.NewPushService()
