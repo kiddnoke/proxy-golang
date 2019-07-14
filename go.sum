@@ -1,5 +1,3 @@
-github.com/CHH/eventemitter v0.0.0-20120807115904-3e42a20a6810 h1:X1pJTCy0d6zkO1n/1cphpjAACP6sELWSzrCRNKJQLpQ=
-github.com/CHH/eventemitter v0.0.0-20120807115904-3e42a20a6810/go.mod h1:iHvIe8UbHxkbGvi9gwkNLQO67TIABSTq/LOlXj22mKc=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da h1:KjTM2ks9d14ZYCvmHS9iAKVt9AyzRSqNU1qabPih5BY=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da/go.mod h1:eHEWzANqSiWQsof+nXEI9bUVUyV6F53Fp89EuCh2EAA=
 github.com/golang/protobuf v1.3.1 h1:YF8+flBXS5eO826T4nzqPrxfhQThhXl0YzfuUPu4SBg=
@@ -8,8 +6,12 @@ github.com/gorilla/websocket v1.4.0 h1:WDFjx/TMzVgy9VdMMQi2K2Emtwi2QcUQsztZ/zLaH
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/graarh/golang-socketio v0.0.0-20170510162725-2c44953b9b5f h1:utzdm9zUvVWGRtIpkdE4+36n+Gv60kNb7mFvgGxLElY=
 github.com/graarh/golang-socketio v0.0.0-20170510162725-2c44953b9b5f/go.mod h1:8gudiNCFh3ZfvInknmoXzPeV17FSH+X2J5k2cUPIwnA=
-github.com/kiddnoke/SoftetherGo v0.0.0-20190714160306-43372217f29b h1:v2j5Fb+hF11Qa9P3ofheyTiH2no20z3zjEislq0+Xwc=
-github.com/kiddnoke/SoftetherGo v0.0.0-20190714160306-43372217f29b/go.mod h1:ua2hHO56si82XY5yGzzjnzxwatU0Naqu3Xl6XdV5s34=
+github.com/kataras/go-events v0.0.2 h1:fhyUPXvUbrjIPmH4vRdrAAGoNzdcwJPQmjhg47m1nMU=
+github.com/kataras/go-events v0.0.2/go.mod h1:6IxMW59VJdEIqj3bjFGJvGLRdb0WHtrlxPZy9qXctcg=
+github.com/kiddnoke/SoftetherGo v0.0.0-20190714165506-c4d494048f48 h1:xjlKMLI4cRpP97WAf2lK/W1VuOHg/j0iCwx82ABWZNg=
+github.com/kiddnoke/SoftetherGo v0.0.0-20190714165506-c4d494048f48/go.mod h1:ua2hHO56si82XY5yGzzjnzxwatU0Naqu3Xl6XdV5s34=
+github.com/kiddnoke/eventemitter v0.0.0-20120807115904-3e42a20a6810 h1:2HvNt/+ae5jFcH08g1iCQNDvEZ7fobpnRcXz8HO90B4=
+github.com/kiddnoke/eventemitter v0.0.0-20120807115904-3e42a20a6810/go.mod h1:s3qzJ5uExecLqZWAzIZ2RdNtPoVdNSTqhfDurasdmcI=
 github.com/shadowsocks/go-shadowsocks2 v0.0.11 h1:dXloqEhYnZV40jblWTK8kWeC0Eb+dgql4S0tj99e8j0=
 github.com/shadowsocks/go-shadowsocks2 v0.0.11/go.mod h1:R+KWaoIwRRhnpw6XV+dZil0XHi64Hc1D7hXUyXTjUzQ=
 golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25 h1:jsG6UpNLt9iAsb0S2AGW28DveNzzgmbXR+ENoPjUeIU=

@@ -12,9 +12,9 @@ import (
 
 	"proxy-golang/comm"
 
-	"github.com/CHH/eventemitter"
 	"github.com/graarh/golang-socketio"
 	"github.com/graarh/golang-socketio/transport"
+	"github.com/kiddnoke/eventemitter"
 )
 
 const (

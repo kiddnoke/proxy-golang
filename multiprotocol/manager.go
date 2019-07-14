@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CHH/eventemitter"
+	"github.com/kiddnoke/eventemitter"
 
 	"proxy-golang/softether"
 )
