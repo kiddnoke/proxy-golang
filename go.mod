@@ -6,7 +6,7 @@ require (
 	github.com/golang/protobuf v1.3.1
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/graarh/golang-socketio v0.0.0-20170510162725-2c44953b9b5f
-	github.com/kiddnoke/SoftetherGo v0.0.0-20190713060201-6e2f5d1a3176
+	github.com/kiddnoke/SoftetherGo v0.0.0-20190714160306-43372217f29b
 	github.com/shadowsocks/go-shadowsocks2 v0.0.11
 	golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25 // indirect
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c

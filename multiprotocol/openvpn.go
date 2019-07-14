@@ -207,6 +207,11 @@ func (o *OpenVpn) syncUserTraffic() {
 	out, err := softether.API.GetUser(o.HubName, o.UserName)
 	if err != nil {
 		o.Error("%s", err.Error())
+		if e, ok := err.(softetherApi.ApiError); ok && e.Code() == softetherApi.ERR_OBJECT_NOT_FOUND {
+			o.Close()
+		} else {
+			o.Close()
+		}
 		return
 	}
 	new_tu := out["Send.UnicastBytes"].(int64)
