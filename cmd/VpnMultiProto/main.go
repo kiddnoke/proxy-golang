@@ -274,7 +274,8 @@ func main() {
 	})
 	// OnDisConnect Handle
 	client.OnDisconnect(func(c wswrapper.Channel) {
-		client.Connect(host, port)
+		_ = client.Connect(host, port)
+		return
 	})
 
 	wg.Wait()
