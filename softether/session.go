@@ -42,6 +42,7 @@ func (S *HubSessions) GetSessionBySid(username string) (session, error) {
 }
 func (S *HubSessions) DeleteSessionBySid(username string) error {
 
+	API, _ := PoolGetConn()
 	session, ok := S.sessions[username]
 	if ok {
 		if _, err := API.DeleteSession(S.hub, session.name); err != nil {
@@ -54,6 +55,7 @@ func (S *HubSessions) DeleteSessionBySid(username string) error {
 	return nil
 }
 func (S *HubSessions) Sync() error {
+	API, _ := PoolGetConn()
 	out, err := API.ListSessions(S.hub)
 	if err != nil {
 		return err

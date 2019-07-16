@@ -36,6 +36,7 @@ func clearExpireHub(now time.Time) {
 	// 如果hub的最后通信时间非常久远，就可以把hub删除了。
 	selflogger.Debug("Check Hub Begin")
 	defer selflogger.Debug("Check Hub End")
+	API, _ := PoolGetConn()
 	hubs, err := API.ListHub()
 	if err != nil {
 		return
@@ -80,6 +81,7 @@ func clearExpireUser(now time.Time) {
 	selflogger.Debug("ClearExpireUser Begin")
 	defer selflogger.Debug("ClearExpireUser End")
 	//遍历所有hub
+	API, _ := PoolGetConn()
 	hubs, err := API.ListHub()
 	if err != nil {
 		return

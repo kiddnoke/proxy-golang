@@ -58,7 +58,9 @@ func (m *Manager) Add(proxy *Config) (err error) {
 			relay, err = NewOpenVpn(proxy)
 		} else {
 			proxy.Protocol = "ss"
-			proxy.ServerPort = getFreePort(BeginPort, EndPort)
+			if proxy.ServerPort == 0 {
+				proxy.ServerPort = getFreePort(BeginPort, EndPort)
+			}
 			if proxy.Method == "" {
 				proxy.Method = ss.GenCipherMethod(2)
 			}

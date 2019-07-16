@@ -38,7 +38,8 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 
 	c.Method = r.UserName + "@" + r.HubName
 
-	_, err = softether.API.CreateHub(r.HubName, true, softetherApi.HUB_TYPE_STANDALONE)
+	API, _ := softether.PoolGetConn()
+	_, err = API.CreateHub(r.HubName, true, softetherApi.HUB_TYPE_STANDALONE)
 	if err != nil {
 		if e, ok := err.(*softetherApi.ApiError); ok && e.Code() == softetherApi.ERR_HUB_ALREADY_EXISTS {
 			r.Logger.Debug("Hub[%s] %s ,then goto CreateUser[%s]", r.HubName, err.Error(), r.UserName)
@@ -48,13 +49,13 @@ func NewOpenVpn(c *Config) (*OpenVpn, error) {
 		return nil, err
 	}
 
-	_, err = softether.API.EnableSecureNat(r.HubName)
+	_, err = API.EnableSecureNat(r.HubName)
 	if err != nil {
 		r.Error("%s", err.Error())
 		return nil, err
 	}
 CreateUser:
-	_, err = softether.API.CreateUser(r.HubName, r.UserName, fmt.Sprintf("%d", c.Uid), fmt.Sprintf("%d-%d", c.Sid, c.Uid), r.Password)
+	_, err = API.CreateUser(r.HubName, r.UserName, fmt.Sprintf("%d", c.Uid), fmt.Sprintf("%d-%d", c.Sid, c.Uid), r.Password)
 	if err != nil {
 		if e, ok := err.(*softetherApi.ApiError); ok && e.Code() == softetherApi.ERR_USER_ALREADY_EXISTS {
 			r.Logger.Debug("User[%s] %s ,then goto SetPassword[%s]", r.HubName, err.Error(), r.UserName)
@@ -63,16 +64,16 @@ CreateUser:
 		r.Error("%s", err.Error())
 		return nil, err
 	} else {
-		softether.API.SetUserExpireTime(r.HubName, r.UserName, time.Now().Add(time.Second*time.Duration(c.Timeout)))
+		API.SetUserExpireTime(r.HubName, r.UserName, time.Now().Add(time.Second*time.Duration(c.Timeout)))
 		goto End
 	}
 SetUser:
-	softether.API.SetUserPassword(r.HubName, r.UserName, r.Password)
-	_, err = softether.API.SetUserPolicy(r.HubName, r.UserName, int(searchLimit)*8, int(searchLimit)*8)
+	API.SetUserPassword(r.HubName, r.UserName, r.Password)
+	_, err = API.SetUserPolicy(r.HubName, r.UserName, int(searchLimit)*8, int(searchLimit)*8)
 	if err != nil {
 		return nil, err
 	}
-	softether.API.SetUserExpireTime(r.HubName, r.UserName, time.Now().Add(time.Second*time.Duration(c.Timeout)))
+	API.SetUserExpireTime(r.HubName, r.UserName, time.Now().Add(time.Second*time.Duration(c.Timeout)))
 End:
 	c.ServerCert = softether.ServerCert
 	c.RemoteAccess = softether.RemoteAccess
@@ -94,6 +95,8 @@ func (o *OpenVpn) Stop() {
 }
 
 func (o *OpenVpn) Close() {
+	API, _ := softether.PoolGetConn()
+
 	o.Stop()
 	defer o.Info("Close")
 	hubname := o.HubName
@@ -105,7 +108,7 @@ func (o *OpenVpn) Close() {
 		return
 	}
 	sess.DeleteSessionBySid(username)
-	_, err = softether.API.DeleteUser(hubname, username)
+	_, err = API.DeleteUser(hubname, username)
 	if err != nil {
 		o.Error("%v", err)
 	}
@@ -184,12 +187,13 @@ func (o *OpenVpn) Clear() {
 }
 
 func (o *OpenVpn) SetLimit(bytesPerSec int) {
+	API, _ := softether.PoolGetConn()
 	o.Debug("SetLimit")
 	if bytesPerSec == 0 {
 		return
 	}
 	bytesPerSec = bytesPerSec * 8
-	softether.API.SetUserPolicy(o.HubName, o.UserName, bytesPerSec, bytesPerSec)
+	API.SetUserPolicy(o.HubName, o.UserName, bytesPerSec, bytesPerSec)
 }
 
 func (o *OpenVpn) Burst() int {
@@ -203,8 +207,10 @@ func (o *OpenVpn) GetConfig() *Config {
 }
 
 func (o *OpenVpn) syncUserTraffic() {
+	API, _ := softether.PoolGetConn()
+
 	o.Debug("syncUserTraffic")
-	out, err := softether.API.GetUser(o.HubName, o.UserName)
+	out, err := API.GetUser(o.HubName, o.UserName)
 	if err != nil {
 		o.Error("%s", err.Error())
 		if e, ok := err.(softetherApi.ApiError); ok && e.Code() == softetherApi.ERR_OBJECT_NOT_FOUND {
@@ -223,7 +229,7 @@ func (o *OpenVpn) syncUserTraffic() {
 	if new_tu != tu || new_td != td || new_uu != uu || new_ud != ud {
 		o.Debug("traffic update: tu[%d], td[%d], uu[%d], ud[%d]", new_tu, new_td, new_uu, new_ud)
 		o.Traffic.SetTraffic(new_tu, new_td, new_uu, new_ud)
-		softether.API.SetUserExpireTime(o.HubName, o.UserName, time.Now().Add(time.Second*time.Duration(o.Timeout)))
+		API.SetUserExpireTime(o.HubName, o.UserName, time.Now().Add(time.Second*time.Duration(o.Timeout)))
 	}
 	o.Traffic.OnceSampling(time.Second * 10)
 	//
