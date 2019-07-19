@@ -53,4 +53,9 @@ type Community interface {
 	Echo(json interface{})
 	OnOpened(callback func(msg []byte))
 	OnClosed(callback func(msg []byte))
+
+	/*
+	 * { appid, sid, maxrate [2]float64 }
+	 */
+	MaxRate(appid, sid int64, maxrate [2]float64)
 }

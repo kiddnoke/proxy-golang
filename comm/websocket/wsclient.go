@@ -248,3 +248,10 @@ func (w *WrapperClient) OnClosed(callback func(msg []byte)) {
 		callback(jsonstr)
 	})
 }
+func (w *WrapperClient) MaxRate(appid, sid int64, maxrate [2]float64) {
+	request := make(map[string]interface{})
+	request["sid"] = sid
+	request["app_id"] = appid
+	request["maxrate"] = maxrate
+	w.Notify("maxrate", request)
+}
