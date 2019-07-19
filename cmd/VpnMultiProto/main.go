@@ -190,8 +190,8 @@ func main() {
 		client.Size(Manager.Size())
 	})
 	// transfer Handle
-	Manager.On("transfer", func(appid, sid int64, transfer []int64) {
-		client.Transfer(appid, sid, transfer)
+	Manager.On("transfer", func(appid, sid int64, transfer []int64, maxrate [2]float64) {
+		client.Transfer(appid, sid, transfer, maxrate)
 	})
 	// trnasferlist Handle
 	Manager.On("transferlist", func(transferlist []interface{}) {

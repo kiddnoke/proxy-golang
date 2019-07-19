@@ -29,7 +29,7 @@ type Community interface {
 	/*
 	 * {sid , transfer}
 	 */
-	Transfer(appid, sid int64, transfer []int64)
+	Transfer(appid, sid int64, transfer []int64, maxrate [2]float64)
 	/*
 	 * [{sid , transfer}]
 	 */

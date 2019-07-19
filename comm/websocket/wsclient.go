@@ -178,11 +178,12 @@ func (w *WrapperClient) HeartBeat() (duration time.Duration) {
 	duration = <-c
 	return
 }
-func (w *WrapperClient) Transfer(appid, sid int64, transfer []int64) {
+func (w *WrapperClient) Transfer(appid, sid int64, transfer []int64, maxrate [2]float64) {
 	request := make(map[string]interface{})
 	request["app_id"] = appid
 	request["sid"] = sid
 	request["transfer"] = transfer
+	request["maxrate"] = maxrate
 	w.Notify("transfer", request)
 }
 func (w *WrapperClient) TransferList(transferList []interface{}) {
