@@ -112,7 +112,7 @@ func main() {
 			// 回收
 			Manager.Delete(proxyinfo)
 		})
-		rateup, ratedown := pr.GetMaxRate()
+		rateup, ratedown := pr.GetRate()
 		client.Timeout(appid, sid, uid, transfer, timestamp.Unix(), duration, [2]float64{rateup, ratedown})
 		mainlog.Warn("timeout: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration)
 		client.Health(Manager.Health())
@@ -141,12 +141,12 @@ func main() {
 		})
 
 		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
-		rateup, ratedown := pr.GetMaxRate()
-		client.Expire(appid, sid, uid, transfer, duration, [2]float64{rateup, ratedown})
+		minrate, maxrate := pr.GetRate()
+		client.Expire(appid, sid, uid, transfer, duration, [2]float64{minrate, maxrate})
 		mainlog.Warn("expire: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, duration)
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
-		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(ratedown*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
+		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(maxrate*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
 		key := pushService.GeneratorKey(uid, sid, port, appid)
 		_ = pushSrv.Push(key, "expire", time.Now().UTC().Unix())
 	})
@@ -261,12 +261,12 @@ func main() {
 				CloseRetMsg["port"] = proxyinfo.ServerPort
 				CloseRetMsg["transfer"] = []int64{tu, td, uu, ud}
 				CloseRetMsg["duration"] = int64(p.GetLastTimeStamp().Sub(p.GetStartTimeStamp()).Seconds())
-				up, down := p.GetMaxRate()
-				CloseRetMsg["maxrate"] = []float64{up, down}
+				min, max := p.GetRate()
+				CloseRetMsg["maxrate"] = []float64{min, max}
 				Manager.Delete(proxyinfo)
 				client.Notify("close", CloseRetMsg)
 				client.Health(Manager.Health())
-				udpposter.PostMaxRate(proxyinfo.AppId, proxyinfo.Uid, proxyinfo.Sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(down*100), int64(p.GetLastTimeStamp().Sub(p.GetStartTimeStamp()).Seconds())*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
+				udpposter.PostMaxRate(proxyinfo.AppId, proxyinfo.Uid, proxyinfo.Sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(max*100), int64(p.GetLastTimeStamp().Sub(p.GetStartTimeStamp()).Seconds())*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
 				return
 			}
 		})
