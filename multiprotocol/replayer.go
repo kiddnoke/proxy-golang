@@ -13,7 +13,7 @@ type TrafficStatistic interface {
 	GetStartTimeStamp() time.Time
 	GetLastTimeStamp() time.Time
 	Clear()
-	GetMaxRate() (float64, float64)
+	GetRate() (float64, float64)
 }
 type Switcher interface {
 	Start()

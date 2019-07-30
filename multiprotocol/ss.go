@@ -140,6 +140,6 @@ func (s *SS) GetConfig() *Config {
 	return &s.Config
 }
 
-func (s *SS) GetMaxRate() (float64, float64) {
-	return s.Traffic.GetMaxRate()
+func (s *SS) GetRate() (float64, float64) {
+	return s.Traffic.GetRate()
 }

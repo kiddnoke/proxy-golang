@@ -14,10 +14,10 @@ type Traffic struct {
 	startstamp      time.Time
 	lastactivestamp time.Time
 
-	pre_u       int64
-	pre_d       int64
-	maxUpRate   float64
-	maxDownRate float64
+	pre_u   int64
+	pre_d   int64
+	minRate float64
+	maxRate float64
 }
 
 func MakeTraffic() Traffic {
@@ -100,17 +100,16 @@ func (t *Traffic) OnceSampling(duration2 time.Duration) {
 		return 0
 	}
 	curr := t.tu + t.uu
-	if rate := ratter(curr-t.pre_u, duration2); rate > t.maxUpRate {
-		t.maxUpRate = rate
-	}
 	t.pre_u = curr
 
 	curr = t.td + t.ud
-	if rate := ratter(curr-t.pre_d, duration2); rate > t.maxDownRate {
-		t.maxDownRate = rate
+	if rate := ratter(curr-t.pre_d, duration2); rate > t.maxRate {
+		t.maxRate = rate
+	} else if rate > 0 && rate < t.minRate {
+		t.minRate = rate
 	}
 	t.pre_d = curr
 }
-func (t *Traffic) GetMaxRate() (float64, float64) {
-	return t.maxUpRate, t.maxDownRate
+func (t *Traffic) GetRate() (float64, float64) {
+	return t.minRate, t.maxRate
 }
