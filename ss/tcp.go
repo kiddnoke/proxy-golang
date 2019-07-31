@@ -45,7 +45,7 @@ func NewTcpRelayByProxyInfo(c *proxyinfo) (tp *TcpRelay, err error) {
 	l, err := Listen("tcp", c.ServerPort, c.Cipher)
 	return &TcpRelay{l: l, proxyinfo: c, handlerId: 0}, err
 }
-func tcpKeepAlive(c net.Conn) {
+func setTcpConnKeepAlive(c net.Conn) {
 	if tcp, ok := c.(*net.TCPConn); ok {
 		tcp.SetKeepAlive(true)
 		tcp.SetKeepAlivePeriod(KeepAlivePeriod)
@@ -77,12 +77,14 @@ func (t *TcpRelay) Loop() {
 			}()
 			t.conns.Store(shadowconn.RemoteAddr().String(), shadowconn)
 			ConnCount++
-			tgt, err := socks.ReadAddr(shadowconn)
+			setTcpConnKeepAlive(shadowconn)
 
+			tgt, err := socks.ReadAddr(shadowconn)
 			if err != nil {
 				t.Info("socks.ReadAddr Error [%s],handlerId[%d], local[%s]", err.Error(), handlerId, shadowconn.RemoteAddr())
 				return
 			}
+
 			pre_connectstamp := time.Now()
 			remoteconn, err := net.DialTimeout("tcp", tgt.String(), DialTimeoutDuration)
 			if err != nil {
@@ -91,12 +93,12 @@ func (t *TcpRelay) Loop() {
 			}
 			currstamp := time.Now()
 			t.Debug("handlerId[%d], dialing tgt[%s] duration[%f sec]", handlerId, tgt.String(), currstamp.Sub(pre_connectstamp).Seconds())
+
 			defer func() {
 				t.conns.Delete(remoteconn.RemoteAddr().String())
 				remoteconn.Close()
 			}()
 			t.conns.Store(remoteconn.RemoteAddr().String(), remoteconn)
-			tcpKeepAlive(remoteconn)
 			t.Active()
 
 			var flow int
