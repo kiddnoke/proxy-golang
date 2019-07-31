@@ -13,8 +13,8 @@ import (
 var ReadDeadlineDuration = time.Second * 15
 var WriteDeadlineDuration = ReadDeadlineDuration
 
-const DialTimeoutDuration = time.Second * 20
-const KeepAlivePeriod = time.Second * 3
+const DialTimeoutDuration = time.Second * 5
+const KeepAlivePeriod = time.Second * 15
 const AcceptTimeout = 1000
 const MaxAcceptConnection = 300
 
@@ -83,12 +83,14 @@ func (t *TcpRelay) Loop() {
 				t.Info("socks.ReadAddr Error [%s],handlerId[%d], local[%s]", err.Error(), handlerId, shadowconn.RemoteAddr())
 				return
 			}
-			currstamp := time.Now()
+			pre_connectstamp := time.Now()
 			remoteconn, err := net.DialTimeout("tcp", tgt.String(), DialTimeoutDuration)
 			if err != nil {
 				t.Info("net.Dial Error [%s], handlerId[%d], tgt[%s]", err.Error(), handlerId, tgt.String())
 				return
 			}
+			currstamp := time.Now()
+			t.Debug("handlerId[%d], dialing tgt[%s] duration[%f sec]", handlerId, tgt.String(), currstamp.Sub(pre_connectstamp).Seconds())
 			defer func() {
 				t.conns.Delete(remoteconn.RemoteAddr().String())
 				remoteconn.Close()
@@ -98,7 +100,7 @@ func (t *TcpRelay) Loop() {
 			t.Active()
 
 			var flow int
-			s2rErrC := make(chan error, 1)
+			ErrC := make(chan error, 1)
 			go func() {
 				err := PipeThenClose(shadowconn, remoteconn, func(n int) {
 					if err := t.Limiter.WaitN(n); err != nil {
@@ -106,31 +108,32 @@ func (t *TcpRelay) Loop() {
 					}
 					t.AddTraffic(n, 0, 0, 0)
 				})
-				s2rErrC <- err
+				ErrC <- err
 			}()
-			r2sErr := PipeThenClose(remoteconn, shadowconn, func(n int) {
-				flow += n
-				if err := t.Limiter.WaitN(n); err != nil {
-					t.Error("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
-				}
-				t.AddTraffic(0, n, 0, 0)
-			})
-
+			go func() {
+				err := PipeThenClose(remoteconn, shadowconn, func(n int) {
+					flow += n
+					if err := t.Limiter.WaitN(n); err != nil {
+						t.Error("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
+					}
+					t.AddTraffic(0, n, 0, 0)
+				})
+				ErrC <- err
+			}()
+			err = <-ErrC
 			defer func() {
 				duration := time.Since(currstamp)
-				if ne, ok := r2sErr.(net.Error); ok && ne.Timeout() {
+				if ne, ok := err.(net.Error); ok && ne.Timeout() {
 					duration = duration - ReadDeadlineDuration
 				}
-				time_stamp := time.Now().UnixNano() / 1000000
+				time_stamp := time.Now().UnixNano() / 1e6
 				rate := float64(flow) / duration.Seconds() / 1024
 				ip := fmt.Sprintf("%v", shadowconn.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
-				if flow > 5*1024 {
-					s2rErr := <-s2rErrC
-					t.Info("handler[%d] flow[%f k] duration[%f sec] rate[%f kb/s] domain[%v] remoteaddr[%v] s2rErr[%v] r2sErr[%v]", handlerId, float64(flow)/1024.0, duration.Seconds(), rate, tgt, remoteconn.RemoteAddr(), s2rErr.Error(), r2sErr.Error())
-					if t.ConnectInfoCallback != nil && flow > 10*1024 {
-						t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(flow)/1024.0, duration)
-					}
+
+				t.Info("handler[%d] flow[%f k] duration[%f sec] rate[%f kb/s] domain[%v] remoteaddr[%v] Error[%s]", handlerId, float64(flow)/1024.0, duration.Seconds(), rate, tgt, remoteconn.RemoteAddr(), err.Error())
+				if t.ConnectInfoCallback != nil && flow > 10*1024 {
+					t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(flow)/1024.0, duration)
 				}
 			}()
 		}(c)
