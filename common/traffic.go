@@ -7,17 +7,19 @@ import (
 const duration = time.Second
 
 type Traffic struct {
-	tu              int64
-	td              int64
-	uu              int64
-	ud              int64
-	startstamp      time.Time
-	lastactivestamp time.Time
+	Tu              int64     `json:"tcp_up"`
+	Td              int64     `json:"tcp_down"`
+	Uu              int64     `json:"udp_up"`
+	Ud              int64     `json:"udp_down"`
+	StartStamp      time.Time `json:"start_stamp"`
+	LastactiveStamp time.Time `json:"lastactive_stamp"`
 
-	pre_u   int64
-	pre_d   int64
-	minRate float64
-	maxRate float64
+	Pre_u   int64   `json:"pre_u"`
+	Pre_d   int64   `json:"pre_d"`
+	MinRate float64 `json:"min_rate"`
+	MaxRate float64 `json:"max_rate"`
+
+	SamplingTimer time.Ticker
 }
 
 func MakeTraffic() Traffic {
@@ -26,6 +28,7 @@ func MakeTraffic() Traffic {
 		time.Now().UTC(),
 		time.Now().UTC(),
 		0, 0, 0, 0,
+		time.Ticker{},
 	}
 }
 func NewTraffic() *Traffic {
@@ -34,28 +37,29 @@ func NewTraffic() *Traffic {
 		time.Now().UTC(),
 		time.Now().UTC(),
 		0, 0, 0, 0,
+		time.Ticker{},
 	}
 }
 func (t *Traffic) GetTraffic() (tu, td, uu, ud int64) {
-	return t.tu, t.td, t.uu, t.ud
+	return t.Tu, t.Td, t.Uu, t.Ud
 }
 func (t *Traffic) GetTrafficWithClear() (tu, td, uu, ud int64) {
 	defer func() {
-		t.tu = 0
-		t.td = 0
-		t.uu = 0
-		t.ud = 0
+		t.Tu = 0
+		t.Td = 0
+		t.Uu = 0
+		t.Ud = 0
 	}()
-	return t.tu, t.td, t.uu, t.ud
+	return t.Tu, t.Td, t.Uu, t.Ud
 }
 func (t *Traffic) AddTraffic(tu, td, uu, ud int) {
 	if tu+td+uu+ud == 0 {
 		return
 	}
-	t.tu += int64(tu)
-	t.td += int64(td)
-	t.uu += int64(uu)
-	t.ud += int64(ud)
+	t.Tu += int64(tu)
+	t.Td += int64(td)
+	t.Uu += int64(uu)
+	t.Ud += int64(ud)
 	t.Active()
 }
 
@@ -63,27 +67,27 @@ func (t *Traffic) SetTraffic(tu, td, uu, ud int64) {
 	if tu+td+uu+ud == 0 {
 		return
 	}
-	t.tu = tu
-	t.td = td
-	t.uu = uu
-	t.ud = ud
+	t.Tu = tu
+	t.Td = td
+	t.Uu = uu
+	t.Ud = ud
 	t.Active()
 }
 func (t *Traffic) Active() {
-	t.lastactivestamp = time.Now().UTC()
+	t.LastactiveStamp = time.Now().UTC()
 }
 func (t *Traffic) GetLastTimeStamp() time.Time {
-	return t.lastactivestamp
+	return t.LastactiveStamp
 }
 func (t *Traffic) GetStartTimeStamp() time.Time {
-	return t.startstamp
+	return t.StartStamp
 }
 func (t *Traffic) Sampling() {
-	timer := time.NewTicker(duration)
+	t.SamplingTimer = *time.NewTicker(duration)
 	go func() {
 		for {
 			select {
-			case <-timer.C:
+			case <-t.SamplingTimer.C:
 				{
 					t.OnceSampling(duration)
 				}
@@ -99,17 +103,18 @@ func (t *Traffic) OnceSampling(duration2 time.Duration) {
 		}
 		return 0
 	}
-	curr := t.tu + t.uu
-	t.pre_u = curr
+	curr := t.Tu + t.Uu
+	t.Pre_u = curr
 
-	curr = t.td + t.ud
-	if rate := ratter(curr-t.pre_d, duration2); rate > t.maxRate {
-		t.maxRate = rate
-	} else if rate > 0 && rate < t.minRate {
-		t.minRate = rate
+	curr = t.Td + t.Ud
+	if rate := ratter(curr-t.Pre_d, duration2); rate > t.MaxRate {
+		t.MaxRate = rate
+	} else if rate > 0 && rate < t.MinRate {
+		t.MinRate = rate
 	}
-	t.pre_d = curr
+	t.Pre_d = curr
 }
+
 func (t *Traffic) GetRate() (float64, float64) {
-	return t.minRate, t.maxRate
+	return t.MinRate, t.MaxRate
 }

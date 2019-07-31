@@ -50,6 +50,7 @@ func (s *SS) Start() {
 
 func (s *SS) Stop() {
 	s.ProxyRelay.Stop()
+	s.ProxyRelay.SamplingTimer.Stop()
 }
 
 func (s *SS) Close() {
