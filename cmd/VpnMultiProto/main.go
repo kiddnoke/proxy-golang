@@ -121,6 +121,32 @@ func main() {
 		key := pushService.GeneratorKey(uid, sid, port, appid)
 		_ = pushSrv.Push(key, "timeout", time.Now().UTC().Unix())
 	})
+	Manager.On("fast_release", func(uid, sid int64, port int, appid int64, protocol string) {
+		var proxyinfo multiprotocol.Config
+		proxyinfo = multiprotocol.Config{Sid: sid, Uid: uid, ServerPort: port, AppId: appid, Protocol: protocol}
+		pr, err := Manager.Get(proxyinfo)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		proxyinfo = *pr.GetConfig()
+
+		tu, td, uu, ud := pr.GetTraffic()
+		transfer := []int64{tu, td, uu, ud}
+
+		timestamp := pr.GetLastTimeStamp()
+		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
+		pr.GetConfig().Timeout = 0
+		Manager.Delete(proxyinfo)
+		rateup, ratedown := pr.GetRate()
+		client.Timeout(appid, sid, uid, transfer, timestamp.Unix(), duration, [2]float64{rateup, ratedown})
+		mainlog.Warn("fast_release: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration)
+		client.Health(Manager.Health())
+		client.Size(Manager.Size())
+		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(ratedown*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
+		key := pushService.GeneratorKey(uid, sid, port, appid)
+		_ = pushSrv.Push(key, "fast_release", time.Now().UTC().Unix())
+	})
 	//expire Handle
 	Manager.On("expire", func(uid, sid int64, port int, appid int64, protocol string) {
 		var proxyinfo multiprotocol.Config
