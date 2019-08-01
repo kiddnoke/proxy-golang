@@ -70,6 +70,13 @@ func (m *Manager) Add(proxy *Config) (err error) {
 			return err
 		}
 		relay.Start()
+		time.AfterFunc(time.Minute*3, func() {
+			c := relay.GetConfig()
+			tu, td, uu, ud := relay.GetTraffic()
+			if tu+td+uu+ud == 0 {
+				<-m.Emit("fast_release", c.Uid, c.Sid, c.ServerPort, c.AppId, c.Protocol)
+			}
+		})
 		m.proxyTable.Store(key, relay)
 		return nil
 	}
@@ -135,10 +142,6 @@ func (m *Manager) CheckLoop() {
 			}
 			if limit, flag := p.IsStairCase(); flag == true {
 				<-m.Emit("overflow", c.Uid, c.Sid, c.ServerPort, c.AppId, limit, c.Protocol)
-			}
-			tu, td, uu, ud := p.GetTraffic()
-			if tu+td+uu+ud == 0 {
-				<-m.Emit("fast_release", c.Uid, c.Sid, c.ServerPort, c.AppId, c.Protocol)
 			}
 			return true
 		})
