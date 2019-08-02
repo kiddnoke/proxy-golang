@@ -114,6 +114,8 @@ func (t *TcpRelay) Loop() {
 			}()
 			go func() {
 				err := PipeThenClose(remoteconn, shadowconn, func(n int) {
+					remoteconn.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
+
 					flow += n
 					if err := t.Limiter.WaitN(n); err != nil {
 						t.Error("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
@@ -162,7 +164,6 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) (netErr error) 
 	buf := leakyBuf.Get()
 	defer leakyBuf.Put(buf)
 	for {
-		left.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
 		n, err := left.Read(buf)
 		if addTraffic != nil && n > 0 {
 			addTraffic(n)
@@ -187,7 +188,6 @@ func PipeWithError(left, right net.Conn, addTraffic func(n, m int)) (err error) 
 		buf := leakyBuf.Get()
 		defer leakyBuf.Put(buf)
 		for {
-			front.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
 			n, err := front.Read(buf)
 			if addTraffic != nil && n > 0 {
 				callback(n)
