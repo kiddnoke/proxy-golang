@@ -66,19 +66,26 @@ func Init() {
 
 func checkSoftetherIsFirst() bool {
 	checkSoftetherIsFirstApi := softetherApi.NewAPI(SoftHost, SoftPort, "")
+	defer checkSoftetherIsFirstApi.Disconnect()
 	if err := checkSoftetherIsFirstApi.HandShake(); err != nil {
 		checkSoftetherIsFirstApi = nil
 		return false
 	} else {
 		return true
 	}
+
 }
 func softetherFirstInit(password string) error {
-	a, _ := PoolGetConn()
-	if _, err := a.SetServerPassword(password); err != nil {
-		return err
+	Api := softetherApi.NewAPI(SoftHost, SoftPort, "")
+	defer Api.Disconnect()
+	if err := Api.HandShake(); err != nil {
+		if _, err := Api.SetServerPassword(password); err != nil {
+			return err
+		} else {
+			return nil
+		}
 	} else {
-		return nil
+		return err
 	}
 }
 func MakeServerCipherFile(config string, ipv4 string, port string) string {
