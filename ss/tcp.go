@@ -93,7 +93,7 @@ func (t *TcpRelay) Loop() {
 			}
 			currstamp := time.Now()
 			t.Debug("handlerId[%d], dialing tgt[%s] duration[%f sec]", handlerId, tgt.String(), currstamp.Sub(pre_connectstamp).Seconds())
-
+			setTcpConnKeepAlive(remoteconn)
 			defer func() {
 				t.conns.Delete(remoteconn.RemoteAddr().String())
 				remoteconn.Close()
