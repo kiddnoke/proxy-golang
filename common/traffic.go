@@ -1,6 +1,8 @@
 package common
 
 import (
+	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -116,5 +118,9 @@ func (t *Traffic) OnceSampling(duration2 time.Duration) {
 func (t *Traffic) GetRate() (float64, float64) {
 	d := t.LastactiveStamp.Sub(t.StartStamp)
 	t.AvaRate = float64(t.Td+t.Ud) / d.Seconds() / 1024
+
+	t.AvaRate, _ = strconv.ParseFloat(fmt.Sprintf("%.2f", t.AvaRate), 64)
+	t.MaxRate, _ = strconv.ParseFloat(fmt.Sprintf("%.2f", t.MaxRate), 64)
+
 	return t.AvaRate, t.MaxRate
 }
