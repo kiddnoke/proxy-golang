@@ -5,7 +5,7 @@ echo ${SHELL_FOLDER}
 OS="windows"
 export GOOS=${OS}
 export GOARCH=amd64
-export CGO_ENABLED=0
+export CGO_ENABLED=1
 
 COMMIT_HASH=`git rev-parse --verify --short=8 HEAD 2>/dev/null`
 BUILD_DATE=`date  +%m-%d-%H:%M`
@@ -16,7 +16,7 @@ if [ ! -d ${TARGET_DIR} ]; then
   mkdir ${TARGET_DIR}
 fi
 TARGET=${TARGET_DIR}/vpnedge_${OS}.exe
-SOURCE=${PROJECT_FOLDER}/cmd/VpnEdge
+SOURCE=${PROJECT_FOLDER}/cmd/VpnMultiProto
 
 cd ${SOURCE}
 go build -ldflags "-s -w -X \"main.BuildVersion=${COMMIT_HASH}\" -X \"main.BuildDate=${BUILD_DATE}\" -X \"main.BuildBranch=${BRANCH_NAME}\"" -i -o ${TARGET}
