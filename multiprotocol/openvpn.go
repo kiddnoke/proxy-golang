@@ -220,6 +220,9 @@ func (o *OpenVpn) syncUserTraffic() {
 		}
 		return
 	}
+	if out["Send.UnicastBytes"] == nil {
+		return
+	}
 	new_tu := out["Send.UnicastBytes"].(int64)
 	new_td := out["Recv.UnicastBytes"].(int64)
 	new_uu := out["Send.BroadcastBytes"].(int64)
