@@ -16,7 +16,7 @@ type Traffic struct {
 
 	Pre_u   int64   `json:"pre_u"`
 	Pre_d   int64   `json:"pre_d"`
-	MinRate float64 `json:"min_rate"`
+	AvaRate float64 `json:"ava_rate"`
 	MaxRate float64 `json:"max_rate"`
 
 	SamplingTimer time.Ticker
@@ -109,12 +109,12 @@ func (t *Traffic) OnceSampling(duration2 time.Duration) {
 	curr = t.Td + t.Ud
 	if rate := ratter(curr-t.Pre_d, duration2); rate > t.MaxRate {
 		t.MaxRate = rate
-	} else if rate > 0 && rate < t.MinRate {
-		t.MinRate = rate
 	}
 	t.Pre_d = curr
 }
 
 func (t *Traffic) GetRate() (float64, float64) {
-	return t.MinRate, t.MaxRate
+	d := t.LastactiveStamp.Sub(t.StartStamp)
+	t.AvaRate = float64(t.Td+t.Ud) / d.Seconds() / 1024
+	return t.AvaRate, t.MaxRate
 }
