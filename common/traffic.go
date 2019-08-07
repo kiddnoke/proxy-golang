@@ -14,10 +14,11 @@ type Traffic struct {
 	StartStamp      time.Time `json:"start_stamp"`
 	LastactiveStamp time.Time `json:"lastactive_stamp"`
 
-	Pre_u   int64   `json:"pre_u"`
-	Pre_d   int64   `json:"pre_d"`
-	MinRate float64 `json:"min_rate"`
-	MaxRate float64 `json:"max_rate"`
+	Pre_u        int64     `json:"pre_u"`
+	Pre_d        int64     `json:"pre_d"`
+	PreTimeStamp time.Time `json:"pre_time_stamp"`
+	MinRate      float64   `json:"min_rate"`
+	MaxRate      float64   `json:"max_rate"`
 
 	SamplingTimer time.Ticker
 }
@@ -25,18 +26,18 @@ type Traffic struct {
 func MakeTraffic() Traffic {
 	return Traffic{
 		0, 0, 0, 0,
-		time.Now().UTC(),
-		time.Now().UTC(),
-		0, 0, 0, 0,
+		time.Now(),
+		time.Now(),
+		0, 0, time.Now(), 0, 0,
 		time.Ticker{},
 	}
 }
 func NewTraffic() *Traffic {
 	return &Traffic{
 		0, 0, 0, 0,
-		time.Now().UTC(),
-		time.Now().UTC(),
-		0, 0, 0, 0,
+		time.Now(),
+		time.Now(),
+		0, 0, time.Now(), 0, 0,
 		time.Ticker{},
 	}
 }
@@ -74,7 +75,7 @@ func (t *Traffic) SetTraffic(tu, td, uu, ud int64) {
 	t.Active()
 }
 func (t *Traffic) Active() {
-	t.LastactiveStamp = time.Now().UTC()
+	t.LastactiveStamp = time.Now()
 }
 func (t *Traffic) GetLastTimeStamp() time.Time {
 	return t.LastactiveStamp
@@ -89,14 +90,14 @@ func (t *Traffic) Sampling() {
 			select {
 			case <-t.SamplingTimer.C:
 				{
-					t.OnceSampling(duration)
+					t.OnceSampling()
 				}
 			}
 		}
 	}()
 	return
 }
-func (t *Traffic) OnceSampling(duration2 time.Duration) {
+func (t *Traffic) OnceSampling() float64 {
 	var ratter = func(n int64, duration time.Duration) float64 {
 		if n > 0 {
 			return float64(n) / duration.Seconds() / 1024
@@ -107,12 +108,16 @@ func (t *Traffic) OnceSampling(duration2 time.Duration) {
 	t.Pre_u = curr
 
 	curr = t.Td + t.Ud
-	if rate := ratter(curr-t.Pre_d, duration2); rate > t.MaxRate {
+	rate := ratter(curr-t.Pre_d, time.Since(t.PreTimeStamp))
+	if rate > t.MaxRate {
 		t.MaxRate = rate
 	} else if rate > 0 && rate < t.MinRate {
 		t.MinRate = rate
 	}
 	t.Pre_d = curr
+	t.PreTimeStamp = time.Now()
+
+	return rate
 }
 
 func (t *Traffic) GetRate() (float64, float64) {

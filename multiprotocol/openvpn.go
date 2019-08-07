@@ -118,7 +118,7 @@ func (o *OpenVpn) IsTimeout() bool {
 	if o.Timeout == 0 {
 		return false
 	}
-	if o.GetLastTimeStamp().Unix()+int64(o.Timeout) < time.Now().UTC().Unix() {
+	if o.GetLastTimeStamp().Unix()+int64(o.Timeout) < time.Now().Unix() {
 		return true
 	} else {
 		return false
@@ -129,7 +129,7 @@ func (o *OpenVpn) IsExpire() bool {
 	if o.Expire == 0 {
 		return false
 	}
-	if time.Now().UTC().Unix() > int64(o.Expire) {
+	if time.Now().Unix() > int64(o.Expire) {
 		return true
 	} else {
 		return false
@@ -149,7 +149,7 @@ func (o *OpenVpn) IsNotify() bool {
 	if o.BalanceNotifyDuration == 0 {
 		return false
 	} else {
-		if int64(o.Expire)-time.Now().UTC().Unix() < int64(o.BalanceNotifyDuration) {
+		if int64(o.Expire)-time.Now().Unix() < int64(o.BalanceNotifyDuration) {
 			return true
 		} else {
 			return false
