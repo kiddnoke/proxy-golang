@@ -101,26 +101,25 @@ func (t *TcpRelay) Loop() {
 			t.conns.Store(remoteconn.RemoteAddr().String(), remoteconn)
 			t.Active()
 
-			var flow int
+			var flow int64
 			ErrC := make(chan error, 1)
 			go func() {
 				err := PipeThenClose(shadowconn, remoteconn, func(n int) {
 					if err := t.Limiter.WaitN(n); err != nil {
 						t.Error("[%v] -> [%v] speedlimiter err:%v", shadowconn.RemoteAddr(), tgt, err)
 					}
-					t.AddTraffic(n, 0, 0, 0)
+					t.AddTraffic(int64(n), 0, 0, 0)
 				})
 				ErrC <- err
 			}()
 			go func() {
 				err := PipeThenClose(remoteconn, shadowconn, func(n int) {
 					remoteconn.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
-
-					flow += n
+					flow += int64(n)
 					if err := t.Limiter.WaitN(n); err != nil {
 						t.Error("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
 					}
-					t.AddTraffic(0, n, 0, 0)
+					t.AddTraffic(0, int64(n), 0, 0)
 				})
 				ErrC <- err
 			}()

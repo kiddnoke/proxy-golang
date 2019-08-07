@@ -52,7 +52,7 @@ func (t *Traffic) GetTrafficWithClear() (tu, td, uu, ud int64) {
 	}()
 	return t.Tu, t.Td, t.Uu, t.Ud
 }
-func (t *Traffic) AddTraffic(tu, td, uu, ud int) {
+func (t *Traffic) AddTraffic(tu, td, uu, ud int64) {
 	if tu+td+uu+ud == 0 {
 		return
 	}
