@@ -30,6 +30,5 @@ func NewProxyInfo(ServerPort int, Method string, Password string, Speed int) (pi
 		running:    false,
 		Logger:     *common.NewLogger(level, ""),
 	}
-	p.Sampling()
 	return p, err
 }

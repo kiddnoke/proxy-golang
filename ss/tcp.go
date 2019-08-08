@@ -3,7 +3,9 @@ package ss
 import (
 	"fmt"
 	"net"
+	"proxy-golang/common"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/shadowsocks/go-shadowsocks2/core"
@@ -52,7 +54,17 @@ func setTcpConnKeepAlive(c net.Conn) {
 	}
 }
 func (t *TcpRelay) Loop() {
+	pipe_set := common.NewPipTrafficSet()
 	ConnCount := 0
+	go func() {
+		tick := time.NewTicker(time.Second)
+		for {
+			select {
+			case <-tick.C:
+				t.OnceSampling()
+			}
+		}
+	}()
 	for t.running {
 		_ = t.l.SetDeadline(time.Now().Add(time.Millisecond * AcceptTimeout))
 		c, err := t.l.Accept()
@@ -113,13 +125,15 @@ func (t *TcpRelay) Loop() {
 				ErrC <- err
 			}()
 			go func() {
+				key := shadowconn.RemoteAddr().String() + "<=>" + remoteconn.RemoteAddr().String()
 				err := PipeThenClose(remoteconn, shadowconn, func(n int) {
 					remoteconn.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
-					flow += int64(n)
 					if err := t.Limiter.WaitN(n); err != nil {
 						t.Error("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
 					}
+					atomic.AddInt64(&flow, int64(n))
 					t.AddTraffic(0, int64(n), 0, 0)
+					pipe_set.AddTraffic(key, int64(n))
 				})
 				ErrC <- err
 			}()
