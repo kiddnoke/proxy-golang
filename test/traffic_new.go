@@ -1,7 +1,6 @@
 package common
 
 import (
-	"log"
 	"sync/atomic"
 	"time"
 )
@@ -19,7 +18,7 @@ type Traffic struct {
 	PreU         int64   `json:"pre_u"`
 	PreD         int64   `json:"pre_d"`
 	PreTimeStamp int64   `json:"pre_time_stamp"`
-	MinRate      float64 `json:"min_rate"`
+	AvaRate      float64 `json:"ava_rate"`
 	MaxRate      float64 `json:"max_rate"`
 
 	SamplingTimer time.Ticker
@@ -110,26 +109,25 @@ func (t *Traffic) OnceSampling() float64 {
 		}
 		return 0
 	}
-	curr := t.Tu + t.Uu
-	t.PreU = curr
 
-	curr = atomic.LoadInt64(&t.Td) + atomic.LoadInt64(&t.Ud)
+	curr := atomic.LoadInt64(&t.Td) + atomic.LoadInt64(&t.Ud)
 	d := time.Since(UInt64ToTime(&t.PreTimeStamp))
 
 	rate := ratter(curr-atomic.LoadInt64(&t.PreD), d)
 	if rate > t.MaxRate {
 		t.MaxRate = rate
-	} else if rate > 0 && rate < t.MinRate {
-		t.MinRate = rate
 	}
 	atomic.CompareAndSwapInt64(&t.PreD, t.PreD, curr)
 	timeNowToUint64(&t.PreTimeStamp)
-	log.Println(d.Seconds())
+
+	dall := time.Since(UInt64ToTime(&t.StartStamp))
+	t.AvaRate = ratter(curr, dall)
+
 	return rate
 }
 
 func (t *Traffic) GetRate() (float64, float64) {
-	return t.MinRate, t.MaxRate
+	return t.AvaRate, t.MaxRate
 }
 
 func UInt64ToTime(u *int64) time.Time {
