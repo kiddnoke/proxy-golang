@@ -61,7 +61,7 @@ func (s *SS) IsTimeout() bool {
 	if s.Timeout == 0 {
 		return false
 	}
-	if s.GetLastTimeStamp().Unix()+int64(s.Timeout) < time.Now().UTC().Unix() {
+	if s.GetLastTimeStamp().Unix()+int64(s.Timeout) < time.Now().Unix() {
 		return true
 	} else {
 		return false
@@ -72,7 +72,7 @@ func (s *SS) IsExpire() bool {
 	if s.Expire == 0 {
 		return false
 	}
-	if time.Now().UTC().Unix() > int64(s.Expire) {
+	if time.Now().Unix() > int64(s.Expire) {
 		return true
 	} else {
 		return false
@@ -92,7 +92,7 @@ func (s *SS) IsNotify() bool {
 	if s.BalanceNotifyDuration == 0 {
 		return false
 	} else {
-		if int64(s.Expire)-time.Now().UTC().Unix() < int64(s.BalanceNotifyDuration) {
+		if int64(s.Expire)-time.Now().Unix() < int64(s.BalanceNotifyDuration) {
 			return true
 		} else {
 			return false

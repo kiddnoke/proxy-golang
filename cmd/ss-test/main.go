@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/pprof"
+	"proxy-golang/common"
 	"strconv"
 	"sync"
 	"time"
@@ -16,17 +17,21 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	var flags struct {
-		ServerPort int
-		Method     string
-		Password   string
-		Speed      int
+		ServerPort  int
+		Method      string
+		Password    string
+		Speed       int
+		loggerlevel int
 	}
 
 	flag.StringVar(&flags.Password, "k", "test", "Password")
 	flag.StringVar(&flags.Method, "m", "AES-128-cfb", "Method")
 	flag.IntVar(&flags.Speed, "limit", 0, "Limit")
 	flag.IntVar(&flags.ServerPort, "port", 29999, "ServerPort")
+	flag.IntVar(&flags.loggerlevel, "log level", 2, "日志等级")
 	flag.Parse()
+
+	common.SetDefaultLevel(2)
 
 	go HttpSrv(flags.ServerPort % 10000)
 

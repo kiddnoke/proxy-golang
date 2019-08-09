@@ -119,7 +119,7 @@ func main() {
 		client.Size(Manager.Size())
 		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(ratedown*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
 		key := pushService.GeneratorKey(uid, sid, port, appid)
-		_ = pushSrv.Push(key, "timeout", time.Now().UTC().Unix())
+		_ = pushSrv.Push(key, "timeout", time.Now().Unix())
 	})
 	Manager.On("fast_release", func(uid, sid int64, port int, appid int64, protocol string) {
 		var proxyinfo multiprotocol.Config
@@ -174,7 +174,7 @@ func main() {
 		client.Size(Manager.Size())
 		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(maxrate*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
 		key := pushService.GeneratorKey(uid, sid, port, appid)
-		_ = pushSrv.Push(key, "expire", time.Now().UTC().Unix())
+		_ = pushSrv.Push(key, "expire", time.Now().Unix())
 	})
 	// overflow Handle
 	Manager.On("overflow", func(uid, sid int64, port int, appid int64, limit int, protocol string) {
@@ -193,7 +193,6 @@ func main() {
 		pr.SetLimit(limit * 1024)
 		key := pushService.GeneratorKey(uid, sid, port, appid)
 		_ = pushSrv.Push(key, "overflow", limit)
-
 	})
 	// balance Handle
 	Manager.On("balance", func(uid, sid int64, port int, appid int64, protocol string) {
@@ -208,7 +207,7 @@ func main() {
 		client.Balance(appid, sid, uid, pr.GetConfig().BalanceNotifyDuration)
 		pr.GetConfig().BalanceNotifyDuration = 0
 		key := pushService.GeneratorKey(uid, sid, port, appid)
-		_ = pushSrv.Push(key, "balance", time.Now().UTC().Unix())
+		_ = pushSrv.Push(key, "balance", time.Now().Unix())
 	})
 	// health Handle
 	Manager.On("health", func() {
