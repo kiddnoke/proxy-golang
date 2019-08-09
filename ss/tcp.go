@@ -2,6 +2,7 @@ package ss
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"proxy-golang/common"
 	"sync"
@@ -61,7 +62,9 @@ func (t *TcpRelay) Loop() {
 		for {
 			select {
 			case <-tick.C:
-				t.OnceSampling()
+				if rate := t.OnceSampling(); rate > 0 {
+					log.Printf("total[%f kb/s] = %v", rate, pipe_set.SamplingAndString(time.Second))
+				}
 			}
 		}
 	}()
@@ -93,14 +96,14 @@ func (t *TcpRelay) Loop() {
 
 			tgt, err := socks.ReadAddr(shadowconn)
 			if err != nil {
-				t.Info("socks.ReadAddr Error [%s],handlerId[%d], local[%s]", err.Error(), handlerId, shadowconn.RemoteAddr())
+				t.Warn("socks.ReadAddr Error [%s],handlerId[%d], local[%s]", err.Error(), handlerId, shadowconn.RemoteAddr())
 				return
 			}
 
 			pre_connectstamp := time.Now()
 			remoteconn, err := net.DialTimeout("tcp", tgt.String(), DialTimeoutDuration)
 			if err != nil {
-				t.Info("net.Dial Error [%s], handlerId[%d], tgt[%s]", err.Error(), handlerId, tgt.String())
+				t.Warn("net.Dial Error [%s], handlerId[%d], tgt[%s]", err.Error(), handlerId, tgt.String())
 				return
 			}
 			currstamp := time.Now()
@@ -113,7 +116,7 @@ func (t *TcpRelay) Loop() {
 			t.conns.Store(remoteconn.RemoteAddr().String(), remoteconn)
 			t.Active()
 
-			var flow int64
+			var down_flow int64
 			ErrC := make(chan error, 1)
 			go func() {
 				err := PipeThenClose(shadowconn, remoteconn, func(n int) {
@@ -125,13 +128,13 @@ func (t *TcpRelay) Loop() {
 				ErrC <- err
 			}()
 			go func() {
-				key := shadowconn.RemoteAddr().String() + "<=>" + remoteconn.RemoteAddr().String()
+				key := shadowconn.RemoteAddr().String() + "=>" + remoteconn.RemoteAddr().String()
 				err := PipeThenClose(remoteconn, shadowconn, func(n int) {
 					remoteconn.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
 					if err := t.Limiter.WaitN(n); err != nil {
 						t.Error("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
 					}
-					atomic.AddInt64(&flow, int64(n))
+					atomic.AddInt64(&down_flow, int64(n))
 					t.AddTraffic(0, int64(n), 0, 0)
 					pipe_set.AddTraffic(key, int64(n))
 				})
@@ -144,13 +147,14 @@ func (t *TcpRelay) Loop() {
 					duration = duration - ReadDeadlineDuration
 				}
 				time_stamp := time.Now().UnixNano() / 1e6
-				rate := float64(flow) / duration.Seconds() / 1024
+				_flow := atomic.LoadInt64(&down_flow)
+				rate := float64(_flow) / duration.Seconds() / 1024
 				ip := fmt.Sprintf("%v", shadowconn.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
 
-				t.Info("handler[%d] flow[%f k] duration[%f sec] rate[%f kb/s] domain[%v] remoteaddr[%v] Error[%s]", handlerId, float64(flow)/1024.0, duration.Seconds(), rate, tgt, remoteconn.RemoteAddr(), err.Error())
-				if t.ConnectInfoCallback != nil && flow > 10*1024 {
-					t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(flow)/1024.0, duration)
+				t.Debug("handler[%d] flow[%f k] duration[%f sec] rate[%f kb/s] domain[%v] remoteaddr[%v] Error[%s]", handlerId, float64(_flow)/1024.0, duration.Seconds(), rate, tgt, remoteconn.RemoteAddr(), err.Error())
+				if t.ConnectInfoCallback != nil && down_flow > 10*1024 {
+					t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(_flow)/1024.0, duration)
 				}
 			}()
 		}(c)

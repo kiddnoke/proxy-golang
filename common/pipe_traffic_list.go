@@ -46,7 +46,11 @@ func (p *PipeTrafficSet) SamplingAndString(d time.Duration) string {
 		p.list.Delete(key)
 		return true
 	})
-	return str[:len(str)-1]
+	if len(str) > 0 {
+		return str[:len(str)-1]
+	} else {
+		return ""
+	}
 }
 func (p *PipeTrafficSet) SamplingAndPrint(d time.Duration) {
 	p.list.Range(func(key, value interface{}) bool {
