@@ -234,7 +234,7 @@ func (o *OpenVpn) syncUserTraffic() {
 		o.Traffic.SetTraffic(new_tu, new_td, new_uu, new_ud)
 		API.SetUserExpireTime(o.HubName, o.UserName, time.Now().Add(time.Second*time.Duration(o.Timeout)))
 	}
-	o.Traffic.OnceSampling(time.Second * 10)
+	o.Traffic.OnceSampling()
 	//
 	maxupload, ok := out["policy:MaxUpload"]
 	if ok {
