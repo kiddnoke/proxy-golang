@@ -54,7 +54,7 @@ func Make() (client WrapperClient) {
 	return *New()
 }
 func New() (client *WrapperClient) {
-	currtimestamp := strconv.FormatInt(time.Now().Unix()*1000, 10)
+	currtimestamp := strconv.FormatInt(time.Now().UnixNano()/1e6, 10)
 	hasher := md5.New()
 	hasher.Write([]byte(currtimestamp))
 	hasher.Write([]byte("VpnMgrCore"))

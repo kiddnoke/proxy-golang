@@ -2,7 +2,6 @@ package ss
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"proxy-golang/common"
 	"sync"
@@ -62,8 +61,11 @@ func (t *TcpRelay) Loop() {
 		for {
 			select {
 			case <-tick.C:
+				if t == nil {
+					break
+				}
 				if rate := t.OnceSampling(); rate > 0 {
-					log.Printf("total[%f kb/s] = %v", rate, pipe_set.SamplingAndString(time.Second))
+					t.Info("total[%f kb/s] = %v", rate, pipe_set.SamplingAndString(time.Second))
 				}
 			}
 		}
@@ -152,7 +154,7 @@ func (t *TcpRelay) Loop() {
 				ip := fmt.Sprintf("%v", shadowconn.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
 
-				t.Debug("handler[%d] flow[%f k] duration[%f sec] rate[%f kb/s] domain[%v] remoteaddr[%v] Error[%s]", handlerId, float64(_flow)/1024.0, duration.Seconds(), rate, tgt, remoteconn.RemoteAddr(), err.Error())
+				t.Info("handler[%d] flow[%f k] duration[%f sec] rate[%f kb/s] domain[%v] remoteaddr[%v] Error[%s]", handlerId, float64(_flow)/1024.0, duration.Seconds(), rate, tgt, remoteconn.RemoteAddr(), err.Error())
 				if t.ConnectInfoCallback != nil && down_flow > 10*1024 {
 					t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(_flow)/1024.0, duration)
 				}

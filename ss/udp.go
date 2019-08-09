@@ -52,7 +52,7 @@ func (u *UdpRelay) Loop() {
 		c.SetReadDeadline(time.Now().Add(time.Millisecond * AcceptTimeout))
 		n, raddr, err := c.ReadFrom(buf)
 		u.Limiter.WaitN(n)
-		go u.AddTraffic(0, 0, int64(n), 0)
+		u.AddTraffic(0, 0, int64(n), 0)
 		if err != nil {
 			if opError, ok := err.(*net.OpError); ok && opError.Timeout() {
 				continue
@@ -102,7 +102,7 @@ func (u *UdpRelay) Loop() {
 			go func() { // receive from udpLocal and send to client
 				handler := func(n int) {
 					u.Limiter.WaitN(n)
-					go u.AddTraffic(0, 0, 0, int64(n))
+					u.AddTraffic(0, 0, 0, int64(n))
 				}
 				if err := timedCopy(raddr, c, pc, UDPTimeout, true, handler); err != nil {
 					if err, ok := err.(net.Error); ok && err.Timeout() {
