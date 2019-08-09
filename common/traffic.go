@@ -1,6 +1,8 @@
 package common
 
 import (
+	"fmt"
+	"strconv"
 	"sync/atomic"
 	"time"
 )
@@ -127,6 +129,12 @@ func (t *Traffic) OnceSampling() float64 {
 }
 
 func (t *Traffic) GetRate() (float64, float64) {
+	d := UInt64ToTime(&t.LastActiveStamp).Sub(UInt64ToTime(&t.StartStamp))
+	t.AvaRate = float64(t.Td+t.Ud) / d.Seconds() / 1024
+
+	t.AvaRate, _ = strconv.ParseFloat(fmt.Sprintf("%.1f", t.AvaRate), 64)
+	t.MaxRate, _ = strconv.ParseFloat(fmt.Sprintf("%.1f", t.MaxRate), 64)
+
 	return t.AvaRate, t.MaxRate
 }
 
