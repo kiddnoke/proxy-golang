@@ -1,8 +1,8 @@
 package multiprotocol
 
 import (
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 	"reflect"
 	"runtime"
 )

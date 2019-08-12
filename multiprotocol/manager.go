@@ -2,6 +2,7 @@ package multiprotocol
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"proxy-golang/ss"
 	"proxy-golang/util"
 	"sync"
@@ -47,7 +48,7 @@ func (m *Manager) Add(proxy *Config) (err error) {
 	var relay Relayer
 	key = generatorKey(proxy.Sid)
 	if _, found := m.proxyTable.Load(key); found {
-		return KeyExist
+		return errors.WithMessagef(KeyExist, "config.Sid[%d],config.Uid[%d]", proxy.Sid, proxy.Uid)
 	} else {
 
 		if proxy.Password == "" {
@@ -87,7 +88,7 @@ func (m *Manager) Delete(config Config) error {
 		p.(Relayer).Close()
 		m.proxyTable.Delete(key)
 	} else {
-		return KeyNotExist
+		return errors.WithMessagef(KeyNotExist, "config.Sid[%d],config.Uid[%d]", config.Sid, config.Uid)
 	}
 	return nil
 }
@@ -107,7 +108,7 @@ func (m *Manager) Update(config Config) error {
 			cp.Expire = config.Expire
 		}
 	} else {
-		return KeyNotExist
+		return errors.WithMessagef(KeyNotExist, "config.Sid[%d],config.Uid[%d]", config.Sid, config.Uid)
 	}
 	return nil
 }
@@ -118,7 +119,7 @@ func (m *Manager) Get(keys Config) (Re Relayer, err error) {
 	if p, found := m.proxyTable.Load(key); found {
 		return p.(Relayer), nil
 	} else {
-		return nil, KeyNotExist
+		return nil, errors.WithMessagef(KeyNotExist, "config.Sid[%d],config.Uid[%d]", keys.Sid, keys.Uid)
 	}
 }
 
