@@ -40,13 +40,21 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	var generate bool
+	var LinkMode string
 	var flags struct {
-		InstanceID int
-		CenterUrl  string
-		State      string
-		Area       string
+		BeginPort      int
+		EndPort        int
+		InstanceID     int
+		ControllerPort int
+		CenterUrl      string
+		State          string
+		Area           string
 	}
 	flag.BoolVar(&generate, "pm2", false, "生成pm2可识别的版本文件")
+	flag.StringVar(&LinkMode, "link-mode", "1", "通信模式")
+	flag.IntVar(&flags.InstanceID, "Id", 0, "实例id")
+	flag.IntVar(&flags.BeginPort, "beginport", 0, "beginport 起始端口")
+	flag.IntVar(&flags.EndPort, "endport", 0, "endport 结束端口")
 	flag.StringVar(&flags.CenterUrl, "url", "localhost:7001", "中心的url地址")
 	flag.StringVar(&flags.State, "state", "NULL", "本实例所要注册的国家")
 	flag.StringVar(&flags.Area, "area", "0", "本实例所要注册的地区")
