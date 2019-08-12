@@ -86,7 +86,7 @@ func (t *Traffic) GetLastTimeStamp() time.Time {
 func (t *Traffic) GetStartTimeStamp() time.Time {
 	return UInt64ToTime(&t.StartStamp)
 }
-func (t *Traffic) Sampling() {
+func (t *Traffic) StartSampling() {
 	t.SamplingTimer = *time.NewTicker(duration)
 	go func() {
 		for {
@@ -103,6 +103,9 @@ func (t *Traffic) Sampling() {
 		}
 	}()
 	return
+}
+func (t *Traffic) StopSampling() {
+	t.SamplingTimer.Stop()
 }
 func (t *Traffic) OnceSampling() float64 {
 	var ratter = func(n int64, duration time.Duration) float64 {

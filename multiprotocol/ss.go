@@ -47,12 +47,13 @@ func NewSS(p *Config) (r *SS, err error) {
 }
 
 func (s *SS) Start() {
+	s.ProxyRelay.StartSampling()
 	s.ProxyRelay.Start()
 }
 
 func (s *SS) Stop() {
 	s.ProxyRelay.Stop()
-	s.ProxyRelay.SamplingTimer.Stop()
+	s.ProxyRelay.StopSampling()
 }
 
 func (s *SS) Close() {
