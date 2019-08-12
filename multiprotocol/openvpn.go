@@ -2,6 +2,7 @@ package multiprotocol
 
 import (
 	"fmt"
+	"proxy-golang/util"
 	"time"
 
 	"github.com/kiddnoke/SoftetherGo"
@@ -18,7 +19,7 @@ type OpenVpn struct {
 	UserName string
 	Password string
 	common.Traffic
-	timer interval
+	timer util.Timer
 	common.Logger
 }
 
@@ -84,7 +85,7 @@ End:
 
 func (o *OpenVpn) Start() {
 	o.Info("Start")
-	o.timer = *setInterval(time.Second*10, func(when time.Time) {
+	o.timer = util.Interval(time.Second*10, func(when time.Time) {
 		o.syncUserTraffic()
 	})
 }
@@ -118,7 +119,7 @@ func (o *OpenVpn) IsTimeout() bool {
 	if o.Timeout == 0 {
 		return false
 	}
-	if o.GetLastTimeStamp().Unix()+int64(o.Timeout) < time.Now().Unix() {
+	if o.GetLastTimeStamp().Add(time.Duration(o.Timeout) * time.Second).After(time.Now()) {
 		return true
 	} else {
 		return false

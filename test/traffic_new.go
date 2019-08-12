@@ -135,6 +135,6 @@ func UInt64ToTime(u *int64) time.Time {
 	return time.Unix(value/1e9, value%1e9)
 }
 func timeNowToUint64(u *int64) {
-	t := time.Now().UnixNano()
+	t := time.Now().UTC().UnixNano()
 	atomic.StoreInt64(u, t)
 }

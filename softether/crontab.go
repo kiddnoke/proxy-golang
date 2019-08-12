@@ -12,7 +12,6 @@ const duration = time.Minute
 var selflogger *common.Logger
 
 func CronInit() {
-	selflogger = common.NewLogger(common.LOG_DEFAULT, "CronTask")
 	//Cron()
 	clearExpireUser(time.Now())
 	clearExpireHub(time.Now())

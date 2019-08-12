@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/kiddnoke/SoftetherGo"
 	"log"
+	"proxy-golang/common"
 	"strconv"
 	"strings"
 )
@@ -21,6 +22,8 @@ var Ipv4Address string
 const OpenVpnServicePort = 21194
 
 func Init() {
+	selflogger = common.NewLogger(common.LOG_DEFAULT, "CronTask")
+
 	if checkSoftetherIsFirst() == true {
 		if err := softetherFirstInit(SoftPassword); err != nil {
 			panic(err)
@@ -66,11 +69,11 @@ func Init() {
 
 func checkSoftetherIsFirst() bool {
 	checkSoftetherIsFirstApi := softetherApi.NewAPI(SoftHost, SoftPort, "")
-	defer checkSoftetherIsFirstApi.Disconnect()
 	if err := checkSoftetherIsFirstApi.HandShake(); err != nil {
 		checkSoftetherIsFirstApi = nil
 		return false
 	} else {
+		defer checkSoftetherIsFirstApi.Disconnect()
 		return true
 	}
 

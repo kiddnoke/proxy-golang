@@ -3,7 +3,10 @@ package ss
 import (
 	"errors"
 	"fmt"
+	"net"
 	"proxy-golang/common"
+	"proxy-golang/util"
+	"strconv"
 )
 
 type ProxyRelayer interface {
@@ -45,4 +48,33 @@ func (r *ProxyRelay) Close() {
 	r.Stop()
 	r.TcpRelay.Close()
 	r.UdpRelay.Close()
+}
+func NewRelay(c *proxyinfo) (r *ProxyRelay, err error) {
+	r = new(ProxyRelay)
+	var tl *net.TCPListener
+	var ul *net.UDPConn
+	if c.ServerPort == 0 {
+		tl, ul = util.MaxListener()
+
+		_, port, _ := net.SplitHostPort(tl.Addr().String())
+		c.ServerPort, _ = strconv.Atoi(port)
+	} else {
+		tl, err = net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: c.ServerPort})
+		ul, err = net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("0.0.0.0"), Port: c.ServerPort})
+	}
+
+	tr := &TcpRelay{
+		l:         listener{tl, c.Cipher},
+		proxyinfo: c,
+		handlerId: 0,
+	}
+	r.TcpRelay = tr
+	ur := &UdpRelay{
+		l:         c.Cipher.PacketConn(ul),
+		proxyinfo: c,
+	}
+	r.UdpRelay = ur
+
+	r.proxyinfo = c
+	return
 }

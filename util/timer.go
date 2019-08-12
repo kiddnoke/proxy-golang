@@ -1,26 +1,19 @@
-package multiprotocol
+package util
 
 import (
 	"math/rand"
 	"time"
 )
 
-type Stopper interface {
+type Timer interface {
 	Stop() bool
-}
-type Timer struct {
-	Stopper
-}
-
-func clearTimer(t *Timer) bool {
-	return t.Stop()
 }
 
 type interval struct {
 	*time.Ticker
 }
 
-func setInterval(duration time.Duration, callback func(when time.Time)) (t *interval) {
+func Interval(duration time.Duration, callback func(when time.Time)) (t *interval) {
 	t = new(interval)
 	t.Ticker = time.NewTicker(duration)
 	go func() {
@@ -34,11 +27,16 @@ func setInterval(duration time.Duration, callback func(when time.Time)) (t *inte
 	return
 }
 
+func (i *interval) Stop() bool {
+	i.Ticker.Stop()
+	return true
+}
+
 type timeout struct {
 	*time.Timer
 }
 
-func setTimeout(duration time.Duration, callback func(when time.Time)) (t *timeout) {
+func Timeout(duration time.Duration, callback func(when time.Time)) (t *timeout) {
 	t = new(timeout)
 	t.Timer = time.AfterFunc(duration, func() {
 		callback(time.Now())
@@ -50,7 +48,11 @@ type intervalrandom struct {
 	*time.Timer
 }
 
-func setIntervalRange(first, end time.Duration, callback func(when time.Time)) (t *intervalrandom, err error) {
+func (i *intervalrandom) Stop() bool {
+	i.Timer.Stop()
+	return true
+}
+func IntervalRange(first, end time.Duration, callback func(when time.Time)) (t *intervalrandom, err error) {
 	t = new(intervalrandom)
 	if first > end {
 		first, end = end, first
@@ -60,10 +62,10 @@ func setIntervalRange(first, end time.Duration, callback func(when time.Time)) (
 	duration := first + time.Duration(durationRange)
 	t.Timer = time.AfterFunc(duration, func() {
 		callback(time.Now())
-		setIntervalRange(first, end, callback)
+		IntervalRange(first, end, callback)
 	})
 	return
 }
-func setIntervalRandom(jichu, fudong time.Duration, callback func(when time.Time)) (t *intervalrandom, err error) {
-	return setIntervalRange(jichu-fudong, jichu+fudong, callback)
+func IntervalRandom(jichu, fudong time.Duration, callback func(when time.Time)) (t *intervalrandom, err error) {
+	return IntervalRange(jichu-fudong, jichu+fudong, callback)
 }

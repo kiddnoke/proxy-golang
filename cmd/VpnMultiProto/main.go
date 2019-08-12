@@ -18,9 +18,10 @@ import (
 	"proxy-golang/pushService"
 	"proxy-golang/softether"
 	"proxy-golang/udpposter"
+	"proxy-golang/util"
 )
 
-const ssBeginPort = 20000
+const ManagerBeginPort = 10000
 
 var Manager *multiprotocol.Manager
 var pushSrv *pushService.PushService
@@ -31,7 +32,7 @@ func init() {
 	Manager = multiprotocol.New()
 	Manager.CheckLoop()
 	pushSrv, _ = pushService.NewPushService()
-	softether.SoftHost = "localhost"
+	softether.SoftHost = "10.0.2.71"
 	softether.SoftPort = 443
 }
 
@@ -39,21 +40,13 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	var generate bool
-	var LinkMode string
 	var flags struct {
-		BeginPort      int
-		EndPort        int
-		InstanceID     int
-		ControllerPort int
-		CenterUrl      string
-		State          string
-		Area           string
+		InstanceID int
+		CenterUrl  string
+		State      string
+		Area       string
 	}
 	flag.BoolVar(&generate, "pm2", false, "生成pm2可识别的版本文件")
-	flag.StringVar(&LinkMode, "link-mode", "1", "通信模式")
-	flag.IntVar(&flags.InstanceID, "Id", 0, "实例id")
-	flag.IntVar(&flags.BeginPort, "beginport", 0, "beginport 起始端口")
-	flag.IntVar(&flags.EndPort, "endport", 0, "endport 结束端口")
 	flag.StringVar(&flags.CenterUrl, "url", "localhost:7001", "中心的url地址")
 	flag.StringVar(&flags.State, "state", "NULL", "本实例所要注册的国家")
 	flag.StringVar(&flags.Area, "area", "0", "本实例所要注册的地区")
@@ -67,17 +60,15 @@ func main() {
 	softether.SoftPassword = flags.CenterUrl
 	go softether.Init()
 
-	flags.InstanceID = multiprotocol.InstanceIdGen(flags.InstanceID)
-
-	if flags.BeginPort == 0 && flags.EndPort == 0 {
-		flags.BeginPort = ssBeginPort + flags.InstanceID*1000
-		flags.EndPort = flags.BeginPort + 999
+	// Init InstanceID
+	{
+		tl, ul := util.FreeListenerRange(10001, 11000)
+		ul.Close()
+		_, port, _ := net.SplitHostPort(tl.Addr().String())
+		flags.InstanceID, _ = strconv.Atoi(port)
+		flags.InstanceID = flags.InstanceID - ManagerBeginPort
+		go HttpSrv(tl)
 	}
-
-	multiprotocol.BeginPort = flags.BeginPort
-	multiprotocol.EndPort = flags.EndPort
-
-	go HttpSrv(flags.InstanceID)
 
 	client := wswrapper.New()
 
@@ -295,7 +286,7 @@ func main() {
 				return
 			}
 		})
-		client.Login(flags.InstanceID, flags.BeginPort, flags.EndPort, flags.InstanceID+10000, flags.State, flags.Area)
+		client.Login(flags.InstanceID, util.PortBegin, util.PortEnd, flags.InstanceID+10000, flags.State, flags.Area)
 	})
 	// OnDisConnect Handle
 	client.OnDisconnect(func(c wswrapper.Channel) {
@@ -306,8 +297,7 @@ func main() {
 	wg.Wait()
 }
 
-func HttpSrv(port int) {
-	port = port + multiprotocol.ManagerBeginPort
+func HttpListenPort(port int) {
 	// Create a new router
 	router := http.NewServeMux()
 
@@ -334,4 +324,31 @@ func HttpSrv(port int) {
 	}
 
 	log.Fatal(srv.ListenAndServe())
+}
+func HttpSrv(tl *net.TCPListener) {
+	// Create a new router
+	router := http.NewServeMux()
+
+	// Register pprof handlers
+	router.HandleFunc("/debug/pprof/", pprof.Index)
+	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+
+	router.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	router.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	router.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	router.Handle("/debug/pprof/block", pprof.Handler("block"))
+	router.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
+	router.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
+	// Register wsServer handlers
+	router.Handle("/socket.io/", pushSrv)
+
+	srv := &http.Server{
+		Handler:      router,
+		WriteTimeout: 120 * time.Second,
+		ReadTimeout:  120 * time.Second,
+	}
+
+	log.Fatal(srv.Serve(tl))
 }

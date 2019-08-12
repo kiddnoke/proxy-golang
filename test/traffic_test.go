@@ -123,6 +123,7 @@ func TestTraffic_AddTrafficNew(t *testing.T) {
 func TestTraffic_timeNowToUint64(t *testing.T) {
 	var i int64
 	timeNowToUint64(&i)
+	log.Println(UInt64ToTime(&i))
 }
 func TestTraffic_UInt64ToTime(t *testing.T) {
 	var i int64 = 1565245987729728700

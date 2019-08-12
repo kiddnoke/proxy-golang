@@ -3,6 +3,7 @@ package multiprotocol
 import (
 	"fmt"
 	"proxy-golang/ss"
+	"proxy-golang/util"
 	"sync"
 	"time"
 
@@ -32,7 +33,7 @@ func generatorKey(args ...interface{}) (keystr string) {
 }
 
 func genPassword(n int) string {
-	return randStringBytesMaskImprSrcSB(n)
+	return util.RandStringBytesMaskImprSrcSB(n)
 }
 
 type Manager struct {
@@ -58,9 +59,6 @@ func (m *Manager) Add(proxy *Config) (err error) {
 			relay, err = NewOpenVpn(proxy)
 		} else {
 			proxy.Protocol = "ss"
-			if proxy.ServerPort == 0 {
-				proxy.ServerPort = getFreePort(BeginPort, EndPort)
-			}
 			if proxy.Method == "" {
 				proxy.Method = ss.GenCipherMethod(2)
 			}
@@ -88,7 +86,6 @@ func (m *Manager) Delete(config Config) error {
 	if p, found := m.proxyTable.Load(key); found {
 		p.(Relayer).Close()
 		m.proxyTable.Delete(key)
-		clearPort(config.ServerPort)
 	} else {
 		return KeyNotExist
 	}
@@ -127,7 +124,7 @@ func (m *Manager) Get(keys Config) (Re Relayer, err error) {
 
 func (m *Manager) CheckLoop() {
 	// 10 second timer
-	setInterval(time.Second*30, func(when time.Time) {
+	util.Interval(time.Second*30, func(when time.Time) {
 		m.proxyTable.Range(func(key, proxy interface{}) bool {
 			p := proxy.(Relayer)
 			c := p.GetConfig()
@@ -147,7 +144,7 @@ func (m *Manager) CheckLoop() {
 		})
 	})
 	// 1 min timer
-	setInterval(time.Minute, func(when time.Time) {
+	util.Interval(time.Minute, func(when time.Time) {
 		<-m.Emit("health")
 		var transferLists []interface{}
 		m.proxyTable.Range(func(key, proxy interface{}) bool {

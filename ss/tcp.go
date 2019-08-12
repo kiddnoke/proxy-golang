@@ -130,7 +130,7 @@ func (t *TcpRelay) Loop() {
 				ErrC <- err
 			}()
 			go func() {
-				key := shadowconn.RemoteAddr().String() + "=>" + remoteconn.RemoteAddr().String()
+				key := shadowconn.RemoteAddr().String() + "=>" + tgt.String()
 				err := PipeThenClose(remoteconn, shadowconn, func(n int) {
 					remoteconn.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
 					if err := t.Limiter.WaitN(n); err != nil {

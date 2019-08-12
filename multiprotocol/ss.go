@@ -16,21 +16,24 @@ type SS struct {
 
 func NewSS(p *Config) (r *SS, err error) {
 	r = new(SS)
-	searchLimit, err := searchLimit(int64(p.CurrLimitDown), p.LimitArray, p.FlowArray, p.UsedTotalTraffic)
+	var curr_limit int64 = 0
+	if len(p.LimitArray) != 0 {
+		curr_limit, _ = searchLimit(int64(p.CurrLimitDown), p.LimitArray, p.FlowArray, p.UsedTotalTraffic)
+	}
+	p.CurrLimitDown = int(curr_limit)
 
-	pi, e := ss.NewProxyInfo(p.ServerPort, p.Method, p.Password, int(searchLimit))
+	pi, e := ss.NewProxyInfo(p.ServerPort, p.Method, p.Password, int(curr_limit))
 	if e != nil {
 		return nil, err
 	}
-	pi.Info("Proxy Init:Uid[%d] Sid[%d] Port[%d] AppId[%d] Proxy.Init UsedTotalTraffic[%v] DefaultLimi[%v] CurrLimit[%v]", p.Uid, p.Sid, p.ServerPort, p.AppId, p.UsedTotalTraffic, p.CurrLimitDown, searchLimit)
-	p.CurrLimitDown = int(searchLimit)
-	p.CurrLimitUp = int(searchLimit)
-
-	pr, e := ss.NewProxyRelay(pi)
+	pr, e := ss.NewRelay(pi)
 	if e != nil {
 		pi.Error("%s", err.Error())
 		return nil, err
 	}
+	p.ServerPort = pi.ServerPort
+	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d] Protocol[%s]", p.Uid, p.Sid, p.ServerPort, p.AppId, p.Protocol))
+	pr.Info("Proxy Init:Uid[%d] Sid[%d] Port[%d] AppId[%d] Proxy.Init UsedTotalTraffic[%v] DefaultLimi[%v] CurrLimit[%v]", p.Uid, p.Sid, p.ServerPort, p.AppId, p.UsedTotalTraffic, p.CurrLimitDown, curr_limit)
 
 	pr.ConnectInfoCallback = func(time_stamp int64, rate float64, localAddress, RemoteAddress string, traffic float64, duration time.Duration) {
 		_ = udpposter.PostParams(p.AppId, p.Uid, p.SnId,
@@ -38,7 +41,6 @@ func NewSS(p *Config) (r *SS, err error) {
 			localAddress, RemoteAddress, time_stamp,
 			int64(rate*100), int64(duration.Seconds()*100), int64(traffic*100), p.Ip+":"+strconv.Itoa(p.ServerPort), p.State, p.UserType)
 	}
-	pr.SetPrefix(fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d] Protocol[%s]", p.Uid, p.Sid, p.ServerPort, p.AppId, p.Protocol))
 	r.Config = *p
 	r.ProxyRelay = *pr
 	return
@@ -61,7 +63,7 @@ func (s *SS) IsTimeout() bool {
 	if s.Timeout == 0 {
 		return false
 	}
-	if s.GetLastTimeStamp().Unix()+int64(s.Timeout) < time.Now().Unix() {
+	if s.GetLastTimeStamp().Add(time.Duration(s.Timeout) * time.Second).After(time.Now()) {
 		return true
 	} else {
 		return false
