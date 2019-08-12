@@ -2,14 +2,8 @@ package multiprotocol
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"reflect"
 	"runtime"
-)
-
-var (
-	KeyNotExist = errors.New("ProxyRelayNotExist")
-	KeyExist    = errors.New("ProxyRelayExist")
 )
 
 type OpError struct {

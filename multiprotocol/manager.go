@@ -27,7 +27,7 @@ func New() (m *Manager) {
 
 func generatorKey(args ...interface{}) (keystr string) {
 	keystr = ""
-	for _, value := range args[:len(args)-1] {
+	for _, value := range args[:len(args)] {
 		keystr += fmt.Sprintf("%v-", value)
 	}
 	keystr += fmt.Sprintf("\b")
@@ -49,7 +49,9 @@ func (m *Manager) Add(proxy *Config) (err error) {
 	var relay Relayer
 	key = generatorKey(proxy.Sid)
 	if _, found := m.proxyTable.Load(key); found {
-		return errors.WithMessagef(KeyExist, "config.Sid[%d],config.Uid[%d]", proxy.Sid, proxy.Uid)
+		err = errors.Errorf("key[%s] config.Sid[%d],config.Uid[%d]", key, proxy.Sid, proxy.Uid)
+		log.Printf("%+v", err)
+		return
 	} else {
 
 		if proxy.Password == "" {
@@ -70,7 +72,7 @@ func (m *Manager) Add(proxy *Config) (err error) {
 			return err
 		}
 		relay.Start()
-		time.AfterFunc(time.Minute*3, func() {
+		time.AfterFunc(time.Minute, func() {
 			c := relay.GetConfig()
 			tu, td, uu, ud := relay.GetTraffic()
 			if tu+td+uu+ud == 0 {
@@ -89,8 +91,7 @@ func (m *Manager) Delete(config Config) error {
 		p.(Relayer).Close()
 		m.proxyTable.Delete(key)
 	} else {
-		err := errors.WithMessagef(KeyNotExist, "key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
-		log.Printf("%+v", err)
+		err := errors.Errorf("key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
 		return err
 	}
 	return nil
@@ -111,7 +112,7 @@ func (m *Manager) Update(config Config) error {
 			cp.Expire = config.Expire
 		}
 	} else {
-		err := errors.WithMessagef(KeyNotExist, "key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
+		err := errors.Errorf("key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
 		log.Printf("%+v", err)
 		return err
 	}
@@ -124,7 +125,7 @@ func (m *Manager) Get(config Config) (Re Relayer, err error) {
 	if p, found := m.proxyTable.Load(key); found {
 		return p.(Relayer), nil
 	} else {
-		err = errors.WithMessagef(KeyNotExist, "key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
+		err = errors.Errorf("key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
 		log.Printf("%+v", err)
 		return nil, err
 	}
