@@ -8,6 +8,7 @@ require (
 	github.com/kataras/go-events v0.0.2
 	github.com/kiddnoke/SoftetherGo v0.0.0-20190714165506-c4d494048f48
 	github.com/kiddnoke/eventemitter v0.0.0-20190714210038-1b4447322a45
+	github.com/pkg/errors v0.8.1
 	github.com/shadowsocks/go-shadowsocks2 v0.0.11
 	golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25 // indirect
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c

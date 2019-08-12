@@ -77,6 +77,10 @@ func main() {
 		flags.InstanceID = flags.InstanceID - ManagerBeginPort
 		go HttpSrv(tl)
 	}
+	// udp echo service
+	{
+		go delayer()
+	}
 
 	client := wswrapper.New()
 
