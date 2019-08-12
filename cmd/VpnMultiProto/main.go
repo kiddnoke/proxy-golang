@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/pkg/errors"
 	"log"
 	"net"
 	"net/http"
@@ -32,7 +33,7 @@ func init() {
 	Manager = multiprotocol.New()
 	Manager.CheckLoop()
 	pushSrv, _ = pushService.NewPushService()
-	softether.SoftHost = "localhost"
+	softether.SoftHost = "10.0.2.70"
 	softether.SoftPort = 443
 }
 
@@ -113,11 +114,14 @@ func main() {
 		pr.GetConfig().Timeout = 0
 		time.AfterFunc(time.Second*30, func() {
 			// 回收
-			Manager.Delete(proxyinfo)
+			err := Manager.Delete(proxyinfo)
+			if err != nil && errors.Cause(err) != multiprotocol.KeyNotExist {
+				mainlog.Error("%+v", err)
+			}
 		})
 		rateava, ratedown := pr.GetRate()
 		client.Timeout(appid, sid, uid, transfer, timestamp.Unix(), duration, [2]float64{rateava, ratedown})
-		mainlog.Warn("timeout: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration)
+		mainlog.Warn("timeout: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d] ,rate[%v]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration, []float64{rateava, ratedown})
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
 		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(ratedown*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
@@ -129,7 +133,9 @@ func main() {
 		proxyinfo = multiprotocol.Config{Sid: sid, Uid: uid, ServerPort: port, AppId: appid, Protocol: protocol}
 		pr, err := Manager.Get(proxyinfo)
 		if err != nil {
-			log.Println(err)
+			if errors.Cause(err) != multiprotocol.KeyNotExist {
+				log.Printf("%+v", err)
+			}
 			return
 		}
 		proxyinfo = *pr.GetConfig()
@@ -172,7 +178,7 @@ func main() {
 		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
 		avarate, maxrate := pr.GetRate()
 		client.Expire(appid, sid, uid, transfer, duration, [2]float64{avarate, maxrate})
-		mainlog.Warn("expire: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, duration)
+		mainlog.Warn("expire: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] duration[%d] rate[%v]", appid, sid, uid, tu, td, uu, ud, duration, []float64{avarate, maxrate})
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
 		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(maxrate*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)

@@ -1,9 +1,15 @@
 package multiprotocol
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
+)
+
+var (
+	KeyNotExist = errors.New("ProxyRelayNotExist")
+	KeyExist    = errors.New("ProxyRelayExist")
 )
 
 type OpError struct {

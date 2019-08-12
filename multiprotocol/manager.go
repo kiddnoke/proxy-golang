@@ -91,7 +91,7 @@ func (m *Manager) Delete(config Config) error {
 		p.(Relayer).Close()
 		m.proxyTable.Delete(key)
 	} else {
-		err := errors.Errorf("key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
+		err := errors.Wrapf(KeyNotExist, "key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
 		return err
 	}
 	return nil
@@ -125,8 +125,7 @@ func (m *Manager) Get(config Config) (Re Relayer, err error) {
 	if p, found := m.proxyTable.Load(key); found {
 		return p.(Relayer), nil
 	} else {
-		err = errors.Errorf("key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
-		log.Printf("%+v", err)
+		err = errors.Wrapf(KeyNotExist, "key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
 		return nil, err
 	}
 }
