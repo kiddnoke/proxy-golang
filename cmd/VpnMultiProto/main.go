@@ -33,7 +33,7 @@ func init() {
 	Manager = multiprotocol.New()
 	Manager.CheckLoop()
 	pushSrv, _ = pushService.NewPushService()
-	softether.SoftHost = "10.0.2.70"
+	softether.SoftHost = "localhost"
 	softether.SoftPort = 443
 }
 
