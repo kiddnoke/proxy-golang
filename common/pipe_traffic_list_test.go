@@ -70,7 +70,7 @@ func TestPipeTrafficSet_AddTraffic(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 10000; i++ {
-			p.AddTraffic("t4", 1)
+			p.AddTraffic("t2", 1)
 		}
 		log.Println("task 4 finish")
 	}()

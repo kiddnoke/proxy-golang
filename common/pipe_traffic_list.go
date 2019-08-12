@@ -2,6 +2,8 @@ package common
 
 import (
 	"fmt"
+	"log"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -38,14 +40,26 @@ func ratter(n int64, duration time.Duration) float64 {
 	}
 	return 0
 }
+
 func (p *PipeTrafficSet) SamplingAndString(d time.Duration) string {
-	var str string
+	var list PipeTrafficList
 	p.list.Range(func(key, value interface{}) bool {
 		tr := atomic.LoadInt64(value.(*int64))
-		str += fmt.Sprintf(`{%s}:%f kb/s +`, key, ratter(tr, d))
-		p.list.Delete(key)
+		list = append(list, struct {
+			pipename string
+			traffic  int64
+		}{pipename: key.(string), traffic: tr})
+		p.list.Delete(key.(string))
 		return true
 	})
+
+	sort.Sort(sort.Reverse(list))
+	var str string
+	for _, item := range list {
+		pipename := item.pipename
+		traffic := item.traffic
+		str += fmt.Sprintf(`{%s}:%f kb/s +`, pipename, ratter(traffic, d))
+	}
 	if len(str) > 0 {
 		return str[:len(str)-1]
 	} else {
@@ -53,11 +67,18 @@ func (p *PipeTrafficSet) SamplingAndString(d time.Duration) string {
 	}
 }
 func (p *PipeTrafficSet) SamplingAndPrint(d time.Duration) {
-	p.list.Range(func(key, value interface{}) bool {
-		tr := atomic.LoadInt64(value.(*int64))
-		fmt.Printf(`{%s}:%f kb/s +`, key, ratter(tr, d))
-		p.list.Delete(key)
-		return true
-	})
-	fmt.Printf("\b\b\n")
+	log.Println(p.SamplingAndString(d))
+}
+
+type PipeTrafficList []struct {
+	pipename string
+	traffic  int64
+}
+
+func (p PipeTrafficList) Len() int { return len(p) }
+func (p PipeTrafficList) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p PipeTrafficList) Less(i, j int) bool {
+	return p[i].traffic < p[j].traffic
 }
