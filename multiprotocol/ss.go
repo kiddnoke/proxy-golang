@@ -65,9 +65,9 @@ func (s *SS) IsTimeout() bool {
 		return false
 	}
 	if s.GetLastTimeStamp().Add(time.Duration(s.Timeout) * time.Second).After(time.Now()) {
-		return true
-	} else {
 		return false
+	} else {
+		return true
 	}
 }
 

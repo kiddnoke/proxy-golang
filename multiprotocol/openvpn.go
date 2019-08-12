@@ -120,9 +120,9 @@ func (o *OpenVpn) IsTimeout() bool {
 		return false
 	}
 	if o.GetLastTimeStamp().Add(time.Duration(o.Timeout) * time.Second).After(time.Now()) {
-		return true
-	} else {
 		return false
+	} else {
+		return true
 	}
 }
 
