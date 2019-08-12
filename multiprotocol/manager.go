@@ -3,6 +3,7 @@ package multiprotocol
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	"log"
 	"proxy-golang/ss"
 	"proxy-golang/util"
 	"sync"
@@ -29,7 +30,7 @@ func generatorKey(args ...interface{}) (keystr string) {
 	for _, value := range args[:len(args)-1] {
 		keystr += fmt.Sprintf("%v-", value)
 	}
-	keystr += fmt.Sprintf("%v", args[len(args)-1])
+	keystr += fmt.Sprintf("\b")
 	return keystr
 }
 
@@ -88,7 +89,9 @@ func (m *Manager) Delete(config Config) error {
 		p.(Relayer).Close()
 		m.proxyTable.Delete(key)
 	} else {
-		return errors.WithMessagef(KeyNotExist, "config.Sid[%d],config.Uid[%d]", config.Sid, config.Uid)
+		err := errors.WithMessagef(KeyNotExist, "key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
+		log.Printf("%+v", err)
+		return err
 	}
 	return nil
 }
@@ -108,18 +111,22 @@ func (m *Manager) Update(config Config) error {
 			cp.Expire = config.Expire
 		}
 	} else {
-		return errors.WithMessagef(KeyNotExist, "config.Sid[%d],config.Uid[%d]", config.Sid, config.Uid)
+		err := errors.WithMessagef(KeyNotExist, "key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
+		log.Printf("%+v", err)
+		return err
 	}
 	return nil
 }
 
-func (m *Manager) Get(keys Config) (Re Relayer, err error) {
+func (m *Manager) Get(config Config) (Re Relayer, err error) {
 	var key string
-	key = generatorKey(keys.Sid)
+	key = generatorKey(config.Sid)
 	if p, found := m.proxyTable.Load(key); found {
 		return p.(Relayer), nil
 	} else {
-		return nil, errors.WithMessagef(KeyNotExist, "config.Sid[%d],config.Uid[%d]", keys.Sid, keys.Uid)
+		err = errors.WithMessagef(KeyNotExist, "key[%s],config.Sid[%d],config.Uid[%d]", key, config.Sid, config.Uid)
+		log.Printf("%+v", err)
+		return nil, err
 	}
 }
 
