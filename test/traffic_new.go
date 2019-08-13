@@ -18,7 +18,7 @@ type Traffic struct {
 	PreU         int64   `json:"pre_u"`
 	PreD         int64   `json:"pre_d"`
 	PreTimeStamp int64   `json:"pre_time_stamp"`
-	AvaRate      float64 `json:"ava_rate"`
+	AvgRate      float64 `json:"avg_rate"`
 	MaxRate      float64 `json:"max_rate"`
 
 	SamplingTimer time.Ticker
@@ -121,13 +121,13 @@ func (t *Traffic) OnceSampling() float64 {
 	timeNowToUint64(&t.PreTimeStamp)
 
 	dall := time.Since(UInt64ToTime(&t.StartStamp))
-	t.AvaRate = ratter(curr, dall)
+	t.AvgRate = ratter(curr, dall)
 
 	return rate
 }
 
 func (t *Traffic) GetRate() (float64, float64) {
-	return t.AvaRate, t.MaxRate
+	return t.AvgRate, t.MaxRate
 }
 
 func UInt64ToTime(u *int64) time.Time {

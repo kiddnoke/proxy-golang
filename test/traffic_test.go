@@ -1,8 +1,10 @@
 package common
 
 import (
+	"fmt"
 	"log"
 	"proxy-golang/common"
+	"strconv"
 	"sync"
 	"testing"
 )
@@ -128,4 +130,8 @@ func TestTraffic_timeNowToUint64(t *testing.T) {
 func TestTraffic_UInt64ToTime(t *testing.T) {
 	var i int64 = 1565245987729728700
 	log.Println(UInt64ToTime(&i))
+}
+func TestFloat(t *testing.T) {
+	s, _ := strconv.ParseFloat(fmt.Sprintf("%.1f", 1.05), 64)
+	log.Println(s)
 }

@@ -169,8 +169,8 @@ func (m *Manager) CheckLoop() {
 			item["app_id"] = c.AppId
 			item["sid"] = c.Sid
 			item["transfer"] = []int64{tu, td, uu, ud}
-			avarate, maxrate := p.GetRate()
-			item["maxrate"] = []float64{avarate, maxrate}
+			avgrate, maxrate := p.GetRate()
+			item["maxrate"] = []float64{avgrate, maxrate}
 			transferLists = append(transferLists, item)
 			return true
 		})
