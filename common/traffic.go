@@ -109,7 +109,7 @@ func (t *Traffic) StopSampling() {
 }
 func (t *Traffic) OnceSampling() float64 {
 	var ratter = func(n int64, duration time.Duration) float64 {
-		if n > 0 {
+		if duration.Seconds() > 0 {
 			return float64(n) / duration.Seconds() / 1024
 		}
 		return 0
