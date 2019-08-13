@@ -72,7 +72,7 @@ func (m *Manager) Add(proxy *Config) (err error) {
 			return err
 		}
 		relay.Start()
-		time.AfterFunc(time.Minute, func() {
+		time.AfterFunc(time.Minute/2, func() {
 			c := relay.GetConfig()
 			tu, td, uu, ud := relay.GetTraffic()
 			if tu+td+uu+ud == 0 {
