@@ -133,7 +133,7 @@ func timeNowToUint64(u *int64) {
 }
 func Ratter(n int64, duration time.Duration) float64 {
 	if n > 0 {
-		return float64(n) / duration.Seconds() / 1024
+		return float64(n) / 1024 / duration.Seconds()
 	}
 	return 0
 }

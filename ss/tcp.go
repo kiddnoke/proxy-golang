@@ -63,7 +63,7 @@ func (t *TcpRelay) Loop() {
 			if t == nil {
 				break
 			}
-			if rate := t.OnceSampling(); rate > 0 {
+			if rate := t.OnceSampling(); rate > 50.0 {
 				t.Info("total[%f kb/s] = %v", rate, pipe_set.SamplingAndString(time.Second))
 			}
 		}
@@ -160,6 +160,9 @@ func (t *TcpRelay) Loop() {
 			}()
 			pipe_err := <-ErrC
 			defer func() {
+				if down_flow < 30*1024 {
+					return
+				}
 				duration := time.Since(currstamp)
 				if ne, ok := err.(net.Error); ok && ne.Timeout() {
 					duration = duration - ReadDeadlineDuration
@@ -172,8 +175,8 @@ func (t *TcpRelay) Loop() {
 				if avgRate > maxRate {
 					maxRate = avgRate
 				}
-				t.Info("handler[%d] flow[%f k] duration[%f sec] avg_rate[%f kb/s] max_rate[%f kb/s] domain[%v] remoteaddr[%v] Error[%v]", handlerId, float64(_flow)/1024.0, duration.Seconds(), avgRate, maxRate, tgt, remoteconn.RemoteAddr(), pipe_err)
-				if t.ConnectInfoCallback != nil && down_flow > 10*1024 {
+				t.Info("handler[%d] flow[%f k] duration[%f sec] avg_rate[%f kb/s] max_rate[%f kb/s] domain[%v] remote_addr[%v] Error[%v]", handlerId, float64(_flow)/1024.0, duration.Seconds(), avgRate, maxRate, tgt, remoteconn.RemoteAddr(), pipe_err)
+				if t.ConnectInfoCallback != nil {
 					t.ConnectInfoCallback(time_stamp, avgRate, ip, website, float64(_flow)/1024.0, duration)
 				}
 			}()
