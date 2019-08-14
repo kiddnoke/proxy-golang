@@ -59,14 +59,12 @@ func (t *TcpRelay) Loop() {
 	go func() {
 		tick := time.NewTicker(time.Second)
 		for {
-			select {
-			case <-tick.C:
-				if t == nil {
-					break
-				}
-				if rate := t.OnceSampling(); rate > 0 {
-					t.Info("total[%f kb/s] = %v", rate, pipe_set.SamplingAndString(time.Second))
-				}
+			<-tick.C
+			if t == nil {
+				break
+			}
+			if rate := t.OnceSampling(); rate > 0 {
+				t.Info("total[%f kb/s] = %v", rate, pipe_set.SamplingAndString(time.Second))
 			}
 		}
 	}()
@@ -87,15 +85,16 @@ func (t *TcpRelay) Loop() {
 		go func(shadowconn net.Conn) {
 			t.handlerId++
 			handlerId := t.handlerId
-			defer func() {
-				t.conns.Delete(shadowconn.RemoteAddr().String())
-				shadowconn.Close()
-				ConnCount--
-			}()
-			t.conns.Store(shadowconn.RemoteAddr().String(), shadowconn)
-			ConnCount++
-			setTcpConnKeepAlive(shadowconn)
-
+			{
+				t.conns.Store(shadowconn.RemoteAddr().String(), shadowconn)
+				ConnCount++
+				setTcpConnKeepAlive(shadowconn)
+				defer func() {
+					t.conns.Delete(shadowconn.RemoteAddr().String())
+					shadowconn.Close()
+					ConnCount--
+				}()
+			}
 			tgt, err := socks.ReadAddr(shadowconn)
 			if err != nil {
 				t.Warn("socks.ReadAddr Error [%s],handlerId[%d], local[%s]", err.Error(), handlerId, shadowconn.RemoteAddr())
@@ -119,6 +118,23 @@ func (t *TcpRelay) Loop() {
 			t.Active()
 
 			var down_flow int64
+			var preDownFlow int64 = down_flow
+			var maxRate float64
+			maxRaterTicker := time.NewTicker(time.Second / 2)
+			defer maxRaterTicker.Stop()
+			go func() {
+				for {
+					<-maxRaterTicker.C
+					if t == nil {
+						break
+					}
+					currDownFlow := atomic.LoadInt64(&down_flow)
+					if rate := common.Ratter(currDownFlow-preDownFlow, time.Second/2); rate > 0 && rate > maxRate {
+						maxRate = rate
+					}
+					atomic.StoreInt64(&preDownFlow, currDownFlow)
+				}
+			}()
 			ErrC := make(chan error, 1)
 			go func() {
 				err := PipeThenClose(shadowconn, remoteconn, func(n int) {
@@ -150,13 +166,13 @@ func (t *TcpRelay) Loop() {
 				}
 				time_stamp := time.Now().UnixNano() / 1e6
 				_flow := atomic.LoadInt64(&down_flow)
-				rate := float64(_flow) / duration.Seconds() / 1024
+				avgRate := float64(_flow) / duration.Seconds() / 1024
 				ip := fmt.Sprintf("%v", shadowconn.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
 
-				t.Info("handler[%d] flow[%f k] duration[%f sec] rate[%f kb/s] domain[%v] remoteaddr[%v] Error[%s]", handlerId, float64(_flow)/1024.0, duration.Seconds(), rate, tgt, remoteconn.RemoteAddr(), err.Error())
+				t.Info("handler[%d] flow[%f k] duration[%f sec] avgRate[%f kb/s] maxRate[%f kb/s] domain[%v] remoteaddr[%v] Error[%s]", handlerId, float64(_flow)/1024.0, duration.Seconds(), avgRate, maxRate, remoteconn.RemoteAddr(), err.Error())
 				if t.ConnectInfoCallback != nil && down_flow > 10*1024 {
-					t.ConnectInfoCallback(time_stamp, rate, ip, website, float64(_flow)/1024.0, duration)
+					t.ConnectInfoCallback(time_stamp, avgRate, ip, website, float64(_flow)/1024.0, duration)
 				}
 			}()
 		}(c)

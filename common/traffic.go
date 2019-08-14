@@ -1,8 +1,6 @@
 package common
 
 import (
-	"fmt"
-	"strconv"
 	"sync/atomic"
 	"time"
 )
@@ -86,7 +84,7 @@ func (t *Traffic) GetLastTimeStamp() time.Time {
 func (t *Traffic) GetStartTimeStamp() time.Time {
 	return UInt64ToTime(&t.StartStamp)
 }
-func (t *Traffic) StartSampling() {
+func (t *Traffic) Sampling() {
 	t.SamplingTimer = *time.NewTicker(duration)
 	go func() {
 		for {
@@ -104,21 +102,11 @@ func (t *Traffic) StartSampling() {
 	}()
 	return
 }
-func (t *Traffic) StopSampling() {
-	t.SamplingTimer.Stop()
-}
 func (t *Traffic) OnceSampling() float64 {
-	var ratter = func(n int64, duration time.Duration) float64 {
-		if duration.Seconds() > 0 {
-			return float64(n) / duration.Seconds() / 1024
-		}
-		return 0
-	}
-
 	curr := atomic.LoadInt64(&t.Td) + atomic.LoadInt64(&t.Ud)
 	d := time.Since(UInt64ToTime(&t.PreTimeStamp))
 
-	rate := ratter(curr-atomic.LoadInt64(&t.PreD), d)
+	rate := Ratter(curr-atomic.LoadInt64(&t.PreD), d)
 	if rate > t.MaxRate {
 		t.MaxRate = rate
 	}
@@ -126,20 +114,12 @@ func (t *Traffic) OnceSampling() float64 {
 	timeNowToUint64(&t.PreTimeStamp)
 
 	dall := time.Since(UInt64ToTime(&t.StartStamp))
-	t.AvgRate = ratter(curr, dall)
+	t.AvgRate = Ratter(curr, dall)
 
 	return rate
 }
 
 func (t *Traffic) GetRate() (float64, float64) {
-	d := UInt64ToTime(&t.LastActiveStamp).Sub(UInt64ToTime(&t.StartStamp))
-	if d.Seconds() > 0 {
-		t.AvgRate = float64(t.Td+t.Ud) / d.Seconds() / 1024
-	}
-
-	t.AvgRate, _ = strconv.ParseFloat(fmt.Sprintf("%.1f", t.AvgRate), 64)
-	t.MaxRate, _ = strconv.ParseFloat(fmt.Sprintf("%.1f", t.MaxRate), 64)
-
 	return t.AvgRate, t.MaxRate
 }
 
@@ -148,6 +128,12 @@ func UInt64ToTime(u *int64) time.Time {
 	return time.Unix(value/1e9, value%1e9)
 }
 func timeNowToUint64(u *int64) {
-	t := time.Now().UnixNano()
+	t := time.Now().UTC().UnixNano()
 	atomic.StoreInt64(u, t)
+}
+func Ratter(n int64, duration time.Duration) float64 {
+	if n > 0 {
+		return float64(n) / duration.Seconds() / 1024
+	}
+	return 0
 }

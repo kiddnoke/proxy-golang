@@ -103,17 +103,10 @@ func (t *Traffic) Sampling() {
 	return
 }
 func (t *Traffic) OnceSampling() float64 {
-	var ratter = func(n int64, duration time.Duration) float64 {
-		if n > 0 {
-			return float64(n) / duration.Seconds() / 1024
-		}
-		return 0
-	}
-
 	curr := atomic.LoadInt64(&t.Td) + atomic.LoadInt64(&t.Ud)
 	d := time.Since(UInt64ToTime(&t.PreTimeStamp))
 
-	rate := ratter(curr-atomic.LoadInt64(&t.PreD), d)
+	rate := Ratter(curr-atomic.LoadInt64(&t.PreD), d)
 	if rate > t.MaxRate {
 		t.MaxRate = rate
 	}
@@ -121,7 +114,7 @@ func (t *Traffic) OnceSampling() float64 {
 	timeNowToUint64(&t.PreTimeStamp)
 
 	dall := time.Since(UInt64ToTime(&t.StartStamp))
-	t.AvgRate = ratter(curr, dall)
+	t.AvgRate = Ratter(curr, dall)
 
 	return rate
 }
@@ -137,4 +130,10 @@ func UInt64ToTime(u *int64) time.Time {
 func timeNowToUint64(u *int64) {
 	t := time.Now().UTC().UnixNano()
 	atomic.StoreInt64(u, t)
+}
+func Ratter(n int64, duration time.Duration) float64 {
+	if n > 0 {
+		return float64(n) / duration.Seconds() / 1024
+	}
+	return 0
 }
