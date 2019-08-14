@@ -1,6 +1,7 @@
 package common
 
 import (
+	"proxy-golang/util"
 	"sync/atomic"
 	"time"
 )
@@ -21,7 +22,7 @@ type Traffic struct {
 	AvgRate      float64 `json:"avg_rate"`
 	MaxRate      float64 `json:"max_rate"`
 
-	SamplingTimer time.Ticker
+	SamplingTimer util.Timer
 }
 
 func MakeTraffic() Traffic {
@@ -30,7 +31,7 @@ func MakeTraffic() Traffic {
 		time.Now().UnixNano(),
 		time.Now().UnixNano(),
 		0, 0, time.Now().UnixNano(), 0, 0,
-		time.Ticker{},
+		nil,
 	}
 }
 func NewTraffic() *Traffic {
@@ -39,7 +40,7 @@ func NewTraffic() *Traffic {
 		time.Now().UnixNano(),
 		time.Now().UnixNano(),
 		0, 0, time.Now().UnixNano(), 0, 0,
-		time.Ticker{},
+		nil,
 	}
 }
 func (t *Traffic) GetTraffic() (tu, td, uu, ud int64) {
@@ -84,23 +85,14 @@ func (t *Traffic) GetLastTimeStamp() time.Time {
 func (t *Traffic) GetStartTimeStamp() time.Time {
 	return int64ToTime(&t.StartStamp)
 }
-func (t *Traffic) Sampling() {
-	t.SamplingTimer = *time.NewTicker(duration)
-	go func() {
-		for {
-			select {
-			case <-t.SamplingTimer.C:
-				{
-					if t != nil {
-						t.OnceSampling()
-					} else {
-						break
-					}
-				}
-			}
-		}
-	}()
+func (t *Traffic) StartSampling() {
+	t.SamplingTimer = util.Interval(duration, func(when time.Time) {
+		t.OnceSampling()
+	})
 	return
+}
+func (t *Traffic) StopSampling() {
+	t.SamplingTimer.Stop()
 }
 func (t *Traffic) OnceSampling() float64 {
 	curr := atomic.LoadInt64(&t.Td) + atomic.LoadInt64(&t.Ud)

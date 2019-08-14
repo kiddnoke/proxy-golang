@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"proxy-golang/common"
+	"proxy-golang/util"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -56,18 +57,17 @@ func setTcpConnKeepAlive(c net.Conn) {
 func (t *TcpRelay) Loop() {
 	pipe_set := common.NewPipTrafficSet()
 	ConnCount := 0
-	go func() {
-		tick := time.NewTicker(time.Second)
-		for {
-			<-tick.C
-			if t == nil {
-				break
-			}
-			if rate := t.OnceSampling(); rate > 50.0 {
-				t.Info("total[%f kb/s] = %v", rate, pipe_set.SamplingAndString(time.Second))
-			}
+	totalRateTicker := util.Interval(time.Second, func(when time.Time) {
+		if t == nil || t.running == false {
+			t.Warn("Sampling Ticker Stop , this goroutine will be released")
+			return
 		}
-	}()
+		if rate := t.OnceSampling(); rate > 50.0 {
+			t.Info("total[%f kb/s] = %v", rate, pipe_set.SamplingAndString(time.Second))
+		}
+	})
+	defer totalRateTicker.Stop()
+
 	for t.running {
 		_ = t.l.SetDeadline(time.Now().Add(time.Millisecond * AcceptTimeout))
 		c, err := t.l.Accept()
@@ -120,21 +120,14 @@ func (t *TcpRelay) Loop() {
 			var down_flow int64
 			var preDownFlow int64 = down_flow
 			var maxRate float64
-			maxRaterTicker := time.NewTicker(time.Second / 2)
-			defer maxRaterTicker.Stop()
-			go func() {
-				for {
-					<-maxRaterTicker.C
-					if t == nil {
-						break
-					}
-					currDownFlow := atomic.LoadInt64(&down_flow)
-					if rate := common.Ratter(currDownFlow-preDownFlow, time.Second/2); rate > 0 && rate > maxRate {
-						maxRate = rate
-					}
-					atomic.StoreInt64(&preDownFlow, currDownFlow)
+			maxRateTicker := util.Interval(time.Millisecond*500, func(when time.Time) {
+				currDownFlow := atomic.LoadInt64(&down_flow)
+				if rate := common.Ratter(currDownFlow-preDownFlow, time.Second/2); rate > 0 && rate > maxRate {
+					maxRate = rate
 				}
-			}()
+				atomic.StoreInt64(&preDownFlow, currDownFlow)
+			})
+			defer maxRateTicker.Stop()
 			ErrC := make(chan error, 1)
 			go func() {
 				err := PipeThenClose(shadowconn, remoteconn, func(n int) {
@@ -219,37 +212,5 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) (netErr error) 
 			break
 		}
 	}
-	return
-}
-
-func PipeWithError(left, right net.Conn, addTraffic func(n, m int)) (err error) {
-	errc := make(chan error, 1)
-	pipe := func(front, back net.Conn, callback func(n int)) {
-		buf := leakyBuf.Get()
-		defer leakyBuf.Put(buf)
-		for {
-			n, err := front.Read(buf)
-			if addTraffic != nil && n > 0 {
-				callback(n)
-			}
-			if n > 0 {
-				if _, err := back.Write(buf[0:n]); err != nil {
-					errc <- err
-					break
-				}
-			}
-			if err != nil {
-				errc <- err
-				break
-			}
-		}
-	}
-	go pipe(left, right, func(n int) {
-		addTraffic(n, 0)
-	})
-	go pipe(right, left, func(n int) {
-		addTraffic(0, n)
-	})
-	err = <-errc
 	return
 }

@@ -11,16 +11,22 @@ type Timer interface {
 
 type interval struct {
 	*time.Ticker
+	done chan<- bool
 }
 
 func Interval(duration time.Duration, callback func(when time.Time)) (t *interval) {
 	t = new(interval)
+	done := make(chan bool)
+	t.done = done
 	t.Ticker = time.NewTicker(duration)
 	go func() {
+		defer t.Ticker.Stop()
 		for {
 			select {
 			case <-t.C:
 				callback(time.Now())
+			case <-done:
+				return
 			}
 		}
 	}()
@@ -28,7 +34,7 @@ func Interval(duration time.Duration, callback func(when time.Time)) (t *interva
 }
 
 func (i *interval) Stop() bool {
-	i.Ticker.Stop()
+	i.done <- true
 	return true
 }
 
