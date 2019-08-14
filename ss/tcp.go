@@ -158,7 +158,7 @@ func (t *TcpRelay) Loop() {
 				})
 				ErrC <- err
 			}()
-			err = <-ErrC
+			pipe_err := <-ErrC
 			defer func() {
 				duration := time.Since(currstamp)
 				if ne, ok := err.(net.Error); ok && ne.Timeout() {
@@ -166,11 +166,13 @@ func (t *TcpRelay) Loop() {
 				}
 				time_stamp := time.Now().UnixNano() / 1e6
 				_flow := atomic.LoadInt64(&down_flow)
-				avgRate := float64(_flow) / duration.Seconds() / 1024
+				avgRate := common.Ratter(_flow, duration)
 				ip := fmt.Sprintf("%v", shadowconn.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
-
-				t.Info("handler[%d] flow[%f k] duration[%f sec] avg_rate[%f kb/s] max_rate[%f kb/s] domain[%v] remoteaddr[%v] Error[%s]", handlerId, float64(_flow)/1024.0, duration.Seconds(), avgRate, maxRate, remoteconn.RemoteAddr(), err.Error())
+				if avgRate > maxRate {
+					maxRate = avgRate
+				}
+				t.Info("handler[%d] flow[%f k] duration[%f sec] avg_rate[%f kb/s] max_rate[%f kb/s] domain[%v] remoteaddr[%v] Error[%v]", handlerId, float64(_flow)/1024.0, duration.Seconds(), avgRate, maxRate, tgt, remoteconn.RemoteAddr(), pipe_err)
 				if t.ConnectInfoCallback != nil && down_flow > 10*1024 {
 					t.ConnectInfoCallback(time_stamp, avgRate, ip, website, float64(_flow)/1024.0, duration)
 				}
