@@ -79,10 +79,10 @@ func (t *Traffic) Active() {
 	timeNowToUint64(&t.LastActiveStamp)
 }
 func (t *Traffic) GetLastTimeStamp() time.Time {
-	return UInt64ToTime(&t.LastActiveStamp)
+	return int64ToTime(&t.LastActiveStamp)
 }
 func (t *Traffic) GetStartTimeStamp() time.Time {
-	return UInt64ToTime(&t.StartStamp)
+	return int64ToTime(&t.StartStamp)
 }
 func (t *Traffic) Sampling() {
 	t.SamplingTimer = *time.NewTicker(duration)
@@ -104,7 +104,7 @@ func (t *Traffic) Sampling() {
 }
 func (t *Traffic) OnceSampling() float64 {
 	curr := atomic.LoadInt64(&t.Td) + atomic.LoadInt64(&t.Ud)
-	d := time.Since(UInt64ToTime(&t.PreTimeStamp))
+	d := time.Since(int64ToTime(&t.PreTimeStamp))
 
 	rate := Ratter(curr-atomic.LoadInt64(&t.PreD), d)
 	if rate > t.MaxRate {
@@ -113,7 +113,7 @@ func (t *Traffic) OnceSampling() float64 {
 	atomic.CompareAndSwapInt64(&t.PreD, t.PreD, curr)
 	timeNowToUint64(&t.PreTimeStamp)
 
-	dall := time.Since(UInt64ToTime(&t.StartStamp))
+	dall := time.Since(int64ToTime(&t.StartStamp))
 	t.AvgRate = Ratter(curr, dall)
 
 	return rate
@@ -123,7 +123,7 @@ func (t *Traffic) GetRate() (float64, float64) {
 	return t.AvgRate, t.MaxRate
 }
 
-func UInt64ToTime(u *int64) time.Time {
+func int64ToTime(u *int64) time.Time {
 	value := atomic.LoadInt64(u)
 	return time.Unix(value/1e9, value%1e9)
 }
