@@ -170,7 +170,7 @@ func (t *TcpRelay) Loop() {
 				ip := fmt.Sprintf("%v", shadowconn.RemoteAddr())
 				website := fmt.Sprintf("%v", tgt)
 
-				t.Info("handler[%d] flow[%f k] duration[%f sec] avgRate[%f kb/s] maxRate[%f kb/s] domain[%v] remoteaddr[%v] Error[%s]", handlerId, float64(_flow)/1024.0, duration.Seconds(), avgRate, maxRate, remoteconn.RemoteAddr(), err.Error())
+				t.Info("handler[%d] flow[%f k] duration[%f sec] avg_rate[%f kb/s] max_rate[%f kb/s] domain[%v] remoteaddr[%v] Error[%s]", handlerId, float64(_flow)/1024.0, duration.Seconds(), avgRate, maxRate, remoteconn.RemoteAddr(), err.Error())
 				if t.ConnectInfoCallback != nil && down_flow > 10*1024 {
 					t.ConnectInfoCallback(time_stamp, avgRate, ip, website, float64(_flow)/1024.0, duration)
 				}
