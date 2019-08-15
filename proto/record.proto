@@ -21,4 +21,6 @@ message Record {
     string code = 16 ;
     string serverIp = 17 ;
     string serverType = 18 ;
+     int64 average_speed = 19 ;
+    int64 max_speed = 20 ;
 }

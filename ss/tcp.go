@@ -40,7 +40,7 @@ type TcpRelay struct {
 	l listener
 	*proxyinfo
 	conns               sync.Map
-	ConnectInfoCallback func(time_stamp int64, rate float64, localAddress, RemoteAddress string, traffic float64, duration time.Duration)
+	ConnectInfoCallback func(time_stamp int64, rate float64, localAddress, RemoteAddress string, traffic float64, duration time.Duration, max_rate float64)
 	handlerId           int
 }
 
@@ -170,7 +170,7 @@ func (t *TcpRelay) Loop() {
 				}
 				t.Info("handler[%d] flow[%f k] duration[%f sec] avg_rate[%f kb/s] max_rate[%f kb/s] domain[%v] remote_addr[%v] Error[%v]", handlerId, float64(_flow)/1024.0, duration.Seconds(), avgRate, maxRate, tgt, remoteconn.RemoteAddr(), pipe_err)
 				if t.ConnectInfoCallback != nil {
-					t.ConnectInfoCallback(time_stamp, avgRate, ip, website, float64(_flow)/1024.0, duration)
+					t.ConnectInfoCallback(time_stamp, avgRate, ip, website, float64(_flow)/1024.0, duration, maxRate)
 				}
 			}()
 		}(c)

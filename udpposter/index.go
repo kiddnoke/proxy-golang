@@ -31,9 +31,10 @@ func postRecordProtoBuf(record pb.Record) (err error) {
 func PostDict(item map[string]interface{}) (err error) {
 	return postRecordProtoBuf(pb.ConvertMapToRecordByReflect(item))
 }
+
 func PostParams(app_id, user_id, sn_id int64,
 	device_id, app_version, os, user_type, carrier_operator, network_type string,
-	ip, websit string, time_stamp, rate, connect_time, traffic int64, serverip string, state string, chargeType string) (err error) {
+	ip, websit string, time_stamp, rate, connect_time, traffic int64, serverip string, state string, chargeType string, maxSpeed int64) (err error) {
 	return postRecordProtoBuf(pb.Record{
 		AppId:           app_id,
 		NetworkType:     network_type,
@@ -53,6 +54,8 @@ func PostParams(app_id, user_id, sn_id int64,
 		Code:            state,
 		ServerIp:        serverip,
 		ServerType:      chargeType,
+		AverageSpeed:    rate,
+		MaxSpeed:        maxSpeed,
 	})
 }
 func PostMaxRate(app_id, user_id, sn_id int64,
