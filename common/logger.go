@@ -35,7 +35,7 @@ type Logger struct {
 
 func NewLogger(level int, prefix string) *Logger {
 	if level == LOG_DEFAULT {
-		_, level = GetDefaultLevel()
+		_, level = GetLoggerDefaultLevel()
 	}
 	return &Logger{
 		level:  level,
@@ -84,14 +84,14 @@ func LoggerLevel(level int) string {
 	}
 	panic(fmt.Sprintf("it do no have %d level", level))
 }
-func SetDefaultLevel(level int) {
+func SetLoggerDefaultLevel(level int) {
 	if LOG_TRACE <= level && level <= LOG_PANIC {
 		defaultLevel = level
 		return
 	}
 	panic(fmt.Sprintf("it do no have %d level", level))
 }
-func GetDefaultLevel() (string, int) {
+func GetLoggerDefaultLevel() (string, int) {
 	str := LoggerLevel(defaultLevel)
 	return str, defaultLevel
 }

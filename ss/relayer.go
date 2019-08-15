@@ -1,12 +1,13 @@
 package ss
 
 import (
-	"errors"
-	"fmt"
 	"net"
+	"strconv"
+
+	"github.com/pkg/errors"
+
 	"proxy-golang/common"
 	"proxy-golang/util"
-	"strconv"
 )
 
 type ProxyRelayer interface {
@@ -24,12 +25,14 @@ var leakyBuf = common.BuffPoll
 
 func NewProxyRelay(p *proxyinfo) (r *ProxyRelay, err error) {
 	t, err_t := NewTcpRelayByProxyInfo(p)
-	u, err_u := NewUdpRelayByProxyInfo(p)
-	if err_t == nil && err_u == nil {
-		return &ProxyRelay{TcpRelay: t, UdpRelay: u, proxyinfo: p}, err_t
-	} else {
-		return nil, errors.New(fmt.Sprintf("NewProxyRelay Error:%v, %v", err_t, err_u))
+	if err_t != nil {
+		return nil, errors.Wrapf(err_t, "new tcp relay proxyinfo[%v]", p)
 	}
+	u, err_u := NewUdpRelayByProxyInfo(p)
+	if err_u != nil {
+		return nil, errors.Wrapf(err_u, "new udp relay proxyinfo[%v]", p)
+	}
+	return &ProxyRelay{TcpRelay: t, UdpRelay: u, proxyinfo: p}, nil
 }
 func (r *ProxyRelay) Start() {
 	if r.running == false {

@@ -25,7 +25,7 @@ type OpenVpn struct {
 
 func NewOpenVpn(c *Config) (*OpenVpn, error) {
 	r := new(OpenVpn)
-	_, level := common.GetDefaultLevel()
+	_, level := common.GetLoggerDefaultLevel()
 	prefix := fmt.Sprintf("Uid[%d] Sid[%d] Port[%d] AppId[%d] Protocol[%s]", c.Uid, c.Sid, c.ServerPort, c.AppId, c.Protocol)
 	r.Logger = *common.NewLogger(level, prefix)
 	searchLimit, err := searchLimit(int64(c.CurrLimitDown), c.LimitArray, c.FlowArray, c.UsedTotalTraffic)

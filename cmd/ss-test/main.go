@@ -31,7 +31,7 @@ func main() {
 	flag.IntVar(&flags.loggerlevel, "log level", 2, "日志等级")
 	flag.Parse()
 
-	common.SetDefaultLevel(2)
+	common.SetLoggerDefaultLevel(2)
 
 	go HttpSrv(flags.ServerPort % 10000)
 

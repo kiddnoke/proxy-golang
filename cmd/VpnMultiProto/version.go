@@ -26,8 +26,8 @@ func init() {
 	log.Printf("BuildDate [%s]", BuildDate)
 	log.Printf("BuildBranch [%s]", BuildBranch)
 	i_loggerlevel, _ := strconv.Atoi(LoggerLevel)
-	common.SetDefaultLevel(i_loggerlevel)
-	commomLogLevel, _ := common.GetDefaultLevel()
+	common.SetLoggerDefaultLevel(i_loggerlevel)
+	commomLogLevel, _ := common.GetLoggerDefaultLevel()
 	log.Printf("LoggerLevel %s", commomLogLevel)
 }
 func GeneratePm2ConfigFile() (err error) {
