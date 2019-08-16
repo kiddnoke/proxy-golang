@@ -1,9 +1,12 @@
 package common
 
 import (
-	"proxy-golang/util"
+	"fmt"
+	"strconv"
 	"sync/atomic"
 	"time"
+
+	"proxy-golang/util"
 )
 
 const duration = time.Second
@@ -112,6 +115,14 @@ func (t *Traffic) OnceSampling() float64 {
 }
 
 func (t *Traffic) GetRate() (float64, float64) {
+	d := int64ToTime(&t.LastActiveStamp).Sub(int64ToTime(&t.StartStamp))
+	if d.Seconds() > 0 {
+		t.AvgRate = float64(t.Td+t.Ud) / d.Seconds() / 1024
+	}
+
+	t.AvgRate, _ = strconv.ParseFloat(fmt.Sprintf("%.1f", t.AvgRate), 64)
+	t.MaxRate, _ = strconv.ParseFloat(fmt.Sprintf("%.1f", t.MaxRate), 64)
+
 	return t.AvgRate, t.MaxRate
 }
 
@@ -120,7 +131,7 @@ func int64ToTime(u *int64) time.Time {
 	return time.Unix(value/1e9, value%1e9)
 }
 func timeNowToUint64(u *int64) {
-	t := time.Now().UTC().UnixNano()
+	t := time.Now().UnixNano()
 	atomic.StoreInt64(u, t)
 }
 func Ratter(n int64, duration time.Duration) float64 {
