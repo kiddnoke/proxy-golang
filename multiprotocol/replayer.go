@@ -14,6 +14,7 @@ type TrafficStatistic interface {
 	GetLastTimeStamp() time.Time
 	Clear()
 	GetRate() (float64, float64)
+	GetUsedDuration() time.Duration
 }
 type Switcher interface {
 	Start()

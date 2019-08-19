@@ -110,7 +110,7 @@ func main() {
 		transfer := []int64{tu, td, uu, ud}
 
 		timestamp := pr.GetLastTimeStamp()
-		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
+		duration := int64(pr.GetUsedDuration().Seconds())
 		pr.GetConfig().Timeout = 0
 		time.AfterFunc(time.Second*30, func() {
 			// 回收
@@ -141,7 +141,7 @@ func main() {
 		proxyinfo = *pr.GetConfig()
 		tu, td, uu, ud := pr.GetTraffic()
 		timestamp := pr.GetLastTimeStamp()
-		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
+		duration := int64(pr.GetUsedDuration().Seconds())
 		pr.GetConfig().Timeout = 0
 		err = Manager.Delete(proxyinfo)
 		if err != nil {
@@ -170,7 +170,7 @@ func main() {
 			Manager.Delete(proxyinfo)
 		})
 
-		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
+		duration := int64(pr.GetUsedDuration().Seconds())
 		avgrate, maxrate := pr.GetRate()
 		client.Expire(appid, sid, uid, transfer, duration, [2]float64{avgrate, maxrate})
 		mainlog.Warn("expire: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] duration[%d] rate[%v]", appid, sid, uid, tu, td, uu, ud, duration, []float64{avgrate, maxrate})
@@ -289,7 +289,7 @@ func main() {
 				CloseRetMsg["server_port"] = proxyinfo.ServerPort
 				CloseRetMsg["port"] = proxyinfo.ServerPort
 				CloseRetMsg["transfer"] = []int64{tu, td, uu, ud}
-				CloseRetMsg["duration"] = int64(p.GetLastTimeStamp().Sub(p.GetStartTimeStamp()).Seconds())
+				CloseRetMsg["duration"] = int64(p.GetUsedDuration().Seconds())
 				ava, max := p.GetRate()
 				CloseRetMsg["maxrate"] = []float64{ava, max}
 				Manager.Delete(proxyinfo)

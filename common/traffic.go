@@ -1,28 +1,30 @@
 package common
 
 import (
-	"proxy-golang/util"
+	"fmt"
+	"strconv"
 	"sync/atomic"
 	"time"
+
+	"proxy-golang/util"
 )
 
 const duration = time.Second
 
 type Traffic struct {
-	Tu              int64 `json:"tcp_up"`
-	Td              int64 `json:"tcp_down"`
-	Uu              int64 `json:"udp_up"`
-	Ud              int64 `json:"udp_down"`
-	StartStamp      int64 `json:"start_stamp"`
-	LastActiveStamp int64 `json:"last_active_stamp"`
-
-	PreU         int64   `json:"pre_u"`
-	PreD         int64   `json:"pre_d"`
-	PreTimeStamp int64   `json:"pre_time_stamp"`
-	AvgRate      float64 `json:"avg_rate"`
-	MaxRate      float64 `json:"max_rate"`
-
-	SamplingTimer util.Timer
+	Tu              int64   `json:"tcp_up"`
+	Td              int64   `json:"tcp_down"`
+	Uu              int64   `json:"udp_up"`
+	Ud              int64   `json:"udp_down"`
+	StartStamp      int64   `json:"start_stamp"`
+	LastActiveStamp int64   `json:"last_active_stamp"`
+	PreU            int64   `json:"pre_u"`
+	PreD            int64   `json:"pre_d"`
+	PreTimeStamp    int64   `json:"pre_time_stamp"`
+	AvgRate         float64 `json:"avg_rate"`
+	MaxRate         float64 `json:"max_rate"`
+	activeDuration  time.Duration
+	SamplingTimer   util.Timer
 }
 
 func MakeTraffic() Traffic {
@@ -31,6 +33,7 @@ func MakeTraffic() Traffic {
 		time.Now().UnixNano(),
 		time.Now().UnixNano(),
 		0, 0, time.Now().UnixNano(), 0, 0,
+		time.Duration(0),
 		nil,
 	}
 }
@@ -40,11 +43,13 @@ func NewTraffic() *Traffic {
 		time.Now().UnixNano(),
 		time.Now().UnixNano(),
 		0, 0, time.Now().UnixNano(), 0, 0,
+		time.Duration(0),
 		nil,
 	}
 }
 func (t *Traffic) GetTraffic() (tu, td, uu, ud int64) {
-	return t.Tu, t.Td, t.Uu, t.Ud
+	return atomic.LoadInt64(&t.Tu), atomic.LoadInt64(&t.Td),
+		atomic.LoadInt64(&t.Uu), atomic.LoadInt64(&t.Ud)
 }
 func (t *Traffic) GetTrafficWithClear() (tu, td, uu, ud int64) {
 	defer func() {
@@ -97,34 +102,47 @@ func (t *Traffic) StopSampling() {
 func (t *Traffic) OnceSampling() float64 {
 	curr := atomic.LoadInt64(&t.Td) + atomic.LoadInt64(&t.Ud)
 	d := time.Since(int64ToTime(&t.PreTimeStamp))
-
-	rate := Ratter(curr-atomic.LoadInt64(&t.PreD), d)
+	diff := curr - atomic.LoadInt64(&t.PreD)
+	if diff > 0 {
+		t.AddUsedDuration(d)
+	}
+	rate := Ratter(diff, d)
 	if rate > t.MaxRate {
 		t.MaxRate = rate
 	}
 	atomic.CompareAndSwapInt64(&t.PreD, t.PreD, curr)
 	timeNowToUint64(&t.PreTimeStamp)
 
-	dall := time.Since(int64ToTime(&t.StartStamp))
-	t.AvgRate = Ratter(curr, dall)
-
 	return rate
 }
-
+func (t *Traffic) AddUsedDuration(d time.Duration) {
+	t.activeDuration += d
+}
 func (t *Traffic) GetRate() (float64, float64) {
+	d := &t.activeDuration
+	if d.Seconds() > 0 {
+		t.AvgRate = float64(t.Td+t.Ud) / 1024 / d.Seconds()
+	}
+
+	t.AvgRate, _ = strconv.ParseFloat(fmt.Sprintf("%.1f", t.AvgRate), 64)
+	t.MaxRate, _ = strconv.ParseFloat(fmt.Sprintf("%.1f", t.MaxRate), 64)
+
 	return t.AvgRate, t.MaxRate
 }
 
+func (t *Traffic) GetUsedDuration() time.Duration {
+	return t.activeDuration
+}
 func int64ToTime(u *int64) time.Time {
 	value := atomic.LoadInt64(u)
 	return time.Unix(value/1e9, value%1e9)
 }
 func timeNowToUint64(u *int64) {
-	t := time.Now().UTC().UnixNano()
+	t := time.Now().UnixNano()
 	atomic.StoreInt64(u, t)
 }
 func Ratter(n int64, duration time.Duration) float64 {
-	if n > 0 {
+	if n > 0 && duration > 0 {
 		return float64(n) / 1024 / duration.Seconds()
 	}
 	return 0
