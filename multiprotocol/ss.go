@@ -147,3 +147,6 @@ func (s *SS) GetConfig() *Config {
 func (s *SS) GetRate() (float64, float64) {
 	return s.Traffic.GetRate()
 }
+func (s *SS) GetUsedDuration() time.Duration {
+	return s.Traffic.GetUsedDuration()
+}
