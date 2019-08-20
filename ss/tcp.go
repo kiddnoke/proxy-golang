@@ -150,8 +150,8 @@ func (t *TcpRelay) Loop() {
 
 			//remote -> downloadPipeW downloadPipeR -> shadows_conn
 
-			downloadPipeR, downloadPipeW := common.Pipe(1024)
-			//downloadPipeR, downloadPipeW := io.Pipe()
+			//downloadPipeR, downloadPipeW := common.Pipe(1024)
+			downloadPipeR, downloadPipeW := io.Pipe()
 			//downloadPipeR, downloadPipeW := net.Pipe()
 
 			//downloadPipeRW := common.NewBuffPipe(1024)
@@ -208,12 +208,10 @@ func (t *TcpRelay) Loop() {
 			go func() {
 				defer wg.Done()
 				key := tgt.String()
-				err := PipeThenClose(downloadPipeR, shadowconn, func(n int) {
-					downloadPipeR.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
+				err := PipeThenClose(common.TimeOutReaderWrap(downloadPipeR, ReadDeadlineDuration), shadowconn, func(n int) {
 					if err := t.Limiter.WaitN(n); err != nil {
 						t.Error("[%v] -> [%v] speedlimiter err:%v", shadowconn.RemoteAddr(), tgt, err)
 					}
-
 					atomic.AddInt64(&SendBytes, int64(n))
 					t.AddTraffic(0, int64(n), 0, 0)
 					pipe_set.AddTraffic(key, int64(n))
