@@ -150,7 +150,7 @@ func (t *TcpRelay) Loop() {
 			}()
 			go func() {
 				key := shadowconn.RemoteAddr().String() + "=>" + tgt.String()
-				err := PipeNonBlocking(remoteconn, shadowconn, func(n int, cache_length int) {
+				err := PipeThenClose(remoteconn, shadowconn, func(n int) {
 					remoteconn.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
 					if err := t.Limiter.WaitN(n); err != nil {
 						t.Error("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
@@ -159,13 +159,13 @@ func (t *TcpRelay) Loop() {
 					t.AddTraffic(0, int64(n), 0, 0)
 					pipe_set.AddTraffic(key, int64(n))
 
-					curr_cache_length := int64(cache_length)
+					curr_cache_length := int64(0)
 					if atomic.LoadInt64(&maxCacheLength) < curr_cache_length {
 						atomic.StoreInt64(&maxCacheLength, curr_cache_length)
 					}
 					countCacheLength++
 					avgCacheLength += curr_cache_length
-				}, &cache_remote_shadows)
+				})
 				if countCacheLength > 0 {
 					avgCacheLength /= countCacheLength
 				}
@@ -208,57 +208,4 @@ func (t *TcpRelay) Close() {
 	if t.running == false {
 		t.l.Close()
 	}
-}
-
-func PipeThenClose(left, right net.Conn, addTraffic func(n int)) (netErr error) {
-	buf := leakyBuf.Get()
-	defer leakyBuf.Put(buf)
-	for {
-		n, err := left.Read(buf)
-		if addTraffic != nil && n > 0 {
-			addTraffic(n)
-		}
-		if n > 0 {
-			if _, err := right.Write(buf[0:n]); err != nil {
-				netErr = err
-				break
-			}
-		}
-		if err != nil {
-			netErr = err
-			break
-		}
-	}
-	return
-}
-
-func PipeNonBlocking(left, right net.Conn, addTraffic func(n int, cache_length int), cache *[]byte) (netErr error) {
-	buf := leakyBuf.Get()
-	defer leakyBuf.Put(buf)
-	setTcpConNonBlocking(right)
-	for {
-		nr, err := left.Read(buf)
-		if nr == 0 || err != nil {
-			return err
-		}
-		if addTraffic != nil && nr > 0 {
-			*cache = append(*cache, buf[:nr]...)
-		}
-		if nr > 0 {
-			//right.SetWriteDeadline(time.Now().Add(WriteDeadlineDuration))
-			nw, err := right.Write(*cache)
-			if nw > 0 {
-				*cache = (*cache)[nw:]
-				addTraffic(nr, len(*cache))
-			}
-			if err != nil {
-				if eo, ok := err.(*net.OpError); ok && eo.Timeout() {
-					continue
-				}
-				netErr = err
-				break
-			}
-		}
-	}
-	return
 }

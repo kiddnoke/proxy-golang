@@ -13,6 +13,7 @@ type proxyinfo struct {
 	common.Traffic
 	common.Logger
 	running bool
+	common.LeakyBuf
 }
 
 func NewProxyInfo(ServerPort int, Method string, Password string, Speed int) (pi *proxyinfo, err error) {
@@ -29,6 +30,7 @@ func NewProxyInfo(ServerPort int, Method string, Password string, Speed int) (pi
 		Traffic:    common.MakeTraffic(),
 		running:    false,
 		Logger:     *common.NewLogger(level, ""),
+		LeakyBuf:   *common.NewLeakyBuf(Speed, 1024*4),
 	}
 	return p, err
 }
