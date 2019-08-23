@@ -153,7 +153,7 @@ func (t *TcpRelay) Loop() {
 			}()
 			pipe_err := <-ErrC
 			defer func() {
-				if down_flow < 30*1024 {
+				if down_flow < 10*1024 {
 					return
 				}
 				duration := time.Since(currstamp)
