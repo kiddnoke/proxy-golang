@@ -14,7 +14,7 @@ import (
 )
 
 var ReadDeadlineDuration = time.Second * 15
-var WriteDeadlineDuration = ReadDeadlineDuration
+var WriteDeadlineDuration = time.Millisecond * 5
 
 const DialTimeoutDuration = time.Second * 5
 const KeepAlivePeriod = time.Second * 15
@@ -120,11 +120,21 @@ func (t *TcpRelay) Loop() {
 			var down_flow int64
 			var preDownFlow int64 = down_flow
 			var maxRate float64
-			maxRateTicker := util.Interval(time.Millisecond*500, func(when time.Time) {
+			var maxCacheLength int64
+			var avgCacheLength int64
+			var countCacheLength int64
+			var cache_remote_shadows []byte
+
+			var pre time.Time = time.Now()
+			maxRateTicker := util.Interval(time.Second/10, func(when time.Time) {
 				currDownFlow := atomic.LoadInt64(&down_flow)
-				if rate := common.Ratter(currDownFlow-preDownFlow, time.Second/2); rate > 0 && rate > maxRate {
+				diff := atomic.LoadInt64(&down_flow) - atomic.LoadInt64(&preDownFlow)
+				dur := when.Sub(pre)
+				t.Info("handler[%d] speed[%.3f kb/s] = [%d] / [%v] ", handlerId, common.Ratter(diff, dur), diff, dur)
+				if rate := common.Ratter(diff, dur); rate > 0 && rate > maxRate {
 					maxRate = rate
 				}
+				pre = when
 				atomic.StoreInt64(&preDownFlow, currDownFlow)
 			})
 			defer maxRateTicker.Stop()
@@ -140,7 +150,7 @@ func (t *TcpRelay) Loop() {
 			}()
 			go func() {
 				key := shadowconn.RemoteAddr().String() + "=>" + tgt.String()
-				err := PipeThenClose(remoteconn, shadowconn, func(n int) {
+				err := PipeNonBlocking(remoteconn, shadowconn, func(n int, cache_length int) {
 					remoteconn.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
 					if err := t.Limiter.WaitN(n); err != nil {
 						t.Error("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
@@ -148,16 +158,23 @@ func (t *TcpRelay) Loop() {
 					atomic.AddInt64(&down_flow, int64(n))
 					t.AddTraffic(0, int64(n), 0, 0)
 					pipe_set.AddTraffic(key, int64(n))
-				})
+
+					curr_cache_length := int64(cache_length)
+					if atomic.LoadInt64(&maxCacheLength) < curr_cache_length {
+						atomic.StoreInt64(&maxCacheLength, curr_cache_length)
+					}
+					countCacheLength++
+					avgCacheLength += curr_cache_length
+				}, &cache_remote_shadows)
+				if countCacheLength > 0 {
+					avgCacheLength /= countCacheLength
+				}
 				ErrC <- err
 			}()
 			pipe_err := <-ErrC
 			defer func() {
-				if down_flow < 30*1024 {
-					return
-				}
 				duration := time.Since(currstamp)
-				if ne, ok := err.(net.Error); ok && ne.Timeout() {
+				if ne, ok := pipe_err.(net.Error); ok && ne.Timeout() {
 					duration = duration - ReadDeadlineDuration
 				}
 				time_stamp := time.Now().UnixNano() / 1e6
@@ -168,7 +185,7 @@ func (t *TcpRelay) Loop() {
 				if avgRate > maxRate {
 					maxRate = avgRate
 				}
-				t.Info("handler[%d] flow[%f k] duration[%f sec] avg_rate[%f kb/s] max_rate[%f kb/s] domain[%v] remote_addr[%v] Error[%v]", handlerId, float64(_flow)/1024.0, duration.Seconds(), avgRate, maxRate, tgt, remoteconn.RemoteAddr(), pipe_err)
+				t.Info("handler[%d] flow[%f k] duration[%f sec] avg_rate[%f kb/s] max_rate[%f kb/s] domain[%v] remote_addr[%v] avgCacheLength[%d] maxCacheLength[%d] countCacheLength[%d] Error[%v]", handlerId, float64(_flow)/1024.0, duration.Seconds(), avgRate, maxRate, tgt, remoteconn.RemoteAddr(), avgCacheLength, maxCacheLength, countCacheLength, pipe_err)
 				if t.ConnectInfoCallback != nil {
 					t.ConnectInfoCallback(time_stamp, avgRate, ip, website, float64(_flow)/1024.0, duration, maxRate)
 				}
@@ -210,6 +227,37 @@ func PipeThenClose(left, right net.Conn, addTraffic func(n int)) (netErr error) 
 		if err != nil {
 			netErr = err
 			break
+		}
+	}
+	return
+}
+
+func PipeNonBlocking(left, right net.Conn, addTraffic func(n int, cache_length int), cache *[]byte) (netErr error) {
+	buf := leakyBuf.Get()
+	defer leakyBuf.Put(buf)
+	setTcpConNonBlocking(right)
+	for {
+		nr, err := left.Read(buf)
+		if nr == 0 || err != nil {
+			return err
+		}
+		if addTraffic != nil && nr > 0 {
+			*cache = append(*cache, buf[:nr]...)
+		}
+		if nr > 0 {
+			//right.SetWriteDeadline(time.Now().Add(WriteDeadlineDuration))
+			nw, err := right.Write(*cache)
+			if nw > 0 {
+				*cache = (*cache)[nw:]
+				addTraffic(nr, len(*cache))
+			}
+			if err != nil {
+				if eo, ok := err.(*net.OpError); ok && eo.Timeout() {
+					continue
+				}
+				netErr = err
+				break
+			}
 		}
 	}
 	return

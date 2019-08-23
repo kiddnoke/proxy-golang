@@ -89,6 +89,7 @@ func (u *UdpRelay) Loop() {
 						//logf("failed to resolve target UDP address: %v", err)
 						goto End
 					}
+					u.Info("localAddr[%v] => tgtAddr[%v]", k, tgtAddr.String())
 					pc.SetReadDeadline(time.Now().Add(UDPTimeout))
 					if _, err = pc.WriteTo(buf[len(tgtAddr):], tgtUDPAddr); err != nil {
 						//logf("UDP remote write error: %v", err)
