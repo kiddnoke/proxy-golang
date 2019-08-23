@@ -14,9 +14,12 @@ type interval struct {
 	done chan<- bool
 }
 
-func Interval(duration time.Duration, callback func(when time.Time)) (t *interval) {
+func Interval(duration time.Duration, callback func(when time.Time), immediately ...interface{}) (t *interval) {
 	t = new(interval)
 	done := make(chan bool)
+	if len(immediately) > 0 && immediately[0] == true {
+		callback(time.Now())
+	}
 	t.done = done
 	t.Ticker = time.NewTicker(duration)
 	go func() {
@@ -58,8 +61,11 @@ func (i *intervalrandom) Stop() bool {
 	i.Timer.Stop()
 	return true
 }
-func IntervalRange(first, end time.Duration, callback func(when time.Time)) (t *intervalrandom, err error) {
+func IntervalRange(first, end time.Duration, callback func(when time.Time), immediately ...interface{}) (t *intervalrandom) {
 	t = new(intervalrandom)
+	if len(immediately) > 0 && immediately[0] == true {
+		callback(time.Now())
+	}
 	if first > end {
 		first, end = end, first
 	}
@@ -72,6 +78,6 @@ func IntervalRange(first, end time.Duration, callback func(when time.Time)) (t *
 	})
 	return
 }
-func IntervalRandom(jichu, fudong time.Duration, callback func(when time.Time)) (t *intervalrandom, err error) {
+func IntervalRandom(jichu, fudong time.Duration, callback func(when time.Time)) (t *intervalrandom) {
 	return IntervalRange(jichu-fudong, jichu+fudong, callback)
 }
