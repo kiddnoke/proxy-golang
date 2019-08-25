@@ -14,7 +14,6 @@ import (
 )
 
 var ReadDeadlineDuration = time.Second * 15
-var WriteDeadlineDuration = time.Millisecond * 5
 
 const DialTimeoutDuration = time.Second * 5
 const KeepAlivePeriod = time.Second * 15
@@ -150,21 +149,21 @@ func (t *TcpRelay) Loop() {
 			}()
 			go func() {
 				key := shadowconn.RemoteAddr().String() + "=>" + tgt.String()
-				err := PipeThenClose(remoteconn, shadowconn, func(n int) {
+				err := PipeNonBlocking(&cache_remote_shadows, remoteconn, shadowconn, func(nr, nw, length int) {
 					remoteconn.SetReadDeadline(time.Now().Add(ReadDeadlineDuration))
-					if err := t.Limiter.WaitN(n); err != nil {
+					if err := t.Limiter.WaitN(nw); err != nil {
 						t.Error("[%v] -> [%v] speedlimiter err:%v", tgt, shadowconn.RemoteAddr(), err)
 					}
-					atomic.AddInt64(&down_flow, int64(n))
-					t.AddTraffic(0, int64(n), 0, 0)
-					pipe_set.AddTraffic(key, int64(n))
+					atomic.AddInt64(&down_flow, int64(nw))
+					t.AddTraffic(0, int64(nw), 0, 0)
+					pipe_set.AddTraffic(key, int64(nw))
 
-					curr_cache_length := int64(0)
+					curr_cache_length := int64(length)
 					if atomic.LoadInt64(&maxCacheLength) < curr_cache_length {
 						atomic.StoreInt64(&maxCacheLength, curr_cache_length)
 					}
 					countCacheLength++
-					avgCacheLength += curr_cache_length
+					atomic.AddInt64(&avgCacheLength, curr_cache_length)
 				})
 				if countCacheLength > 0 {
 					avgCacheLength /= countCacheLength

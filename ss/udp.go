@@ -11,7 +11,7 @@ import (
 )
 
 const udpBufSize = 4 * 1024
-const UDPTimeout = time.Minute
+const UDPTimeout = time.Minute * 3
 
 var bufPool = sync.Pool{New: func() interface{} { return make([]byte, udpBufSize) }}
 
