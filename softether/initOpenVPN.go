@@ -19,7 +19,7 @@ var RemoteAccess string
 var DDnsHostName string
 var Ipv4Address string
 
-const OpenVpnServicePort = 21194
+const OpenVpnServicePort = 443
 
 func Init() {
 	selflogger = common.NewLogger(common.LOG_DEFAULT, "CronTask")
