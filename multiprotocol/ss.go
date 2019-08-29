@@ -2,6 +2,7 @@ package multiprotocol
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"proxy-golang/ss"
@@ -38,7 +39,7 @@ func NewSS(p *Config) (r *SS, err error) {
 		_ = udpposter.PostParams(p.AppId, p.Uid, p.SnId,
 			p.DeviceId, p.AppVersion, p.Os, p.UserType, p.CarrierOperators, p.NetworkType,
 			localAddress, RemoteAddress, time_stamp,
-			int64(rate*100), int64(duration.Seconds()*100), int64(traffic*100), p.Ip, p.State, p.UserType, int64(max_rate*100))
+			int64(rate*100), int64(duration.Seconds()*100), int64(traffic*100), p.Ip+":"+strconv.Itoa(p.ServerPort), p.State, p.UserType, int64(max_rate*100))
 	}
 	r.Config = *p
 	r.ProxyRelay = *pr
