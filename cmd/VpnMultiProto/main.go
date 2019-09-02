@@ -80,7 +80,7 @@ func main() {
 	}
 	// udp echo service
 	{
-		go delayer()
+		go udpEchoDelayer()
 	}
 
 	client := wswrapper.New()
