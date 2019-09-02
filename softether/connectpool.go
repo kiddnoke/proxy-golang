@@ -3,8 +3,11 @@ package softether
 import (
 	"errors"
 	"fmt"
-	"github.com/kiddnoke/SoftetherGo"
 	"time"
+
+	"github.com/kiddnoke/SoftetherGo"
+
+	"proxy-golang/util"
 )
 
 type Pool struct {
@@ -61,17 +64,11 @@ func PoolHeartBeatLoop() {
 		panic(err)
 	}
 
-	timer := time.NewTicker(30 * time.Second)
-	go func() {
-		for {
-			select {
-			case <-timer.C:
-				_, err := c.Test()
-				if err != nil {
-					panic(err)
-				}
-			}
+	util.Interval(30*time.Second, func(when time.Time) {
+		if _, err := c.Test(); err != nil {
+			panic(err)
 		}
-	}()
+	})
+
 	return
 }
