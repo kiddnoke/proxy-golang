@@ -61,6 +61,7 @@ func Init() {
 
 	//
 	c.CreateListener(OpenVpnServicePort, true)
+	c.DeleteListener(443)
 
 	log.Println("Softether Init Success")
 	PoolHeartBeatLoop()

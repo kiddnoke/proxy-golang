@@ -34,7 +34,7 @@ func init() {
 	Manager.CheckLoop()
 	pushSrv, _ = pushService.NewPushService()
 	softether.SoftHost = "localhost"
-	softether.SoftPort = 443
+	softether.SoftPort = 5555
 }
 
 func main() {
@@ -121,7 +121,7 @@ func main() {
 		})
 		avgrate, maxrate := pr.GetRate()
 		client.Timeout(appid, sid, uid, transfer, timestamp.Unix(), duration, [2]float64{avgrate, maxrate})
-		mainlog.Warn("timeout: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d] ,rate[%v]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration, []float64{avgrate, maxrate})
+		pr.Warn("timeout: transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d] ,rate[%v]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration, []float64{avgrate, maxrate})
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
 		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(maxrate*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
@@ -147,7 +147,7 @@ func main() {
 		if err != nil {
 			mainlog.Error("%+v", err)
 		}
-		mainlog.Warn("fast_release: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration)
+		pr.Warn("fast_release: transfer[%d,%d,%d,%d] ,timestamp[%d] duration[%d]", appid, sid, uid, tu, td, uu, ud, timestamp.Unix(), duration)
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
 	})
@@ -173,7 +173,7 @@ func main() {
 		duration := int64(pr.GetLastTimeStamp().Sub(pr.GetStartTimeStamp()).Seconds())
 		avgrate, maxrate := pr.GetRate()
 		client.Expire(appid, sid, uid, transfer, duration, [2]float64{avgrate, maxrate})
-		mainlog.Warn("expire: appid[%d] sid[%d] uid[%d] ,transfer[%d,%d,%d,%d] duration[%d] rate[%v]", appid, sid, uid, tu, td, uu, ud, duration, []float64{avgrate, maxrate})
+		pr.Warn("expire: transfer[%d,%d,%d,%d] duration[%d] rate[%v]", appid, sid, uid, tu, td, uu, ud, duration, []float64{avgrate, maxrate})
 		client.Health(Manager.Health())
 		client.Size(Manager.Size())
 		udpposter.PostMaxRate(appid, uid, sid, proxyinfo.DeviceId, proxyinfo.AppVersion, proxyinfo.Os, proxyinfo.UserType, proxyinfo.CarrierOperators, proxyinfo.NetworkType, int64(maxrate*100), duration*100, int64(tu+td+uu+ud), proxyinfo.Ip, proxyinfo.State, proxyinfo.UserType)
@@ -207,7 +207,7 @@ func main() {
 			log.Println(err)
 			return
 		}
-		mainlog.Warn("balance: appid[%d] sid[%d] uid[%d] ,BalanceNotifyDuration[%d]", appid, sid, uid, pr.GetConfig().BalanceNotifyDuration)
+		pr.Warn("balance: BalanceNotifyDuration[%d]", appid, sid, uid, pr.GetConfig().BalanceNotifyDuration)
 		client.Balance(appid, sid, uid, pr.GetConfig().BalanceNotifyDuration)
 		pr.GetConfig().BalanceNotifyDuration = 0
 		key := pushService.GeneratorKey(uid, sid, port, appid)
